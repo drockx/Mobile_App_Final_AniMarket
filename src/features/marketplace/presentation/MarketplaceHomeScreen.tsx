@@ -17,15 +17,21 @@ import { listings } from '../data/listings';
 import { filterListings, type Listing, type LivestockCategory } from '../domain/listing';
 
 const palette = {
-  green: '#17392e',
-  greenLight: '#25634f',
-  ink: '#21312e',
-  muted: '#78899c',
-  border: '#dce6f0',
-  surface: '#fcfefd',
+  green: '#123f32',
+  greenSoft: '#296a52',
+  ink: '#1d2b27',
+  muted: '#8491a6',
+  border: '#dde5ee',
+  surface: '#f9fcf9',
 };
 
-const categories: LivestockCategory[] = ['Pig', 'Cow', 'Chicken', 'Goat'];
+const categoryOptions: Array<{ label: string; value: LivestockCategory | null }> = [
+  { label: 'All Livestock', value: null },
+  { label: 'Cattle', value: 'Cow' },
+  { label: 'Goats', value: 'Goat' },
+  { label: 'Poultry', value: 'Chicken' },
+  { label: 'Pigs', value: 'Pig' },
+];
 
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
 
@@ -50,7 +56,7 @@ function ListingCard({ listing }: { listing: Listing }) {
       <Image source={listing.image} contentFit="cover" style={styles.cardImage} />
       <View style={styles.cardBody}>
         <Text numberOfLines={1} style={styles.cardTitle}>{listing.title}</Text>
-        <Text numberOfLines={2} style={styles.cardDetails}>{listing.details}</Text>
+        <Text numberOfLines={1} style={styles.cardDetails}>{listing.details}</Text>
         <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
       </View>
     </View>
@@ -66,7 +72,7 @@ function BottomBar({ bottomInset }: { bottomInset: number }) {
   ];
 
   return (
-    <View style={[styles.bottomBar, { paddingBottom: Math.max(bottomInset, 8) }]}>
+    <View style={[styles.bottomBar, { paddingBottom: Math.max(bottomInset, 6) }]}>
       {tabs.slice(0, 2).map((tab) => (
         <Pressable
           key={tab.label}
@@ -76,19 +82,23 @@ function BottomBar({ bottomInset }: { bottomInset: number }) {
           disabled={!tab.active}
           style={[styles.tab, !tab.active && styles.tabDisabled]}
         >
-          <Icon name={tab.icon} size={21} color={tab.active ? palette.green : '#93a7c0'} />
-          <Text numberOfLines={2} style={[styles.tabLabel, tab.active && styles.tabLabelActive]}>{tab.label}</Text>
+          <Icon name={tab.icon} size={22} color={tab.active ? palette.green : '#8fa3bf'} />
+          <Text numberOfLines={1} style={[styles.tabLabel, tab.active && styles.tabLabelActive]}>{tab.label}</Text>
         </Pressable>
       ))}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Create listing"
-        accessibilityState={{ disabled: true }}
-        disabled
-        style={[styles.addTab, styles.tabDisabled]}
-      >
-        <View style={styles.addCircle}><Icon name={icons.add} size={24} color="#fff" /></View>
-      </Pressable>
+
+      <View style={styles.addSlot}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Create listing"
+          accessibilityState={{ disabled: true }}
+          disabled
+          style={styles.addButton}
+        >
+          <Icon name={icons.add} size={26} color="#fff" />
+        </Pressable>
+      </View>
+
       {tabs.slice(2).map((tab) => (
         <Pressable
           key={tab.label}
@@ -98,8 +108,8 @@ function BottomBar({ bottomInset }: { bottomInset: number }) {
           disabled
           style={[styles.tab, styles.tabDisabled]}
         >
-          <Icon name={tab.icon} size={21} color="#93a7c0" />
-          <Text numberOfLines={2} style={styles.tabLabel}>{tab.label}</Text>
+          <Icon name={tab.icon} size={22} color="#8fa3bf" />
+          <Text numberOfLines={1} style={styles.tabLabel}>{tab.label}</Text>
         </Pressable>
       ))}
     </View>
@@ -108,9 +118,10 @@ function BottomBar({ bottomInset }: { bottomInset: number }) {
 
 export function MarketplaceHomeScreen() {
   const insets = useSafeAreaInsets();
-  const [category, setCategory] = useState<LivestockCategory | null>('Pig');
+  const [category, setCategory] = useState<LivestockCategory | null>(null);
   const [query, setQuery] = useState('');
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+
   const visibleListings = useMemo(
     () => filterListings(listings, category, query, verifiedOnly),
     [category, query, verifiedOnly],
@@ -120,12 +131,12 @@ export function MarketplaceHomeScreen() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 13 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 10 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.locationRow}>
-          <Icon name={icons.location} size={20} />
+          <Icon name={icons.location} size={19} />
           <View style={styles.locationText}>
             <Text style={styles.locationCaption}>LOCATION</Text>
             <Text style={styles.locationName}>Davao City, PH</Text>
@@ -136,19 +147,19 @@ export function MarketplaceHomeScreen() {
             onPress={() => Alert.alert('Notifications', 'You have no new notifications.')}
             style={styles.notificationButton}
           >
-            <Icon name={icons.notification} size={20} />
+            <Icon name={icons.notification} size={20} color="#23352f" />
             <View style={styles.notificationDot} />
           </Pressable>
         </View>
 
         <View style={styles.searchBox}>
-          <Icon name={icons.search} size={19} color="#7f93a9" />
+          <Icon name={icons.search} size={18} color="#8ea0b8" />
           <TextInput
             accessibilityLabel="Search livestock"
             autoCapitalize="none"
             onChangeText={setQuery}
-            placeholder="Search pigs, cows, chickens, goats..."
-            placeholderTextColor="#5d6d80"
+            placeholder="Search cattle, goats, feeds..."
+            placeholderTextColor="#44536a"
             returnKeyType="search"
             style={styles.searchInput}
             value={query}
@@ -157,28 +168,28 @@ export function MarketplaceHomeScreen() {
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Categories</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Show all categories"
-            hitSlop={4}
-            onPress={() => setCategory(null)}
-            style={styles.sectionActionButton}
-          >
-            <Text style={styles.sectionAction}>See all</Text>
-          </Pressable>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-          {categories.map((item) => (
-            <Pressable
-              key={item}
-              accessibilityRole="button"
-              accessibilityState={{ selected: category === item }}
-              onPress={() => setCategory(item)}
-              style={[styles.chip, category === item && styles.chipSelected]}
-            >
-              <Text style={[styles.chipText, category === item && styles.chipTextSelected]}>{item}</Text>
-            </Pressable>
-          ))}
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
+          {categoryOptions.map((item) => {
+            const selected = category === item.value;
+
+            return (
+              <Pressable
+                key={item.label}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setCategory(item.value)}
+                style={[styles.chip, selected && styles.chipSelected]}
+              >
+                <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{item.label}</Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
 
         <View style={styles.sellerBanner}>
@@ -188,6 +199,7 @@ export function MarketplaceHomeScreen() {
           </View>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Learn more about verified sellers"
             onPress={() => Alert.alert('Verified sellers', 'Verified sellers have completed identity checks.')}
             style={styles.learnButton}
           >
@@ -199,16 +211,16 @@ export function MarketplaceHomeScreen() {
           <Text style={styles.sectionTitle}>Fresh Listings</Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Verified sellers only"
+            accessibilityLabel="Filter verified sellers"
             accessibilityState={{ selected: verifiedOnly }}
+            hitSlop={10}
             onPress={() => setVerifiedOnly((value) => !value)}
-            style={[styles.filterButton, verifiedOnly && styles.filterButtonSelected]}
+            style={[styles.filterButton, verifiedOnly && styles.filterButtonActive]}
           >
-            <Text style={[styles.filterText, verifiedOnly && styles.filterTextSelected]}>
-              Verified only
-            </Text>
+            <Text style={[styles.filterText, verifiedOnly && styles.filterTextActive]}>Filter</Text>
           </Pressable>
         </View>
+
         {visibleListings.length ? (
           <View style={styles.grid}>
             {visibleListings.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
@@ -217,86 +229,307 @@ export function MarketplaceHomeScreen() {
           <Text style={styles.emptyState}>No listings match your search.</Text>
         )}
       </ScrollView>
+
       <BottomBar bottomInset={insets.bottom} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: palette.surface },
-  content: { paddingHorizontal: 18, paddingBottom: 92 },
-  locationRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center' },
-  locationText: { marginLeft: 7, flex: 1 },
-  locationCaption: { color: '#768aa2', fontSize: 11, letterSpacing: 0.7, lineHeight: 14 },
-  locationName: { color: palette.green, fontSize: 14, fontWeight: '700', lineHeight: 18 },
+  screen: {
+    flex: 1,
+    backgroundColor: palette.surface,
+  },
+  content: {
+    paddingHorizontal: 22,
+    paddingBottom: 96,
+  },
+
+  locationRow: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationText: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  locationCaption: {
+    color: '#73839a',
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: 0.8,
+  },
+  locationName: {
+    color: palette.green,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
   notificationButton: {
-    width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: palette.border,
-    alignItems: 'center', justifyContent: 'center',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: '#dce4ed',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  notificationDot: { position: 'absolute', top: 9, right: 10, width: 5, height: 5, borderRadius: 3, backgroundColor: '#d14f55' },
+  notificationDot: {
+    position: 'absolute',
+    top: 8,
+    right: 9,
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#df4d56',
+  },
+
   searchBox: {
-    minHeight: 46, borderRadius: 14, borderColor: palette.border, borderWidth: 1,
-    backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 13,
-    shadowColor: '#416274', shadowOpacity: 0.07, shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 }, elevation: 2,
+    height: 42,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#dce4ed',
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    shadowColor: '#465c6d',
+    shadowOpacity: 0.08,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
-  searchInput: { flex: 1, minHeight: 44, marginLeft: 8, color: palette.ink, fontSize: 14, paddingVertical: 0 },
-  sectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18 },
-  sectionTitle: { color: palette.green, fontSize: 17, fontWeight: '700' },
-  sectionActionButton: { minHeight: 44, minWidth: 52, alignItems: 'flex-end', justifyContent: 'center' },
-  sectionAction: { color: palette.green, fontSize: 13, fontWeight: '600' },
-  chipRow: { gap: 10, paddingTop: 7, paddingBottom: 1 },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    marginLeft: 9,
+    paddingVertical: 0,
+    color: palette.ink,
+    fontSize: 14,
+  },
+
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 18,
+  },
+  sectionTitle: {
+    color: palette.green,
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '700',
+  },
+
+  chipRow: {
+    gap: 12,
+    paddingTop: 11,
+    paddingRight: 6,
+    paddingBottom: 2,
+  },
   chip: {
-    minHeight: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#fff',
-    borderColor: palette.border, borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+    minHeight: 38,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#d9e2ec',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  chipSelected: { backgroundColor: palette.green, borderColor: palette.green },
-  chipText: { color: '#455263', fontSize: 13, fontWeight: '600' },
-  chipTextSelected: { color: '#fff' },
+  chipSelected: {
+    backgroundColor: palette.green,
+    borderColor: palette.green,
+  },
+  chipText: {
+    color: '#4b5870',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '600',
+  },
+  chipTextSelected: {
+    color: '#fff',
+  },
+
   sellerBanner: {
-    minHeight: 82, borderRadius: 14, backgroundColor: '#245e49', marginTop: 20,
-    paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'center',
-    shadowColor: '#123c2d', shadowOpacity: 0.18, shadowRadius: 7,
-    shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    minHeight: 84,
+    marginTop: 24,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: palette.greenSoft,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#183f31',
+    shadowOpacity: 0.22,
+    shadowRadius: 9,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
   },
-  bannerCopy: { flex: 1, paddingRight: 10 },
-  bannerTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 4 },
-  bannerSubtitle: { color: '#dce9e4', fontSize: 12, lineHeight: 16, maxWidth: 210 },
-  learnButton: { minHeight: 44, borderRadius: 10, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
-  learnText: { color: palette.ink, fontSize: 12, fontWeight: '700' },
-  listingHeading: { marginTop: 18 },
+  bannerCopy: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  bannerTitle: {
+    color: '#fff',
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '700',
+    marginBottom: 3,
+  },
+  bannerSubtitle: {
+    color: '#dceae3',
+    fontSize: 12,
+    lineHeight: 15,
+    maxWidth: 190,
+  },
+  learnButton: {
+    minHeight: 34,
+    paddingHorizontal: 11,
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  learnText: {
+    color: palette.green,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  listingHeading: {
+    marginTop: 22,
+  },
   filterButton: {
-    minHeight: 44, paddingHorizontal: 12, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: palette.border, backgroundColor: '#fff',
+    minHeight: 32,
+    minWidth: 40,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
-  filterButtonSelected: { backgroundColor: palette.green, borderColor: palette.green },
-  filterText: { color: palette.green, fontSize: 12, fontWeight: '700' },
-  filterTextSelected: { color: '#fff' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 12, marginTop: 8 },
+  filterButtonActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: palette.green,
+  },
+  filterText: {
+    color: '#39705a',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+  filterTextActive: {
+    color: palette.green,
+  },
+
+  grid: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 14,
+  },
   card: {
-    width: '48%', backgroundColor: '#fff', borderRadius: 13, overflow: 'hidden',
-    borderWidth: 1, borderColor: '#e1e8ee', shadowColor: '#526981', shadowOpacity: 0.10,
-    shadowRadius: 5, shadowOffset: { width: 0, height: 3 }, elevation: 2,
+    width: '48%',
+    borderRadius: 13,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e0e7ef',
+    shadowColor: '#556a7d',
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
-  cardImage: { width: '100%', aspectRatio: 1.43 },
-  cardBody: { paddingHorizontal: 9, paddingTop: 8, paddingBottom: 10 },
-  cardTitle: { color: '#1b2730', fontSize: 12, fontWeight: '700', lineHeight: 17 },
-  cardDetails: { color: '#73849a', fontSize: 11, lineHeight: 15 },
-  price: { color: palette.green, fontSize: 14, fontWeight: '800', lineHeight: 19, marginTop: 2 },
-  emptyState: { color: palette.muted, textAlign: 'center', marginTop: 35, fontSize: 14 },
+  cardImage: {
+    width: '100%',
+    aspectRatio: 1.38,
+  },
+  cardBody: {
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 9,
+  },
+  cardTitle: {
+    color: '#25302d',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+  },
+  cardDetails: {
+    color: '#7f8da2',
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 1,
+  },
+  price: {
+    color: palette.green,
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  emptyState: {
+    color: palette.muted,
+    textAlign: 'center',
+    marginTop: 36,
+    fontSize: 14,
+  },
+
   bottomBar: {
-    minHeight: 66, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-around',
-    paddingTop: 6, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e9eef3',
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e4e9ef',
+    paddingTop: 5,
+    shadowColor: '#5d6f7d',
+    shadowOpacity: 0.09,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 8,
   },
-  tab: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 2 },
-  tabDisabled: { opacity: 0.58 },
-  tabLabel: { color: '#7f91a8', fontSize: 10, lineHeight: 12, textAlign: 'center' },
-  tabLabelActive: { color: palette.green, fontWeight: '700' },
-  addTab: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  addCircle: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: palette.green,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff',
-    shadowColor: '#000', shadowOpacity: 0.20, shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 }, elevation: 4,
+  tab: {
+    flex: 1,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  tabDisabled: {
+    opacity: 0.68,
+  },
+  tabLabel: {
+    color: '#879ab7',
+    fontSize: 10,
+    lineHeight: 13,
+    textAlign: 'center',
+  },
+  tabLabelActive: {
+    color: palette.green,
+    fontWeight: '700',
+  },
+  addSlot: {
+    width: 54,
+    minHeight: 52,
+    alignItems: 'center',
+  },
+  addButton: {
+    width: 44,
+    height: 44,
+    marginTop: -10,
+    borderRadius: 22,
+    borderWidth: 4,
+    borderColor: '#fff',
+    backgroundColor: palette.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1c2c27',
+    shadowOpacity: 0.26,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 7,
   },
 });

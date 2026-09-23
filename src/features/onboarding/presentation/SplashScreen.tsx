@@ -27,7 +27,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
         pointerEvents="none"
       />
 
-      <View style={[styles.content, { paddingTop: insets.top + 72, paddingBottom: Math.max(insets.bottom, 18) + 8 }]}>
+      <View style={[styles.content, { paddingTop: insets.top + 72, paddingBottom: Math.max(insets.bottom + 5, 39) }]}>
         <Image
           source={require('../../../../assets/images/branding/animarket-logo.png')}
           resizeMode="contain"
@@ -39,12 +39,25 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
           accessibilityRole="button"
           accessibilityLabel="Continue to login"
           onPress={onContinue}
-          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+          style={({ pressed }) => [styles.ctaPressable, pressed && styles.ctaPressed]}
         >
-          <Text style={styles.headline}>Your Trusted Livestock{'\n'}Marketplace</Text>
-          <View style={styles.nextCircle}>
-            <Text style={styles.arrow} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">→</Text>
-          </View>
+          <LinearGradient
+            colors={['#25481f', '#2b711e']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.cta}
+          >
+            <Text style={styles.headline}>Your Trusted Livestock{'\n'}Marketplace</Text>
+            <View style={styles.nextButton}>
+              <Text
+                style={styles.arrow}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                →
+              </Text>
+            </View>
+          </LinearGradient>
         </Pressable>
       </View>
     </ImageBackground>
@@ -61,55 +74,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 18,
   },
-  cta: {
+  ctaPressable: {
     alignSelf: 'stretch',
+    marginTop: 'auto',
+    borderRadius: 46,
+    shadowColor: '#000',
+    shadowOpacity: 0.19,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 9 },
+    elevation: 8,
+  },
+  cta: {
+    minHeight: 92,
+    borderRadius: 46,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 86,
-    marginTop: 'auto',
+    paddingLeft: 25,
+    paddingRight: 22,
     paddingVertical: 14,
-    paddingLeft: 16,
-    paddingRight: 14,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.28)',
-    backgroundColor: 'rgba(30,84,52,0.82)',
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 17,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 8,
+    overflow: 'hidden',
   },
   ctaPressed: {
-    transform: [{ scale: 0.98 }],
+    transform: [{ scale: 0.985 }],
+    opacity: 0.96,
   },
   headline: {
     flexShrink: 1,
     color: '#fff',
-    fontSize: 15,
-    lineHeight: 19,
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: '700',
-    letterSpacing: -0.2,
+    letterSpacing: -0.1,
   },
-  nextCircle: {
-    width: 58,
-    height: 58,
-    marginLeft: 12,
-    borderRadius: 29,
+  nextButton: {
+    width: 67,
+    height: 40,
+    marginLeft: 16,
+    borderRadius: 20,
+    transform: [{ translateY: -2 }],
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f7f7ef',
+    backgroundColor: '#fff',
     shadowColor: '#000',
-    shadowOpacity: 0.16,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
   },
   arrow: {
-    color: '#173c2b',
-    fontSize: 28,
-    lineHeight: 32,
+    color: '#12372a',
+    fontSize: 27,
+    lineHeight: 29,
     fontWeight: '500',
+    marginTop: -1,
   },
 });
