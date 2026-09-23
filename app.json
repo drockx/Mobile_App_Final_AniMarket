@@ -28,9 +28,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#f7f7ef",
+          "image": "./assets/images/branding/animarket-logo.png",
+          "imageWidth": 250
         }
       ]
     ],
