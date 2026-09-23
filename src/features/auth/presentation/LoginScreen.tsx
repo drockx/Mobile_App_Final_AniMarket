@@ -9,15 +9,22 @@ import { AuthScreenLayout } from './components/AuthScreenLayout';
 
 type LoginScreenProps = {
   onSignup: () => void;
+  onLogin: () => void;
 };
 
-export function LoginScreen({ onSignup }: LoginScreenProps) {
+export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
   const [values, setValues] = useState<LoginValues>({ username: '', password: '' });
   const [remember, setRemember] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
 
   function submit() {
-    setMessage(validateLogin(values) ?? 'Login is ready for an authentication service to be connected.');
+    const error = validateLogin(values);
+    if (error) {
+      setMessage(error);
+      return;
+    }
+    setMessage(null);
+    onLogin();
   }
 
   return (
