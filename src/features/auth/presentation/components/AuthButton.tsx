@@ -38,8 +38,8 @@ const styles = StyleSheet.create({
   },
   pressed: { transform: [{ scale: 0.98 }] },
   gradient: { alignItems: 'center', justifyContent: 'center' },
-  loginGradient: { minHeight: 70 },
-  compactGradient: { minHeight: 62 },
-  label: { color: '#12351f', fontSize: 25, fontWeight: '700' },
-  compactLabel: { fontSize: 21 },
+  loginGradient: { minHeight: 60 },
+  compactGradient: { minHeight: 56 },
+  label: { color: '#12351f', fontSize: 22, fontWeight: '700' },
+  compactLabel: { fontSize: 19 },
 });
