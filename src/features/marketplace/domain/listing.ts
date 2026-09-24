@@ -6,8 +6,14 @@ export type Listing = {
   category: LivestockCategory;
   details: string;
   price: number;
-  image: number;
   verified: boolean;
+  location?: string;
+  subtitle?: string;
+  weight?: string;
+  age?: string;
+  health?: string;
+  description?: string;
+  seller?: { name: string; memberSince: string };
 };
 
 export function filterListings(

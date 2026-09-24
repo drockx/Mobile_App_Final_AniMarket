@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link, type Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { listings } from '../data/listings';
+import { getListingImage } from '../data/listingImages';
 import { filterListings, type Listing, type LivestockCategory } from '../domain/listing';
 
 const palette = {
@@ -25,7 +27,7 @@ const palette = {
   surface: '#f9fcf9',
 };
 
-const categoryOptions: Array<{ label: string; value: LivestockCategory | null }> = [
+const categoryOptions: { label: string; value: LivestockCategory | null }[] = [
   { label: 'All Livestock', value: null },
   { label: 'Cattle', value: 'Cow' },
   { label: 'Goats', value: 'Goat' },
@@ -52,14 +54,16 @@ const icons = {
 
 function ListingCard({ listing }: { listing: Listing }) {
   return (
-    <View style={styles.card}>
-      <Image source={listing.image} contentFit="cover" style={styles.cardImage} />
-      <View style={styles.cardBody}>
-        <Text numberOfLines={1} style={styles.cardTitle}>{listing.title}</Text>
-        <Text numberOfLines={1} style={styles.cardDetails}>{listing.details}</Text>
-        <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
-      </View>
-    </View>
+    <Link href={{ pathname: '/listings/[id]', params: { id: listing.id } } as unknown as Href} asChild>
+      <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.title} details`} style={styles.card}>
+        <Image source={getListingImage(listing.id)} contentFit="cover" style={styles.cardImage} />
+        <View style={styles.cardBody}>
+          <Text numberOfLines={1} style={styles.cardTitle}>{listing.title}</Text>
+          <Text numberOfLines={1} style={styles.cardDetails}>{listing.details}</Text>
+          <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
+        </View>
+      </Pressable>
+    </Link>
   );
 }
 

@@ -2,12 +2,26 @@ import type { Listing } from '../domain/listing';
 
 export const listings: Listing[] = [
   {
+    id: 'brahman-bull',
+    title: 'Brahman Bull',
+    subtitle: '(Pure Breed)',
+    category: 'Cow',
+    details: '450 kg · 2 yrs old',
+    price: 45000,
+    verified: true,
+    location: 'Tagum City, Davao del Norte',
+    weight: '450 kg',
+    age: '2 Yrs',
+    health: 'Vaccinated',
+    description: 'Healthy, grass-fed Pure Brahman Bull. Fully dewormed and complete with updated vaccination records. Ideal for breeding stock. Raised in open pasture conditions with good temperament.',
+    seller: { name: 'Juan Dela Cruz', memberSince: '2024' },
+  },
+  {
     id: 'holstein-heifer',
     title: 'Holstein Friesian Heifer',
     category: 'Cow',
     details: '450 kg · 2 yrs old',
     price: 45000,
-    image: require('../../../../assets/images/marketplace/cow1.jpg'),
     verified: true,
   },
   {
@@ -16,7 +30,6 @@ export const listings: Listing[] = [
     category: 'Goat',
     details: '35 kg · 1 yr old',
     price: 12500,
-    image: require('../../../../assets/images/marketplace/goat1.jpg'),
     verified: true,
   },
   {
@@ -25,7 +38,6 @@ export const listings: Listing[] = [
     category: 'Chicken',
     details: '2 Hens · Breeding Stock',
     price: 1500,
-    image: require('../../../../assets/images/marketplace/chicken1.jpg'),
     verified: true,
   },
   {
@@ -34,7 +46,6 @@ export const listings: Listing[] = [
     category: 'Pig',
     details: '2 months old · Vaccinated',
     price: 4500,
-    image: require('../../../../assets/images/marketplace/pig1.jpg'),
     verified: true,
   },
   {
@@ -43,7 +54,6 @@ export const listings: Listing[] = [
     category: 'Cow',
     details: 'Healthy · Ready for farm',
     price: 38000,
-    image: require('../../../../assets/images/marketplace/cow2.jpg'),
     verified: false,
   },
   {
@@ -52,7 +62,6 @@ export const listings: Listing[] = [
     category: 'Goat',
     details: 'Female · Farm raised',
     price: 8500,
-    image: require('../../../../assets/images/marketplace/goat2.jpg'),
     verified: false,
   },
   {
@@ -61,7 +70,6 @@ export const listings: Listing[] = [
     category: 'Chicken',
     details: 'Mixed flock · Healthy',
     price: 2200,
-    image: require('../../../../assets/images/marketplace/chicken2.jpg'),
     verified: false,
   },
   {
@@ -70,7 +78,10 @@ export const listings: Listing[] = [
     category: 'Pig',
     details: 'Farm raised · Healthy',
     price: 3900,
-    image: require('../../../../assets/images/marketplace/pig2.jpg'),
     verified: false,
   },
 ];
+
+export function getListingById(id: string): Listing | undefined {
+  return listings.find((listing) => listing.id === id);
+}
