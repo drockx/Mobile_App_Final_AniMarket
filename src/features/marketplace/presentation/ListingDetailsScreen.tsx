@@ -60,10 +60,10 @@ export function ListingDetailsScreen({ listingId }: { listingId?: string }) {
   }
 
   const specs = [
-    listing.weight && { label: 'Weight', value: listing.weight },
-    listing.age && { label: 'Age', value: listing.age },
-    listing.health && { label: 'Health', value: listing.health },
-  ].filter((item): item is { label: string; value: string } => !!item);
+    { label: 'Weight', value: listing.weight },
+    { label: 'Age', value: listing.age },
+    { label: 'Health', value: listing.health },
+  ];
 
   const share = async () => {
     try {
@@ -99,12 +99,10 @@ export function ListingDetailsScreen({ listingId }: { listingId?: string }) {
             <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
           </View>
 
-          {listing.location && (
-            <View style={styles.locationRow}>
-              <Icon name={icons.location} color="#718096" size={14} />
-              <Text style={styles.location}>{listing.location}</Text>
-            </View>
-          )}
+          <View style={styles.locationRow}>
+            <Icon name={icons.location} color="#718096" size={14} />
+            <Text style={styles.location}>{listing.location}</Text>
+          </View>
 
           <View style={styles.thumbnails}>
             <View style={[styles.thumbnail, styles.thumbnailActive]}>
@@ -112,40 +110,40 @@ export function ListingDetailsScreen({ listingId }: { listingId?: string }) {
             </View>
           </View>
 
-          {specs.length > 0 && (
-            <View style={styles.specRow}>
-              {specs.map((spec) => <Spec key={spec.label} {...spec} />)}
-            </View>
-          )}
+          <View style={styles.specRow}>
+            {specs.map((spec) => <Spec key={spec.label} {...spec} />)}
+          </View>
 
           <View style={styles.divider} />
           <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>{listing.description ?? listing.details}</Text>
+          <Text style={styles.description}>{listing.description}</Text>
 
-          {listing.health && listing.verified && (
+          {listing.healthVerification.status === 'verified' && (
             <View style={styles.healthCard}>
               <View style={styles.healthCopy}>
                 <Text style={styles.healthTitle}>Verified Health Standard</Text>
-                <Text style={styles.healthSubtitle}>Veterinary inspected &amp; pasture-raised</Text>
+                <Text style={styles.healthSubtitle}>{listing.healthVerification.note}</Text>
               </View>
               <Icon name={icons.shield} size={32} />
             </View>
           )}
 
-          {listing.seller && (
-            <>
-              <View style={styles.divider} />
-              <Text style={styles.sectionTitle}>Seller Information</Text>
-              <View style={styles.sellerCard}>
-                <View style={styles.avatar}><Text style={styles.avatarText}>{listing.seller.name.split(' ').map((name) => name[0]).slice(0, 2).join('')}</Text></View>
-                <View>
-                  <Text style={styles.sellerName}>{listing.seller.name}</Text>
-                  <Text style={styles.sellerMeta}>Member since {listing.seller.memberSince}</Text>
-                  {listing.verified && <Text style={styles.verified}>✓ Verified Raiser</Text>}
-                </View>
-              </View>
-            </>
-          )}
+          <View style={styles.divider} />
+          <Text style={styles.sectionTitle}>Seller Information</Text>
+          <View style={styles.sellerCard}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {listing.seller ? listing.seller.name.split(' ').map((name) => name[0]).slice(0, 2).join('') : '?'}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.sellerName}>{listing.seller?.name ?? 'Seller profile pending'}</Text>
+              <Text style={styles.sellerMeta}>
+                {listing.seller ? `Member since ${listing.seller.memberSince}` : 'Seller details not provided'}
+              </Text>
+              {listing.verified && <Text style={styles.verified}>✓ Verified Seller</Text>}
+            </View>
+          </View>
         </View>
       </ScrollView>
 

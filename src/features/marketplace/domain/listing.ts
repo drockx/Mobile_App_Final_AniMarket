@@ -1,5 +1,9 @@
 export type LivestockCategory = 'Pig' | 'Cow' | 'Chicken' | 'Goat';
 
+export type HealthVerification =
+  | { status: 'verified'; note: string }
+  | { status: 'unverified' };
+
 export type Listing = {
   id: string;
   title: string;
@@ -7,12 +11,13 @@ export type Listing = {
   details: string;
   price: number;
   verified: boolean;
-  location?: string;
+  location: string;
   subtitle?: string;
-  weight?: string;
-  age?: string;
-  health?: string;
-  description?: string;
+  weight: string;
+  age: string;
+  health: string;
+  healthVerification: HealthVerification;
+  description: string;
   seller?: { name: string; memberSince: string };
 };
 
