@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, type Href } from 'expo-router';
+import { Link, router, useLocalSearchParams, type Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listings } from '../data/listings';
 import { getListingImage } from '../data/listingImages';
 import { filterListings, type Listing, type LivestockCategory } from '../domain/listing';
+import { numericPrice, parseSearchFilters, serializeSearchFilters } from '../domain/searchFilters';
 
 const palette = {
   green: '#123f32',
@@ -29,7 +30,7 @@ const palette = {
 
 const categoryOptions: { label: string; value: LivestockCategory | null }[] = [
   { label: 'All Livestock', value: null },
-  { label: 'Cattle', value: 'Cow' },
+  { label: 'Cow', value: 'Cow' },
   { label: 'Goats', value: 'Goat' },
   { label: 'Poultry', value: 'Chicken' },
   { label: 'Pigs', value: 'Pig' },
@@ -122,14 +123,37 @@ function BottomBar({ bottomInset }: { bottomInset: number }) {
 
 export function MarketplaceHomeScreen() {
   const insets = useSafeAreaInsets();
-  const [category, setCategory] = useState<LivestockCategory | null>(null);
-  const [query, setQuery] = useState('');
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const params = useLocalSearchParams();
+  const routeFilters = parseSearchFilters(params);
+  const routeKey = JSON.stringify(params);
+  const [categoryDraft, setCategoryDraft] = useState<{ routeKey: string; value: LivestockCategory | null } | null>(null);
+  const [queryDraft, setQueryDraft] = useState<{ routeKey: string; value: string } | null>(null);
+  const category = categoryDraft?.routeKey === routeKey ? categoryDraft.value : routeFilters.category;
+  const query = queryDraft?.routeKey === routeKey ? queryDraft.value : routeFilters.query;
+  const filtersActive = Boolean(routeFilters.category || routeFilters.location || routeFilters.minPrice
+    || routeFilters.maxPrice || routeFilters.verifiedOnly || routeFilters.vaccinatedOnly
+    || routeFilters.sort !== 'newest');
 
   const visibleListings = useMemo(
-    () => filterListings(listings, category, query, verifiedOnly),
-    [category, query, verifiedOnly],
+    () => filterListings(listings, category, query, routeFilters.verifiedOnly, {
+      location: routeFilters.location,
+      minPrice: numericPrice(routeFilters.minPrice),
+      maxPrice: numericPrice(routeFilters.maxPrice),
+      vaccinatedOnly: routeFilters.vaccinatedOnly,
+      sort: routeFilters.sort,
+    }),
+    [category, query, routeFilters.location, routeFilters.minPrice, routeFilters.maxPrice,
+      routeFilters.verifiedOnly, routeFilters.vaccinatedOnly, routeFilters.sort],
   );
+
+  function openFilters() {
+    router.push({
+      pathname: '/search-filter',
+      params: params.applied === 'true'
+        ? serializeSearchFilters({ ...routeFilters, category, query })
+        : { category: category ?? '', query },
+    } as unknown as Href);
+  }
 
   return (
     <View style={styles.screen}>
@@ -161,8 +185,8 @@ export function MarketplaceHomeScreen() {
           <TextInput
             accessibilityLabel="Search livestock"
             autoCapitalize="none"
-            onChangeText={setQuery}
-            placeholder="Search cattle, goats, feeds..."
+            onChangeText={(value) => setQueryDraft({ routeKey, value })}
+            placeholder="Search cow, goats, feeds..."
             placeholderTextColor="#44536a"
             returnKeyType="search"
             style={styles.searchInput}
@@ -187,7 +211,7 @@ export function MarketplaceHomeScreen() {
                 key={item.label}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                onPress={() => setCategory(item.value)}
+                onPress={() => setCategoryDraft({ routeKey, value: item.value })}
                 style={[styles.chip, selected && styles.chipSelected]}
               >
                 <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{item.label}</Text>
@@ -215,13 +239,12 @@ export function MarketplaceHomeScreen() {
           <Text style={styles.sectionTitle}>Fresh Listings</Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Filter verified sellers"
-            accessibilityState={{ selected: verifiedOnly }}
+            accessibilityLabel="Search and filter listings"
             hitSlop={10}
-            onPress={() => setVerifiedOnly((value) => !value)}
-            style={[styles.filterButton, verifiedOnly && styles.filterButtonActive]}
+            onPress={openFilters}
+            style={[styles.filterButton, filtersActive && styles.filterButtonActive]}
           >
-            <Text style={[styles.filterText, verifiedOnly && styles.filterTextActive]}>Filter</Text>
+            <Text style={[styles.filterText, filtersActive && styles.filterTextActive]}>Filter</Text>
           </Pressable>
         </View>
 
@@ -230,7 +253,7 @@ export function MarketplaceHomeScreen() {
             {visibleListings.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
           </View>
         ) : (
-          <Text style={styles.emptyState}>No listings match your search.</Text>
+          <Text style={styles.emptyState}>No listings match your search or filters.</Text>
         )}
       </ScrollView>
 

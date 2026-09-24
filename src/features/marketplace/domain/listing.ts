@@ -1,4 +1,4 @@
-export type LivestockCategory = 'Pig' | 'Cow' | 'Chicken' | 'Goat';
+export type LivestockCategory = 'Pig' | 'Cow' | 'Chicken' | 'Goat' | 'Supply';
 
 export type HealthVerification =
   | { status: 'verified'; note: string }
@@ -26,12 +26,28 @@ export function filterListings(
   category: LivestockCategory | null,
   query: string,
   verifiedOnly: boolean,
+  options: {
+    location?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    vaccinatedOnly?: boolean;
+    sort?: 'newest' | 'price-asc' | 'price-desc';
+  } = {},
 ): Listing[] {
   const search = query.trim().toLowerCase();
 
-  return listings.filter((listing) => {
+  const filtered = listings.filter((listing) => {
     const matchesCategory = category === null || listing.category === category;
     const matchesSearch = !search || `${listing.title} ${listing.category} ${listing.details}`.toLowerCase().includes(search);
-    return matchesCategory && matchesSearch && (!verifiedOnly || listing.verified);
+    const matchesLocation = !options.location || listing.location === options.location;
+    const matchesMinPrice = options.minPrice === undefined || listing.price >= options.minPrice;
+    const matchesMaxPrice = options.maxPrice === undefined || listing.price <= options.maxPrice;
+    const matchesVaccination = !options.vaccinatedOnly || listing.health === 'Vaccinated';
+    return matchesCategory && matchesSearch && matchesLocation && matchesMinPrice && matchesMaxPrice
+      && matchesVaccination && (!verifiedOnly || listing.verified);
   });
+
+  if (options.sort === 'price-asc') return filtered.sort((a, b) => a.price - b.price);
+  if (options.sort === 'price-desc') return filtered.sort((a, b) => b.price - a.price);
+  return filtered;
 }
