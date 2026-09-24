@@ -46,7 +46,7 @@ export function parseSearchFilters(params: FilterParams): SearchFilters {
   return {
     query: first(params.query) ?? '',
     category: category === 'Cow' || category === 'Goat' || category === 'Pig'
-      || category === 'Chicken' || category === 'Supply' ? category : null,
+      || category === 'Chicken' ? category : null,
     location: first(params.location) ?? '',
     minPrice: first(params.minPrice) ?? '',
     maxPrice: first(params.maxPrice) ?? '',

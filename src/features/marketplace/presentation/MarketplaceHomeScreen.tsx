@@ -9,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -127,15 +126,13 @@ export function MarketplaceHomeScreen() {
   const routeFilters = parseSearchFilters(params);
   const routeKey = JSON.stringify(params);
   const [categoryDraft, setCategoryDraft] = useState<{ routeKey: string; value: LivestockCategory | null } | null>(null);
-  const [queryDraft, setQueryDraft] = useState<{ routeKey: string; value: string } | null>(null);
+  const [verifiedDraft, setVerifiedDraft] = useState<{ routeKey: string; value: boolean } | null>(null);
   const category = categoryDraft?.routeKey === routeKey ? categoryDraft.value : routeFilters.category;
-  const query = queryDraft?.routeKey === routeKey ? queryDraft.value : routeFilters.query;
-  const filtersActive = Boolean(routeFilters.category || routeFilters.location || routeFilters.minPrice
-    || routeFilters.maxPrice || routeFilters.verifiedOnly || routeFilters.vaccinatedOnly
-    || routeFilters.sort !== 'newest');
+  const query = routeFilters.query;
+  const verifiedOnly = verifiedDraft?.routeKey === routeKey ? verifiedDraft.value : routeFilters.verifiedOnly;
 
   const visibleListings = useMemo(
-    () => filterListings(listings, category, query, routeFilters.verifiedOnly, {
+    () => filterListings(listings, category, query, verifiedOnly, {
       location: routeFilters.location,
       minPrice: numericPrice(routeFilters.minPrice),
       maxPrice: numericPrice(routeFilters.maxPrice),
@@ -143,15 +140,15 @@ export function MarketplaceHomeScreen() {
       sort: routeFilters.sort,
     }),
     [category, query, routeFilters.location, routeFilters.minPrice, routeFilters.maxPrice,
-      routeFilters.verifiedOnly, routeFilters.vaccinatedOnly, routeFilters.sort],
+      verifiedOnly, routeFilters.vaccinatedOnly, routeFilters.sort],
   );
 
   function openFilters() {
     router.push({
       pathname: '/search-filter',
       params: params.applied === 'true'
-        ? serializeSearchFilters({ ...routeFilters, category, query })
-        : { category: category ?? '', query },
+        ? serializeSearchFilters({ ...routeFilters, category, query, verifiedOnly })
+        : { category: category ?? '', query, verifiedOnly: String(verifiedOnly) },
     } as unknown as Href);
   }
 
@@ -180,19 +177,17 @@ export function MarketplaceHomeScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.searchBox}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Search livestock"
+          onPress={openFilters}
+          style={styles.searchBox}
+        >
           <Icon name={icons.search} size={18} color="#8ea0b8" />
-          <TextInput
-            accessibilityLabel="Search livestock"
-            autoCapitalize="none"
-            onChangeText={(value) => setQueryDraft({ routeKey, value })}
-            placeholder="Search cow, goats, feeds..."
-            placeholderTextColor="#44536a"
-            returnKeyType="search"
-            style={styles.searchInput}
-            value={query}
-          />
-        </View>
+          <Text numberOfLines={1} style={[styles.searchInput, !query && styles.searchPlaceholder]}>
+            {query || 'Search cow, goats, feeds...'}
+          </Text>
+        </Pressable>
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Categories</Text>
@@ -239,12 +234,13 @@ export function MarketplaceHomeScreen() {
           <Text style={styles.sectionTitle}>Fresh Listings</Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Search and filter listings"
+            accessibilityLabel="Filter verified sellers"
+            accessibilityState={{ selected: verifiedOnly }}
             hitSlop={10}
-            onPress={openFilters}
-            style={[styles.filterButton, filtersActive && styles.filterButtonActive]}
+            onPress={() => setVerifiedDraft({ routeKey, value: !verifiedOnly })}
+            style={[styles.filterButton, verifiedOnly && styles.filterButtonActive]}
           >
-            <Text style={[styles.filterText, filtersActive && styles.filterTextActive]}>Filter</Text>
+            <Text style={[styles.filterText, verifiedOnly && styles.filterTextActive]}>Filter</Text>
           </Pressable>
         </View>
 
@@ -330,11 +326,12 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: '100%',
     marginLeft: 9,
-    paddingVertical: 0,
     color: palette.ink,
     fontSize: 14,
+  },
+  searchPlaceholder: {
+    color: '#44536a',
   },
 
   sectionHeading: {

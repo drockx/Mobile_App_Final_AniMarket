@@ -31,9 +31,8 @@ const ink = '#253242';
 const categories: { label: string; value: LivestockCategory }[] = [
   { label: 'Cow', value: 'Cow' },
   { label: 'Goats', value: 'Goat' },
-  { label: 'Swine', value: 'Pig' },
+  { label: 'Pig', value: 'Pig' },
   { label: 'Poultry', value: 'Chicken' },
-  { label: 'Supplies', value: 'Supply' },
 ];
 
 const locations = ['', 'Tagum City, Davao del Norte'];
@@ -82,6 +81,7 @@ export function SearchFilterScreen() {
       ...featuredFilters,
       query: incoming.query,
       category: incoming.category ?? featuredFilters.category,
+      verifiedOnly: params.verifiedOnly === undefined ? featuredFilters.verifiedOnly : incoming.verifiedOnly,
     };
   });
   const [openMenu, setOpenMenu] = useState<'location' | 'sort' | null>(null);
@@ -125,8 +125,6 @@ export function SearchFilterScreen() {
             accessibilityLabel="Search listings"
             autoCapitalize="none"
             onChangeText={(value) => update('query', value)}
-            placeholder="Brahman"
-            placeholderTextColor="#536176"
             returnKeyType="search"
             style={styles.searchInput}
             value={filters.query}

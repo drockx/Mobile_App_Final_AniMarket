@@ -1,4 +1,4 @@
-export type LivestockCategory = 'Pig' | 'Cow' | 'Chicken' | 'Goat' | 'Supply';
+export type LivestockCategory = 'Pig' | 'Cow' | 'Chicken' | 'Goat';
 
 export type HealthVerification =
   | { status: 'verified'; note: string }
