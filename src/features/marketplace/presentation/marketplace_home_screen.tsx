@@ -64,12 +64,12 @@ function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => vo
   );
 }
 
-function BottomBar({ bottomInset }: { bottomInset: number }) {
+function BottomBar({ bottomInset, onOpenMessages }: { bottomInset: number; onOpenMessages: () => void }) {
   const tabs = [
-    { label: 'Home', icon: icons.home, active: true },
-    { label: 'Messages', icon: icons.messages },
-    { label: 'Market Reference', icon: icons.chart },
-    { label: 'Profile', icon: icons.profile },
+    { label: 'Home', icon: icons.home, active: true, onPress: undefined },
+    { label: 'Messages', icon: icons.messages, active: false, onPress: onOpenMessages },
+    { label: 'Market Reference', icon: icons.chart, active: false, onPress: undefined },
+    { label: 'Profile', icon: icons.profile, active: false, onPress: undefined },
   ];
 
   return (
@@ -79,9 +79,9 @@ function BottomBar({ bottomInset }: { bottomInset: number }) {
           key={tab.label}
           accessibilityRole="button"
           accessibilityLabel={tab.label}
-          accessibilityState={{ disabled: !tab.active, selected: tab.active }}
-          disabled={!tab.active}
-          style={[styles.tab, !tab.active && styles.tabDisabled]}
+          accessibilityState={{ selected: tab.active }}
+          onPress={tab.onPress}
+          style={styles.tab}
         >
           <Icon name={tab.icon} size={22} color={tab.active ? palette.green : '#8fa3bf'} />
           <Text numberOfLines={1} style={[styles.tabLabel, tab.active && styles.tabLabelActive]}>{tab.label}</Text>
@@ -122,6 +122,7 @@ type MarketplaceHomeScreenProps = {
   routeFilters: SearchFilters;
   routeKey: string;
   onOpenListing: (id: string) => void;
+  onOpenMessages: () => void;
   onOpenFilters: (filters: SearchFilters) => void;
 };
 
@@ -130,6 +131,7 @@ export function MarketplaceHomeScreen({
   routeFilters,
   routeKey,
   onOpenListing,
+  onOpenMessages,
   onOpenFilters,
 }: MarketplaceHomeScreenProps) {
   const insets = useSafeAreaInsets();
@@ -261,7 +263,7 @@ export function MarketplaceHomeScreen({
         )}
       </ScrollView>
 
-      <BottomBar bottomInset={insets.bottom} />
+      <BottomBar bottomInset={insets.bottom} onOpenMessages={onOpenMessages} />
     </View>
   );
 }
