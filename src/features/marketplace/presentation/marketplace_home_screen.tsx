@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
+
 import type { MarketplaceService } from '../application/marketplace_service';
 import type { Listing, LivestockCategory } from '../domain/listing';
 import { toListingCriteria, type SearchFilters } from './search_filters';
@@ -44,11 +46,6 @@ const icons = {
   location: { ios: 'mappin.circle', android: 'location_on', web: 'location_on' },
   notification: { ios: 'bell', android: 'notifications_none', web: 'notifications_none' },
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
-  home: { ios: 'house', android: 'home', web: 'home' },
-  messages: { ios: 'bubble.left', android: 'chat_bubble_outline', web: 'chat_bubble_outline' },
-  add: { ios: 'plus', android: 'add', web: 'add' },
-  chart: { ios: 'chart.bar', android: 'bar_chart', web: 'bar_chart' },
-  profile: { ios: 'person.crop.circle', android: 'person_outline', web: 'person_outline' },
 } as const;
 
 function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => void }) {
@@ -61,59 +58,6 @@ function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => vo
         <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
       </View>
     </Pressable>
-  );
-}
-
-function BottomBar({ bottomInset, onOpenMessages }: { bottomInset: number; onOpenMessages: () => void }) {
-  const tabs = [
-    { label: 'Home', icon: icons.home, active: true, onPress: undefined },
-    { label: 'Messages', icon: icons.messages, active: false, onPress: onOpenMessages },
-    { label: 'Market Reference', icon: icons.chart, active: false, onPress: undefined },
-    { label: 'Profile', icon: icons.profile, active: false, onPress: undefined },
-  ];
-
-  return (
-    <View style={[styles.bottomBar, { paddingBottom: Math.max(bottomInset, 6) }]}>
-      {tabs.slice(0, 2).map((tab) => (
-        <Pressable
-          key={tab.label}
-          accessibilityRole="button"
-          accessibilityLabel={tab.label}
-          accessibilityState={{ selected: tab.active }}
-          onPress={tab.onPress}
-          style={styles.tab}
-        >
-          <Icon name={tab.icon} size={22} color={tab.active ? palette.green : '#8fa3bf'} />
-          <Text numberOfLines={1} style={[styles.tabLabel, tab.active && styles.tabLabelActive]}>{tab.label}</Text>
-        </Pressable>
-      ))}
-
-      <View style={styles.addSlot}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Create listing"
-          accessibilityState={{ disabled: true }}
-          disabled
-          style={styles.addButton}
-        >
-          <Icon name={icons.add} size={26} color="#fff" />
-        </Pressable>
-      </View>
-
-      {tabs.slice(2).map((tab) => (
-        <Pressable
-          key={tab.label}
-          accessibilityRole="button"
-          accessibilityLabel={tab.label}
-          accessibilityState={{ disabled: true }}
-          disabled
-          style={[styles.tab, styles.tabDisabled]}
-        >
-          <Icon name={tab.icon} size={22} color="#8fa3bf" />
-          <Text numberOfLines={1} style={styles.tabLabel}>{tab.label}</Text>
-        </Pressable>
-      ))}
-    </View>
   );
 }
 
@@ -263,7 +207,7 @@ export function MarketplaceHomeScreen({
         )}
       </ScrollView>
 
-      <BottomBar bottomInset={insets.bottom} onOpenMessages={onOpenMessages} />
+      <MarketplaceBottomBar activeTab="home" bottomInset={insets.bottom} onMessages={onOpenMessages} />
     </View>
   );
 }
@@ -511,59 +455,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  bottomBar: {
-    minHeight: 64,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e4e9ef',
-    paddingTop: 5,
-    shadowColor: '#5d6f7d',
-    shadowOpacity: 0.09,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -3 },
-    elevation: 8,
-  },
-  tab: {
-    flex: 1,
-    minHeight: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  tabDisabled: {
-    opacity: 0.68,
-  },
-  tabLabel: {
-    color: '#879ab7',
-    fontSize: 10,
-    lineHeight: 13,
-    textAlign: 'center',
-  },
-  tabLabelActive: {
-    color: palette.green,
-    fontWeight: '700',
-  },
-  addSlot: {
-    width: 54,
-    minHeight: 52,
-    alignItems: 'center',
-  },
-  addButton: {
-    width: 44,
-    height: 44,
-    marginTop: -10,
-    borderRadius: 22,
-    borderWidth: 4,
-    borderColor: '#fff',
-    backgroundColor: palette.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#1c2c27',
-    shadowOpacity: 0.26,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 7,
-  },
 });
