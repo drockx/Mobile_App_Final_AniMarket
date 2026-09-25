@@ -34,7 +34,7 @@ function ConversationCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Open conversation with ${conversation.participant}`}
+      accessibilityLabel={`Open conversation with ${conversation.participant}${conversation.unreadCount > 0 ? `, ${conversation.unreadCount} unread messages` : ''}`}
       onPress={onPress}
       style={styles.card}
     >
@@ -46,10 +46,10 @@ function ConversationCard({
         </View>
         <Text style={styles.time}>{conversation.time}</Text>
       </View>
-      <View style={[styles.cardEnd, conversation.unreadCount > 0 && styles.cardEndUnread]}>
+      <View style={styles.cardEnd}>
         {conversation.unreadCount > 0 ? (
           <View style={styles.unreadBadge}>
-            <Text style={styles.unreadText}>{conversation.unreadCount}</Text>
+            <Text style={styles.unreadText}>{conversation.unreadCount} unread</Text>
           </View>
         ) : (
           <View style={styles.chevronBadge}><Icon name={icons.chevron} size={14} color={forest} /></View>
@@ -174,10 +174,9 @@ const styles = StyleSheet.create({
   name: { flexShrink: 1, color: '#17221d', fontSize: 13, lineHeight: 17, fontWeight: '700' },
   sellerTag: { color: '#286a4d', backgroundColor: '#e4f4e9', borderRadius: 5, overflow: 'hidden', paddingHorizontal: 5, paddingVertical: 1, fontSize: 8, fontWeight: '700' },
   cardEnd: { minWidth: 28, alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'center' },
-  cardEndUnread: { justifyContent: 'flex-end' },
   time: { color: muted, marginTop: 3, fontSize: 9, lineHeight: 13 },
-  unreadBadge: { minWidth: 19, height: 19, paddingHorizontal: 4, borderRadius: 10, backgroundColor: '#aa3028', alignItems: 'center', justifyContent: 'center' },
-  unreadText: { color: '#fff', fontSize: 9, fontWeight: '700' },
+  unreadBadge: { minHeight: 22, paddingHorizontal: 8, borderRadius: 12, backgroundColor: '#e8f5ed', alignItems: 'center', justifyContent: 'center' },
+  unreadText: { color: forest, fontSize: 9, fontWeight: '700' },
   chevronBadge: { width: 27, height: 27, borderRadius: 9, backgroundColor: '#e8f5ed', alignItems: 'center', justifyContent: 'center' },
   emptyState: { color: muted, fontSize: 14, lineHeight: 20, textAlign: 'center', paddingVertical: 32 },
 });
