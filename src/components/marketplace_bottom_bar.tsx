@@ -10,7 +10,7 @@ type MarketplaceBottomBarProps = {
 };
 
 const forest = '#12372a';
-const muted = '#859189';
+const muted = '#8497b2';
 
 function showComingSoon(title: string, message: string) {
   if (Platform.OS === 'web') window.alert(`${title}\n${message}`);
@@ -62,7 +62,6 @@ export function MarketplaceBottomBar({ activeTab, bottomInset }: MarketplaceBott
         style={styles.sellTab}
       >
         <View style={styles.sellCircle}><SymbolView name={icons.add} size={20} tintColor="#fff" /></View>
-        <Text style={styles.tabLabel}>Sell</Text>
       </Pressable>
       <NavigationItem
         label="Market Reference"
@@ -81,7 +80,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#dfe8e2',
+    borderTopColor: '#dce7e2',
     paddingTop: 8,
     paddingHorizontal: 7,
   },
@@ -100,13 +99,12 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    gap: 1,
+    paddingTop: 1,
   },
   sellCircle: {
-    width: 37,
-    height: 37,
-    marginTop: -10,
-    borderRadius: 19,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: forest,
     borderWidth: 3,
     borderColor: '#fff',
