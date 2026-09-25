@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   KeyboardAvoidingView,
@@ -16,13 +15,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { LivestockCategory } from '../domain/listing';
 import {
   emptyFilters,
-  featuredFilters,
   numericPrice,
-  parseSearchFilters,
-  serializeSearchFilters,
   type SearchFilters,
   type SortOrder,
-} from '../domain/searchFilters';
+} from './search_filters';
 
 const green = '#183d31';
 const border = '#dce5f2';
@@ -72,18 +68,15 @@ function Preference({
   );
 }
 
-export function SearchFilterScreen() {
+type SearchFilterScreenProps = {
+  initialFilters: SearchFilters;
+  onBack: () => void;
+  onApply: (filters: SearchFilters) => void;
+};
+
+export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFilterScreenProps) {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams();
-  const [filters, setFilters] = useState<SearchFilters>(() => {
-    const incoming = parseSearchFilters(params);
-    return params.applied === 'true' ? incoming : {
-      ...featuredFilters,
-      query: incoming.query,
-      category: incoming.category ?? featuredFilters.category,
-      verifiedOnly: params.verifiedOnly === undefined ? featuredFilters.verifiedOnly : incoming.verifiedOnly,
-    };
-  });
+  const [filters, setFilters] = useState<SearchFilters>(initialFilters);
   const [openMenu, setOpenMenu] = useState<'location' | 'sort' | null>(null);
 
   function update<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
@@ -96,7 +89,7 @@ export function SearchFilterScreen() {
     if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
       return;
     }
-    router.navigate({ pathname: '/home', params: serializeSearchFilters(filters) });
+    onApply(filters);
   }
 
   return (
@@ -106,7 +99,7 @@ export function SearchFilterScreen() {
     >
       <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top, height: insets.top + 56 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={styles.backButton}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.backButton}>
           <Text style={styles.backIcon}>‹</Text>
         </Pressable>
         <Text style={styles.headerTitle}>Search &amp; Filter</Text>

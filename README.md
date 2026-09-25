@@ -2,24 +2,28 @@
 
 Expo SDK 57 and Expo Router power the Android, iOS, and web app.
 
-## Project structure
+## Architecture
 
 ```text
-assets/images/branding/         Splash background and AniMarket logo
-assets/images/auth/             Login and registration background
-src/app/                        Expo Router entry points and navigation layout
-src/features/onboarding/presentation/
-                                Splash screen UI
-src/features/auth/presentation/  Login, registration, and shared form UI
-src/features/auth/domain/        Form validation
-src/components/                 Shared UI
-src/hooks/                      Shared hooks
-src/constants/                  Shared design values
+src/app/                                  Expo Router routes, URL adapters, dependency wiring
+src/features/onboarding/presentation/     Splash UI
+src/features/auth/domain/                 Pure form validation
+src/features/auth/presentation/           Login and registration UI
+src/features/marketplace/domain/          Listing model, filtering rules, repository contract
+src/features/marketplace/application/     Marketplace operations using the repository contract
+src/features/marketplace/data/            In-memory catalog and repository implementation
+src/features/marketplace/presentation/    Screens, image mapping, URL parameter conversion
+src/components/, src/hooks/, src/constants/ Shared UI and design helpers
+assets/images/                             Bundled images
 ```
 
-Route files stay small. The `/` route renders `SplashScreen` and supplies its `onContinue` action, which navigates to `/login`. The `/login` route renders `LoginScreen`, and Signup opens `/register`. As features grow, add UI in `presentation`, business operations in `domain`, and API or storage code in `data` under the same feature. Keep images in `assets/` so screens and native configuration can use them.
+Dependencies point inward: presentation uses application operations, application depends on domain contracts, and data implements those contracts. `marketplace_dependencies.ts` connects the current in-memory repository to the marketplace service. Routes own navigation and URL parameters; screens receive callbacks and typed data. A different synchronous catalog can implement `ListingRepository` without changing filtering or screens. A remote API will also need asynchronous loading and error states.
 
-The launch screen configured in `app.json` displays the AniMarket logo before React Native loads. The interactive splash page is `src/features/onboarding/presentation/SplashScreen.tsx`.
+`npm run check:architecture` checks feature import direction and keeps Expo Router navigation in route adapters.
+
+Routes are small adapters. `/` opens the interactive splash screen; `/login` and `/register` display the auth forms; `/home`, `/search_filter`, and `/listings/id?id=simmental-cow` display marketplace screens. `src/app/search_filter/index.tsx` and `src/app/listings/id.tsx` use ordinary filenames. `src/app/_layout.tsx` configures the root Stack and hides its headers.
+
+App-owned source files, folders, and image basenames use snake_case. Expo Router's required `_layout.tsx` convention, platform and image scale suffixes such as `.web.tsx` and `@2x`, Expo's generated `expo-env.d.ts`, and tool-defined files such as `package.json` keep their required names.
 
 ## Run and check
 
@@ -28,6 +32,7 @@ npm install
 npx expo start
 npx expo lint
 npx tsc --noEmit
+npm run check:architecture
 ```
 
-Login and registration validate input locally. Authentication and account creation need a future data service before the forms can submit real credentials.
+The catalog is sample data. Login currently validates required fields and opens the marketplace; registration validates locally. Neither form is connected to an authentication service yet.

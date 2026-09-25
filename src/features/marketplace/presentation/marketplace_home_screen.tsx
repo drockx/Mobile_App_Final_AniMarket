@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link, router, useLocalSearchParams, type Href } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -13,10 +12,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { listings } from '../data/listings';
-import { getListingImage } from '../data/listingImages';
-import { filterListings, type Listing, type LivestockCategory } from '../domain/listing';
-import { numericPrice, parseSearchFilters, serializeSearchFilters } from '../domain/searchFilters';
+import type { MarketplaceService } from '../application/marketplace_service';
+import type { Listing, LivestockCategory } from '../domain/listing';
+import { toListingCriteria, type SearchFilters } from './search_filters';
+import { getListingImage } from './listing_images';
 
 const palette = {
   green: '#123f32',
@@ -52,18 +51,16 @@ const icons = {
   profile: { ios: 'person.crop.circle', android: 'person_outline', web: 'person_outline' },
 } as const;
 
-function ListingCard({ listing }: { listing: Listing }) {
+function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => void }) {
   return (
-    <Link href={{ pathname: '/listings/[id]', params: { id: listing.id } } as unknown as Href} asChild>
-      <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.title} details`} style={styles.card}>
-        <Image source={getListingImage(listing.id)} contentFit="cover" style={styles.cardImage} />
-        <View style={styles.cardBody}>
-          <Text numberOfLines={1} style={styles.cardTitle}>{listing.title}</Text>
-          <Text numberOfLines={1} style={styles.cardDetails}>{listing.details}</Text>
-          <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
-        </View>
-      </Pressable>
-    </Link>
+    <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.title} details`} onPress={onPress} style={styles.card}>
+      <Image source={getListingImage(listing.id)} contentFit="cover" style={styles.cardImage} />
+      <View style={styles.cardBody}>
+        <Text numberOfLines={1} style={styles.cardTitle}>{listing.title}</Text>
+        <Text numberOfLines={1} style={styles.cardDetails}>{listing.details}</Text>
+        <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -120,11 +117,22 @@ function BottomBar({ bottomInset }: { bottomInset: number }) {
   );
 }
 
-export function MarketplaceHomeScreen() {
+type MarketplaceHomeScreenProps = {
+  marketplace: MarketplaceService;
+  routeFilters: SearchFilters;
+  routeKey: string;
+  onOpenListing: (id: string) => void;
+  onOpenFilters: (filters: SearchFilters) => void;
+};
+
+export function MarketplaceHomeScreen({
+  marketplace,
+  routeFilters,
+  routeKey,
+  onOpenListing,
+  onOpenFilters,
+}: MarketplaceHomeScreenProps) {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams();
-  const routeFilters = parseSearchFilters(params);
-  const routeKey = JSON.stringify(params);
   const [categoryDraft, setCategoryDraft] = useState<{ routeKey: string; value: LivestockCategory | null } | null>(null);
   const [verifiedDraft, setVerifiedDraft] = useState<{ routeKey: string; value: boolean } | null>(null);
   const category = categoryDraft?.routeKey === routeKey ? categoryDraft.value : routeFilters.category;
@@ -132,24 +140,22 @@ export function MarketplaceHomeScreen() {
   const verifiedOnly = verifiedDraft?.routeKey === routeKey ? verifiedDraft.value : routeFilters.verifiedOnly;
 
   const visibleListings = useMemo(
-    () => filterListings(listings, category, query, verifiedOnly, {
+    () => marketplace.findListings(toListingCriteria({
+      category,
+      query,
+      verifiedOnly,
       location: routeFilters.location,
-      minPrice: numericPrice(routeFilters.minPrice),
-      maxPrice: numericPrice(routeFilters.maxPrice),
+      minPrice: routeFilters.minPrice,
+      maxPrice: routeFilters.maxPrice,
       vaccinatedOnly: routeFilters.vaccinatedOnly,
       sort: routeFilters.sort,
-    }),
+    })),
     [category, query, routeFilters.location, routeFilters.minPrice, routeFilters.maxPrice,
-      verifiedOnly, routeFilters.vaccinatedOnly, routeFilters.sort],
+      verifiedOnly, routeFilters.vaccinatedOnly, routeFilters.sort, marketplace],
   );
 
   function openFilters() {
-    router.push({
-      pathname: '/search-filter',
-      params: params.applied === 'true'
-        ? serializeSearchFilters({ ...routeFilters, category, query, verifiedOnly })
-        : { category: category ?? '', query, verifiedOnly: String(verifiedOnly) },
-    } as unknown as Href);
+    onOpenFilters({ ...routeFilters, category, query, verifiedOnly });
   }
 
   return (
@@ -246,7 +252,9 @@ export function MarketplaceHomeScreen() {
 
         {visibleListings.length ? (
           <View style={styles.grid}>
-            {visibleListings.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
+            {visibleListings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} onPress={() => onOpenListing(listing.id)} />
+            ))}
           </View>
         ) : (
           <Text style={styles.emptyState}>No listings match your search or filters.</Text>

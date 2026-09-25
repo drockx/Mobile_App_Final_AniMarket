@@ -21,33 +21,35 @@ export type Listing = {
   seller?: { name: string; memberSince: string };
 };
 
+export type ListingCriteria = {
+  category: LivestockCategory | null;
+  query: string;
+  verifiedOnly: boolean;
+  location?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  vaccinatedOnly?: boolean;
+  sort?: 'newest' | 'price-asc' | 'price-desc';
+};
+
 export function filterListings(
-  listings: Listing[],
-  category: LivestockCategory | null,
-  query: string,
-  verifiedOnly: boolean,
-  options: {
-    location?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    vaccinatedOnly?: boolean;
-    sort?: 'newest' | 'price-asc' | 'price-desc';
-  } = {},
+  listings: readonly Listing[],
+  criteria: ListingCriteria,
 ): Listing[] {
-  const search = query.trim().toLowerCase();
+  const search = criteria.query.trim().toLowerCase();
 
   const filtered = listings.filter((listing) => {
-    const matchesCategory = category === null || listing.category === category;
+    const matchesCategory = criteria.category === null || listing.category === criteria.category;
     const matchesSearch = !search || `${listing.title} ${listing.category} ${listing.details}`.toLowerCase().includes(search);
-    const matchesLocation = !options.location || listing.location === options.location;
-    const matchesMinPrice = options.minPrice === undefined || listing.price >= options.minPrice;
-    const matchesMaxPrice = options.maxPrice === undefined || listing.price <= options.maxPrice;
-    const matchesVaccination = !options.vaccinatedOnly || listing.health === 'Vaccinated';
+    const matchesLocation = !criteria.location || listing.location === criteria.location;
+    const matchesMinPrice = criteria.minPrice === undefined || listing.price >= criteria.minPrice;
+    const matchesMaxPrice = criteria.maxPrice === undefined || listing.price <= criteria.maxPrice;
+    const matchesVaccination = !criteria.vaccinatedOnly || listing.health === 'Vaccinated';
     return matchesCategory && matchesSearch && matchesLocation && matchesMinPrice && matchesMaxPrice
-      && matchesVaccination && (!verifiedOnly || listing.verified);
+      && matchesVaccination && (!criteria.verifiedOnly || listing.verified);
   });
 
-  if (options.sort === 'price-asc') return filtered.sort((a, b) => a.price - b.price);
-  if (options.sort === 'price-desc') return filtered.sort((a, b) => b.price - a.price);
+  if (criteria.sort === 'price-asc') return filtered.sort((a, b) => a.price - b.price);
+  if (criteria.sort === 'price-desc') return filtered.sort((a, b) => b.price - a.price);
   return filtered;
 }

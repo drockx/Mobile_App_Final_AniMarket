@@ -130,7 +130,3 @@ export const listings: Listing[] = [
     description: 'Large White piglets described as farm raised. The number of animals, weights, ages, and health records have not been supplied. Confirm these details with the seller.',
   },
 ];
-
-export function getListingById(id: string): Listing | undefined {
-  return listings.find((listing) => listing.id === id);
-}

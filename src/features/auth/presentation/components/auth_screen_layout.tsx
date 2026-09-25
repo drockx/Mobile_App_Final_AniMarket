@@ -16,7 +16,7 @@ export function AuthScreenLayout({ children, compact = false }: AuthScreenLayout
   return (
     <View style={styles.background}>
       <Image
-        source={require('../../../../../assets/images/auth/login-bg.png')}
+        source={require('../../../../../assets/images/auth/login_bg.png')}
         contentFit="cover"
         style={StyleSheet.absoluteFill}
       />

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { validateLogin, type LoginValues } from '../domain/validation';
-import { AuthButton } from './components/AuthButton';
-import { AuthField } from './components/AuthField';
-import { AuthScreenLayout } from './components/AuthScreenLayout';
+import { AuthButton } from './components/auth_button';
+import { AuthField } from './components/auth_field';
+import { AuthScreenLayout } from './components/auth_screen_layout';
 
 type LoginScreenProps = {
   onSignup: () => void;

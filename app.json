@@ -13,9 +13,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/android_icon_foreground.png",
+        "backgroundImage": "./assets/images/android_icon_background.png",
+        "monochromeImage": "./assets/images/android_icon_monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -29,7 +29,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#f7f7ef",
-          "image": "./assets/images/branding/animarket-logo.png",
+          "image": "./assets/images/branding/animarket_logo.png",
           "imageWidth": 250
         }
       ]

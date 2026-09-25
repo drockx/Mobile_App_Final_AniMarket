@@ -6,10 +6,10 @@ import {
   type RegistrationFieldErrors,
   type RegistrationValues,
 } from '../domain/validation';
-import { AuthButton } from './components/AuthButton';
-import { AuthCheckbox } from './components/AuthCheckbox';
-import { AuthField } from './components/AuthField';
-import { AuthScreenLayout } from './components/AuthScreenLayout';
+import { AuthButton } from './components/auth_button';
+import { AuthCheckbox } from './components/auth_checkbox';
+import { AuthField } from './components/auth_field';
+import { AuthScreenLayout } from './components/auth_screen_layout';
 
 type RegisterScreenProps = {
   onBackToLogin: () => void;

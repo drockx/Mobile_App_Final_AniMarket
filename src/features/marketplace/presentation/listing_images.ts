@@ -1,0 +1,16 @@
+// Metro needs literal require paths for bundled images. Keep asset resolution out of the domain model.
+const listingImages: Record<string, number> = {
+  'simmental-cow': require('../../../../assets/images/marketplace/cow_3.jpg'),
+  'holstein-heifer': require('../../../../assets/images/marketplace/cow_1.jpg'),
+  'native-goat': require('../../../../assets/images/marketplace/goat_1.jpg'),
+  'native-chickens': require('../../../../assets/images/marketplace/chicken_1.jpg'),
+  'landrace-piglets': require('../../../../assets/images/marketplace/pig_1.jpg'),
+  'holstein-cow': require('../../../../assets/images/marketplace/cow_2.jpg'),
+  'saanen-goat': require('../../../../assets/images/marketplace/goat_2.jpg'),
+  'native-chicken-flock': require('../../../../assets/images/marketplace/chicken_2.jpg'),
+  'large-white-piglets': require('../../../../assets/images/marketplace/pig_2.jpg'),
+};
+
+export function getListingImage(id: string): number | undefined {
+  return listingImages[id];
+}

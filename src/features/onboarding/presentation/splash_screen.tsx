@@ -14,7 +14,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
 
   return (
     <ImageBackground
-      source={require('../../../../assets/images/branding/splash-bg.png')}
+      source={require('../../../../assets/images/branding/splash_bg.png')}
       resizeMode="cover"
       style={styles.screen}
       accessibilityLabel="Farm landscape with livestock"
@@ -29,7 +29,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
 
       <View style={[styles.content, { paddingTop: insets.top + 72, paddingBottom: Math.max(insets.bottom + 5, 39) }]}>
         <Image
-          source={require('../../../../assets/images/branding/animarket-logo.png')}
+          source={require('../../../../assets/images/branding/animarket_logo.png')}
           resizeMode="contain"
           style={{ width: logoSize, height: logoSize }}
           accessibilityLabel="AniMarket logo"

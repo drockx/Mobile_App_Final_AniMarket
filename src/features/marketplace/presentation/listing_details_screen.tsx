@@ -1,12 +1,11 @@
-import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getListingImage } from '../data/listingImages';
-import { getListingById } from '../data/listings';
+import type { MarketplaceService } from '../application/marketplace_service';
+import { getListingImage } from './listing_images';
 
 const green = '#12372a';
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
@@ -38,21 +37,24 @@ function unavailable(action: string) {
   Alert.alert(`${action} unavailable`, 'Seller contact and checkout are not connected yet.');
 }
 
-export function ListingDetailsScreen({ listingId }: { listingId?: string }) {
+export function ListingDetailsScreen({
+  listingId,
+  marketplace,
+  onBack,
+}: {
+  listingId?: string;
+  marketplace: MarketplaceService;
+  onBack: () => void;
+}) {
   const insets = useSafeAreaInsets();
-  const listing = getListingById(listingId ?? '');
-
-  const goBack = () => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/home');
-  };
+  const listing = marketplace.getListing(listingId ?? '');
 
   if (!listing) {
     return (
       <View style={[styles.missing, { paddingTop: insets.top }]}>
         <StatusBar style="dark" />
         <Text style={styles.missingTitle}>Listing not found</Text>
-        <Pressable onPress={goBack} accessibilityRole="button">
+        <Pressable onPress={onBack} accessibilityRole="button">
           <Text style={styles.missingLink}>Back to marketplace</Text>
         </Pressable>
       </View>
@@ -81,7 +83,7 @@ export function ListingDetailsScreen({ listingId }: { listingId?: string }) {
           <View style={styles.hero}>
             <Image source={getListingImage(listing.id)} contentFit="cover" style={StyleSheet.absoluteFill} />
             <View style={styles.heroActions}>
-              <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} style={styles.heroButton}>
+              <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} style={styles.heroButton}>
                 <Icon name={icons.back} color="#fff" size={20} />
               </Pressable>
               <Pressable onPress={share} accessibilityRole="button" accessibilityLabel="Share listing" hitSlop={8} style={styles.heroButton}>
