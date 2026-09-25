@@ -66,7 +66,6 @@ type MarketplaceHomeScreenProps = {
   routeFilters: SearchFilters;
   routeKey: string;
   onOpenListing: (id: string) => void;
-  onOpenMessages: () => void;
   onOpenFilters: (filters: SearchFilters) => void;
 };
 
@@ -75,7 +74,6 @@ export function MarketplaceHomeScreen({
   routeFilters,
   routeKey,
   onOpenListing,
-  onOpenMessages,
   onOpenFilters,
 }: MarketplaceHomeScreenProps) {
   const insets = useSafeAreaInsets();
@@ -207,7 +205,7 @@ export function MarketplaceHomeScreen({
         )}
       </ScrollView>
 
-      <MarketplaceBottomBar activeTab="home" bottomInset={insets.bottom} onMessages={onOpenMessages} />
+      <MarketplaceBottomBar activeTab="home" bottomInset={insets.bottom} />
     </View>
   );
 }
@@ -215,10 +213,13 @@ export function MarketplaceHomeScreen({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
     backgroundColor: palette.surface,
   },
   content: {
-    paddingHorizontal: 22,
+    paddingHorizontal: 15,
     paddingBottom: 96,
   },
 

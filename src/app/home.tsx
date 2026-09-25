@@ -14,7 +14,6 @@ export default function HomeRoute() {
       routeFilters={routeFilters}
       routeKey={JSON.stringify(params)}
       onOpenListing={(id) => router.push({ pathname: '/listings/id', params: { id } })}
-      onOpenMessages={() => router.push('/messages')}
       onOpenFilters={(filters) => router.push({
         pathname: '/search_filter',
         params: params.applied === 'true'

@@ -65,11 +65,10 @@ function ConversationCard({
 
 type MessagesScreenProps = {
   service: MessageService;
-  onHome: () => void;
   onOpenConversation: (conversation: Conversation) => void;
 };
 
-export function MessagesScreen({ service, onHome, onOpenConversation }: MessagesScreenProps) {
+export function MessagesScreen({ service, onOpenConversation }: MessagesScreenProps) {
   const insets = useSafeAreaInsets();
   const [side, setSide] = useState<ConversationSide>('buying');
   const [query, setQuery] = useState('');
@@ -79,7 +78,7 @@ export function MessagesScreen({ service, onHome, onOpenConversation }: Messages
     <View style={styles.background}>
       <StatusBar style="dark" />
       <View style={styles.screen}>
-        <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 9 }]}>
           <Text style={styles.title}>Messages</Text>
           <Text style={styles.subtitle}>Talk with buyers and sellers</Text>
         </View>
@@ -152,7 +151,7 @@ export function MessagesScreen({ service, onHome, onOpenConversation }: Messages
           </View>
         </ScrollView>
 
-        <MarketplaceBottomBar activeTab="messages" bottomInset={insets.bottom} onHome={onHome} />
+        <MarketplaceBottomBar activeTab="messages" bottomInset={insets.bottom} />
       </View>
     </View>
   );
@@ -161,10 +160,10 @@ export function MessagesScreen({ service, onHome, onOpenConversation }: Messages
 const styles = StyleSheet.create({
   background: { flex: 1, backgroundColor: '#f9fcf9' },
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#f9fcf9' },
-  header: { paddingHorizontal: 22, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#e4e9ef', backgroundColor: '#fff' },
-  title: { color: forest, fontSize: 22, lineHeight: 28, fontWeight: '700' },
-  subtitle: { color: muted, fontSize: 12, lineHeight: 16, marginTop: 2 },
-  content: { paddingHorizontal: 22, paddingTop: 18, paddingBottom: 28 },
+  header: { paddingHorizontal: 15, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#dfe8e2', backgroundColor: '#fff' },
+  title: { color: forest, fontSize: 20, lineHeight: 25, fontWeight: '700' },
+  subtitle: { color: muted, fontSize: 9, lineHeight: 13, marginTop: 3 },
+  content: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 24 },
   segmentedControl: { height: 48, borderRadius: 14, padding: 4, flexDirection: 'row', backgroundColor: '#eaf2ed' },
   segment: { flex: 1, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   segmentSelected: { backgroundColor: forest, shadowColor: forest, shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },

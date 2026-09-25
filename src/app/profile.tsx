@@ -1,0 +1,12 @@
+import { router } from 'expo-router';
+
+import { ProfileScreen } from '@/features/profile/presentation/profile_screen';
+
+export default function ProfileRoute() {
+  return (
+    <ProfileScreen
+      onMessages={() => router.navigate('/messages')}
+      onLogOut={() => router.replace('/login')}
+    />
+  );
+}
