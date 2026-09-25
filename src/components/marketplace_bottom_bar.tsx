@@ -45,7 +45,7 @@ function NavigationItem({
       style={styles.tab}
     >
       <SymbolView name={icon} size={19} tintColor={active ? forest : muted} />
-      <Text numberOfLines={1} style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
+      <Text numberOfLines={2} style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text>
     </Pressable>
   );
 }
@@ -86,17 +86,17 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 56,
     alignItems: 'center',
     justifyContent: 'flex-start',
     gap: 3,
     paddingTop: 3,
   },
-  tabLabel: { color: muted, fontSize: 9, lineHeight: 12, textAlign: 'center' },
+  tabLabel: { color: '#52647a', fontSize: 12, lineHeight: 15, textAlign: 'center', fontWeight: '600' },
   tabLabelActive: { color: forest, fontWeight: '800' },
   sellTab: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 56,
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: 1,

@@ -53,8 +53,8 @@ function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => vo
     <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.title} details`} onPress={onPress} style={styles.card}>
       <Image source={getListingImage(listing.id)} contentFit="cover" style={styles.cardImage} />
       <View style={styles.cardBody}>
-        <Text numberOfLines={1} style={styles.cardTitle}>{listing.title}</Text>
-        <Text numberOfLines={1} style={styles.cardDetails}>{listing.details}</Text>
+        <Text numberOfLines={2} style={styles.cardTitle}>{listing.title}</Text>
+        <Text numberOfLines={2} style={styles.cardDetails}>{listing.details}</Text>
         <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
       </View>
     </Pressable>
@@ -233,9 +233,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   locationCaption: {
-    color: '#73839a',
-    fontSize: 11,
-    lineHeight: 14,
+    color: '#52647a',
+    fontSize: 13,
+    lineHeight: 18,
     letterSpacing: 0.8,
   },
   locationName: {
@@ -360,8 +360,8 @@ const styles = StyleSheet.create({
   },
   bannerSubtitle: {
     color: '#dceae3',
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 13,
+    lineHeight: 18,
     maxWidth: 190,
   },
   learnButton: {
@@ -432,14 +432,14 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: '#25302d',
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 19,
     fontWeight: '700',
   },
   cardDetails: {
-    color: '#7f8da2',
-    fontSize: 11,
-    lineHeight: 15,
+    color: '#52647a',
+    fontSize: 13,
+    lineHeight: 18,
     marginTop: 1,
   },
   price: {

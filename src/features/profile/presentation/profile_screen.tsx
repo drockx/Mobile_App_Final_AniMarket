@@ -141,7 +141,7 @@ export function ProfileScreen({ onMessages, onLogOut }: ProfileScreenProps) {
               </View>
               <View style={styles.identityCopy}>
                 <View style={styles.identityTopRow}>
-                  <Text numberOfLines={compact ? 2 : 1} style={styles.personName}>Juan Dela Cruz</Text>
+                  <Text numberOfLines={2} style={styles.personName}>Juan Dela Cruz</Text>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Edit Profile"
@@ -149,12 +149,12 @@ export function ProfileScreen({ onMessages, onLogOut }: ProfileScreenProps) {
                     onPress={() => showUnavailable('Edit Profile')}
                     style={styles.editButton}
                   >
-                    <Text numberOfLines={1} style={styles.editText}>Edit Profile</Text>
+                    <Text style={styles.editText}>Edit Profile</Text>
                   </Pressable>
                 </View>
                 <Text style={styles.location}>Tagum City, Davao del Norte</Text>
                 <View style={styles.verifiedRow}>
-                  <View style={styles.verifiedIcon}><Icon name={icon.check} size={13} tintColor={color.green} /></View>
+                  <View style={styles.verifiedIcon}><Icon name={icon.check} size={14} tintColor={color.green} /></View>
                   <Text style={styles.verifiedText}>Verified AniMarket member</Text>
                 </View>
               </View>
@@ -233,17 +233,17 @@ const styles = StyleSheet.create({
   identityCopy: { flex: 1, minWidth: 0 },
   identityTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   personName: { flex: 1, minWidth: 0, color: color.forest, fontSize: 17, lineHeight: 22, fontWeight: '700' },
-  location: { color: color.muted, fontSize: 11, lineHeight: 15, marginTop: 2 },
-  verifiedRow: { minHeight: 16, flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  verifiedIcon: { width: 14, height: 14, alignItems: 'center', justifyContent: 'center' },
-  verifiedText: { flexShrink: 1, color: color.green, fontSize: 10, lineHeight: 14, fontWeight: '800' },
-  editButton: { minWidth: 84, minHeight: 32, borderWidth: 1, borderColor: color.line, borderRadius: 9, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
-  editText: { color: color.forest, fontSize: 11, fontWeight: '800' },
+  location: { color: '#54645a', fontSize: 13, lineHeight: 18, marginTop: 2 },
+  verifiedRow: { minHeight: 18, flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  verifiedIcon: { width: 15, height: 15, alignItems: 'center', justifyContent: 'center' },
+  verifiedText: { flexShrink: 1, color: color.green, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  editButton: { minWidth: 84, minHeight: 34, borderWidth: 1, borderColor: color.line, borderRadius: 9, paddingHorizontal: 9, paddingVertical: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  editText: { color: color.forest, fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'center' },
   stats: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: color.line, marginTop: 12, paddingTop: 12 },
   stat: { flex: 1, alignItems: 'center' },
   statDivider: { borderRightWidth: 1, borderRightColor: color.line },
   statValue: { color: color.forest, fontSize: 17, lineHeight: 21, fontWeight: '700' },
-  statLabel: { color: color.muted, fontSize: 10, lineHeight: 13, fontWeight: '700', marginTop: 2, textAlign: 'center' },
+  statLabel: { color: '#54645a', fontSize: 12, lineHeight: 16, fontWeight: '700', marginTop: 2, textAlign: 'center' },
   quickGrid: { flexDirection: 'row', gap: 9 },
   quickAction: { flex: 1, minHeight: 60, borderWidth: 1, borderColor: color.line, borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: '#fff' },
   quickIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: color.mint },
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   quickTitle: { color: color.forest, fontSize: 13, lineHeight: 17, fontWeight: '700' },
   sectionHeading: { marginHorizontal: 2, marginTop: 2, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
   activityHeading: { marginTop: 2 },
-  sectionTitle: { color: color.muted, fontSize: 13, lineHeight: 17, letterSpacing: 0.45, fontWeight: '700' },
+  sectionTitle: { color: '#52665b', fontSize: 14, lineHeight: 20, letterSpacing: 0.45, fontWeight: '700' },
   accountGroup: { gap: 10 },
   menu: { borderWidth: 1, borderColor: color.line, borderRadius: 16, overflow: 'hidden', backgroundColor: '#fff' },
   menuItem: { minHeight: 60, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff' },
@@ -259,12 +259,12 @@ const styles = StyleSheet.create({
   menuIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: color.surface },
   logoutIcon: { backgroundColor: '#fff1ef' },
   menuCopy: { flex: 1, minWidth: 0 },
-  menuTitle: { color: color.text, fontSize: 13, lineHeight: 17, fontWeight: '700' },
+  menuTitle: { color: color.text, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   logoutText: { color: color.red },
-  count: { color: color.forest, backgroundColor: color.mint, borderRadius: 20, overflow: 'hidden', paddingHorizontal: 7, paddingVertical: 5, fontSize: 10, fontWeight: '800' },
+  count: { color: color.forest, backgroundColor: color.mint, borderRadius: 20, overflow: 'hidden', paddingHorizontal: 7, paddingVertical: 5, fontSize: 12, lineHeight: 16, fontWeight: '800' },
   verification: { minHeight: 52, marginTop: 10, borderWidth: 1, borderColor: '#eddcab', borderRadius: 14, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff7df' },
   verificationCopy: { flex: 1 },
-  verificationTitle: { color: '#684500', fontSize: 12, lineHeight: 16, fontWeight: '700' },
-  completeButton: { minWidth: 56, minHeight: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
-  completeText: { color: '#9a6700', fontSize: 11, fontWeight: '800' },
+  verificationTitle: { color: '#684500', fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  completeButton: { minWidth: 64, minHeight: 34, paddingHorizontal: 6, paddingVertical: 4, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  completeText: { color: '#805300', fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'center' },
 });

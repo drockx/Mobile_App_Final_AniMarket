@@ -28,7 +28,7 @@ function Spec({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.spec}>
       <Text style={styles.specLabel}>{label}</Text>
-      <Text numberOfLines={1} style={styles.specValue}>{value}</Text>
+      <Text numberOfLines={2} style={styles.specValue}>{value}</Text>
     </View>
   );
 }
@@ -178,28 +178,28 @@ const styles = StyleSheet.create({
   title: { color: green, fontSize: 20, lineHeight: 23, fontWeight: '800' },
   price: { color: green, fontSize: 21, lineHeight: 25, fontWeight: '800' },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
-  location: { color: '#718096', fontSize: 12, lineHeight: 16 },
+  location: { color: '#52647a', fontSize: 14, lineHeight: 20 },
   thumbnails: { flexDirection: 'row', gap: 10, marginTop: 17, marginBottom: 16 },
   thumbnail: { width: 52, height: 52, borderRadius: 10, borderWidth: 2, borderColor: 'transparent', backgroundColor: '#f7faf7', overflow: 'hidden' },
   thumbnailImage: { width: '100%', height: '100%' },
   thumbnailActive: { borderColor: green },
   specRow: { flexDirection: 'row', gap: 10 },
   spec: { flex: 1, minWidth: 0, paddingVertical: 10, paddingHorizontal: 4, backgroundColor: '#f7faf7', borderColor: '#e2efe0', borderWidth: 1, borderRadius: 12, alignItems: 'center' },
-  specLabel: { color: '#718096', fontSize: 10, fontWeight: '600', textTransform: 'uppercase' },
-  specValue: { color: green, fontSize: 12, fontWeight: '700', marginTop: 2 },
+  specLabel: { color: '#52647a', fontSize: 12, lineHeight: 16, fontWeight: '700', textTransform: 'uppercase', textAlign: 'center' },
+  specValue: { color: green, fontSize: 14, lineHeight: 19, fontWeight: '700', marginTop: 2, textAlign: 'center' },
   divider: { height: 1, backgroundColor: '#edf2f7', marginVertical: 18 },
   sectionTitle: { color: '#1a202c', fontSize: 15, fontWeight: '700', marginBottom: 8 },
   description: { color: '#4a5568', fontSize: 13, lineHeight: 19.5 },
   healthCard: { minHeight: 92, marginTop: 14, paddingHorizontal: 20, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 14, backgroundColor: '#e2f3e3', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   healthCopy: { flex: 1 },
   healthTitle: { color: green, fontSize: 14, fontWeight: '700' },
-  healthSubtitle: { color: '#2d6a4f', fontSize: 11.5, marginTop: 2 },
+  healthSubtitle: { color: '#2d6a4f', fontSize: 13, lineHeight: 18, marginTop: 2 },
   sellerCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#f8fafc' },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: green, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   sellerName: { color: '#1a202c', fontSize: 14, fontWeight: '700' },
-  sellerMeta: { color: '#718096', fontSize: 11.5 },
-  verified: { color: '#1b4d3e', fontSize: 10, fontWeight: '700', marginTop: 3 },
+  sellerMeta: { color: '#52647a', fontSize: 13, lineHeight: 18 },
+  verified: { color: '#1b4d3e', fontSize: 12, lineHeight: 17, fontWeight: '700', marginTop: 3 },
   dock: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0', backgroundColor: '#fff' },
   callButton: { width: 50, height: 50, borderRadius: 12, borderWidth: 1, borderColor: green, alignItems: 'center', justifyContent: 'center' },
   chatButton: { flex: 1, minWidth: 0, height: 50, borderRadius: 12, backgroundColor: green, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },

@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   sectionLabel: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.45, textTransform: 'uppercase', marginTop: 13, marginBottom: 8 },
   fieldGroup: { gap: 10 },
   terms: { marginTop: 16, marginBottom: 14 },
-  termsError: { color: '#ffd2ca', fontSize: 12, lineHeight: 17, marginTop: 4, marginLeft: 38 },
+  termsError: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 4, marginLeft: 38 },
   message: { color: '#fff', backgroundColor: 'rgba(20,31,24,0.5)', borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 13 },
   switchRow: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 14 },
   switchText: { color: '#fff', fontSize: 15 },

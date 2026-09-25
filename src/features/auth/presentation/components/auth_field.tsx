@@ -94,5 +94,5 @@ const styles = StyleSheet.create({
   },
   compactToggle: { height: 52 },
   toggleText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  errorText: { color: '#ffd2ca', fontSize: 12, lineHeight: 17, marginTop: 5, paddingHorizontal: 2 },
+  errorText: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 5, paddingHorizontal: 2 },
 });

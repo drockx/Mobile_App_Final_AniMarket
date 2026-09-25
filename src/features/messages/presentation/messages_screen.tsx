@@ -41,7 +41,7 @@ function ConversationCard({
       <View style={styles.avatar}><Text style={styles.avatarText}>{conversation.initials}</Text></View>
       <View style={styles.cardCopy}>
         <View style={styles.nameRow}>
-          <Text numberOfLines={1} style={styles.name}>{conversation.participant}</Text>
+          <Text numberOfLines={2} style={styles.name}>{conversation.participant}</Text>
           {conversation.verifiedSeller && <Text style={styles.sellerTag}>Seller</Text>}
         </View>
         <Text style={styles.time}>{conversation.time}</Text>
@@ -152,31 +152,31 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 15, paddingBottom: 18, borderBottomWidth: 1, borderBottomColor: '#e7eeea', backgroundColor: '#fff' },
   title: { color: forest, fontSize: 24, lineHeight: 30, fontWeight: '700' },
   content: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 24 },
-  segmentedControl: { height: 46, borderRadius: 13, padding: 4, flexDirection: 'row', backgroundColor: '#eef7f3' },
+  segmentedControl: { minHeight: 46, borderRadius: 13, padding: 4, flexDirection: 'row', backgroundColor: '#eef7f3' },
   segment: { flex: 1, borderRadius: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   segmentSelected: { backgroundColor: forest },
-  segmentLabel: { color: '#526259', fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  segmentLabel: { color: '#40564a', fontSize: 14, lineHeight: 19, fontWeight: '700' },
   segmentLabelSelected: { color: '#fff', fontWeight: '700' },
-  segmentBadge: { minWidth: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  segmentBadge: { minWidth: 20, minHeight: 20, paddingHorizontal: 4, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
   segmentBadgeSelling: { backgroundColor: '#aa3028' },
-  segmentBadgeText: { color: forest, fontSize: 9, fontWeight: '700' },
+  segmentBadgeText: { color: forest, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   segmentBadgeTextSelling: { color: '#fff' },
-  searchField: { height: 42, marginTop: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: border, borderRadius: 13, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
-  searchInput: { flex: 1, height: '100%', marginLeft: 9, color: '#1d2b27', fontSize: 12 },
+  searchField: { minHeight: 46, marginTop: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: border, borderRadius: 13, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
+  searchInput: { flex: 1, minHeight: 44, marginLeft: 9, color: '#1d2b27', fontSize: 14 },
   sectionRow: { marginTop: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  sectionCount: { color: muted, fontSize: 9, lineHeight: 13 },
+  sectionTitle: { color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  sectionCount: { color: '#586b60', fontSize: 12, lineHeight: 16 },
   card: { minHeight: 76, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
   avatar: { width: 46, height: 46, borderRadius: 13, backgroundColor: '#c7e4d1', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: forest, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   cardCopy: { flex: 1, minWidth: 0, marginLeft: 10 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  name: { flexShrink: 1, color: '#17221d', fontSize: 13, lineHeight: 17, fontWeight: '700' },
-  sellerTag: { color: '#286a4d', backgroundColor: '#e4f4e9', borderRadius: 5, overflow: 'hidden', paddingHorizontal: 5, paddingVertical: 1, fontSize: 8, fontWeight: '700' },
+  name: { flexShrink: 1, color: '#17221d', fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  sellerTag: { color: '#22583e', backgroundColor: '#e4f4e9', borderRadius: 5, overflow: 'hidden', paddingHorizontal: 5, paddingVertical: 2, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   cardEnd: { minWidth: 28, alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'center' },
-  time: { color: muted, marginTop: 3, fontSize: 9, lineHeight: 13 },
-  unreadBadge: { minHeight: 22, paddingHorizontal: 8, borderRadius: 12, backgroundColor: '#e8f5ed', alignItems: 'center', justifyContent: 'center' },
-  unreadText: { color: forest, fontSize: 9, fontWeight: '700' },
+  time: { color: '#586b60', marginTop: 3, fontSize: 12, lineHeight: 16 },
+  unreadBadge: { minHeight: 24, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, backgroundColor: '#e8f5ed', alignItems: 'center', justifyContent: 'center' },
+  unreadText: { color: forest, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   chevronBadge: { width: 27, height: 27, borderRadius: 9, backgroundColor: '#e8f5ed', alignItems: 'center', justifyContent: 'center' },
   emptyState: { color: muted, fontSize: 14, lineHeight: 20, textAlign: 'center', paddingVertical: 32 },
 });
