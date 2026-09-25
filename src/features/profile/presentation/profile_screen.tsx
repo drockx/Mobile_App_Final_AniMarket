@@ -90,10 +90,11 @@ function MenuItem({
 
 type ProfileScreenProps = {
   onMessages: () => void;
+  onMarketReference: () => void;
   onLogOut: () => void;
 };
 
-export function ProfileScreen({ onMessages, onLogOut }: ProfileScreenProps) {
+export function ProfileScreen({ onMessages, onMarketReference, onLogOut }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const compact = width < 360;
@@ -198,7 +199,7 @@ export function ProfileScreen({ onMessages, onLogOut }: ProfileScreenProps) {
           <View style={styles.menu}>
             <MenuItem title="Messages" symbol={icon.messages} badge="3 unread" onPress={onMessages} />
             <MenuItem title="Price Calculator" symbol={icon.calculator} onPress={() => showUnavailable('Price Calculator')} />
-            <MenuItem title="Davao Regional Market Reference" symbol={icon.chart} onPress={() => showUnavailable('Davao Regional Market Reference')} last />
+            <MenuItem title="Davao Regional Market Reference" symbol={icon.chart} onPress={onMarketReference} last />
           </View>
 
           <View style={styles.accountGroup}>

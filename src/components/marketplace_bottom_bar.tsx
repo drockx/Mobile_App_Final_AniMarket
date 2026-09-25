@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-type Tab = 'home' | 'messages' | 'profile';
+type Tab = 'home' | 'messages' | 'market' | 'profile';
 
 type MarketplaceBottomBarProps = {
   activeTab: Tab;
@@ -66,7 +66,8 @@ export function MarketplaceBottomBar({ activeTab, bottomInset }: MarketplaceBott
       <NavigationItem
         label="Market Reference"
         icon={icons.chart}
-        onPress={() => showComingSoon('Market Reference', 'Regional prices are coming soon.')}
+        active={activeTab === 'market'}
+        onPress={() => router.navigate('/market_reference')}
       />
       <NavigationItem label="Profile" icon={icons.profile} active={activeTab === 'profile'} onPress={() => router.navigate('/profile')} />
     </View>

@@ -6,6 +6,7 @@ export default function ProfileRoute() {
   return (
     <ProfileScreen
       onMessages={() => router.navigate('/messages')}
+      onMarketReference={() => router.navigate('/market_reference')}
       onLogOut={() => router.replace('/login')}
     />
   );
