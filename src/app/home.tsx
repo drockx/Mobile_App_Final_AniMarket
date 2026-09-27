@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
 
 import { marketplaceService } from '@/features/marketplace/marketplace_dependencies';
 import { MarketplaceHomeScreen } from '@/features/marketplace/presentation/marketplace_home_screen';
@@ -6,6 +6,7 @@ import { parseSearchFilters, serializeSearchFilters } from '@/features/marketpla
 
 export default function HomeRoute() {
   const params = useLocalSearchParams();
+  const isFocused = useIsFocused();
   const routeFilters = parseSearchFilters(params);
 
   return (
@@ -13,6 +14,7 @@ export default function HomeRoute() {
       marketplace={marketplaceService}
       routeFilters={routeFilters}
       routeKey={JSON.stringify(params)}
+      isFocused={isFocused}
       onOpenListing={(id) => router.push({ pathname: '/listings/id', params: { id } })}
       onOpenFilters={(filters) => router.push({
         pathname: '/search_filter',

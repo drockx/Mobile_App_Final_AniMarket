@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AniMarket - Post Livestock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background-color: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 24px 0;
+    }
+
+    /* Mobile Canvas Frame */
+    .mobile-screen {
+      width: 375px;
+      height: auto;
+      min-height: 812px;
+      background-color: #ffffff;
+      border-radius: 40px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      position: relative;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 24px 0 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1c1c1c;
+      background-color: #ffffff;
+    }
+
+    .status-icons {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    /* Header Nav */
+    .app-header {
+      padding: 12px 20px 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #ffffff;
+      border-bottom: 1px solid #edf2f7;
+    }
+
+    .header-btn {
+      width: 36px;
+      height: 36px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke: #12372a;
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .header-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #12372a;
+    }
+
+    /* Scrollable Form Body */
+    .scroll-container {
+      flex: none;
+      overflow: visible;
+      padding: 20px;
+    }
+
+    /* Form Styles */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .form-label span {
+      color: #e53e3e;
+    }
+
+    .input-box {
+      width: 100%;
+      padding: 12px 14px;
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 14px;
+      color: #2d3748;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-box:focus {
+      border-color: #12372a;
+      background-color: #ffffff;
+    }
+
+    select.input-box {
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    textarea.input-box {
+      resize: none;
+      height: 90px;
+      line-height: 1.4;
+    }
+
+    /* Image Uploader Area */
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    .upload-box {
+      width: 100%;
+      height: 72px;
+      border: 2px dashed #cbd5e0;
+      border-radius: 12px;
+      background-color: #f7faf7;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .upload-box svg {
+      width: 22px;
+      height: 22px;
+      stroke: #12372a;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .upload-box span {
+      font-size: 10px;
+      font-weight: 600;
+      color: #4a5568;
+      margin-top: 4px;
+    }
+
+    .media-thumb {
+      width: 100%;
+      height: 72px;
+      border-radius: 12px;
+      background-color: #e2efe0;
+      border: 1px solid #c7e5c4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    .media-thumb svg {
+      width: 28px;
+      height: 28px;
+      stroke: #12372a;
+      fill: none;
+      stroke-width: 1.8;
+    }
+
+    .remove-thumb {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #e53e3e;
+      color: #ffffff;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .remove-thumb svg {
+      width: 12px;
+      height: 12px;
+      stroke: #ffffff;
+      stroke-width: 3;
+    }
+
+    /* Two-column Input Grid */
+    .row-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field-help {
+      display: block;
+      margin-top: 6px;
+      color: #718096;
+      font-size: 10.5px;
+      line-height: 1.35;
+    }
+
+    .price-assistant {
+      margin-bottom: 20px;
+      padding: 14px;
+      border: 1px solid #c7e5c4;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #f1f8f3 0%, #e7f3ea 100%);
+    }
+
+    .price-assistant-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .price-assistant-title {
+      color: #12372a;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .reference-badge {
+      flex-shrink: 0;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background-color: #d6eadc;
+      color: #1b4d3e;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .reference-location {
+      color: #4a5568;
+      font-size: 11px;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+
+    .reference-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .reference-stat {
+      padding: 9px;
+      border-radius: 10px;
+      background-color: rgba(255, 255, 255, 0.78);
+    }
+
+    .reference-stat span {
+      display: block;
+      color: #718096;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+    }
+
+    .reference-stat strong {
+      color: #12372a;
+      font-size: 14px;
+    }
+
+    .price-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .btn-use-price,
+    .btn-full-calculator {
+      min-height: 38px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-use-price {
+      border: 0;
+      background-color: #12372a;
+      color: #ffffff;
+    }
+
+    .btn-use-price:disabled {
+      background-color: #9aaba2;
+      cursor: not-allowed;
+    }
+
+    .btn-full-calculator {
+      border: 1px solid #12372a;
+      background-color: transparent;
+      color: #12372a;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .price-disclaimer {
+      margin-top: 9px;
+      color: #5f6f66;
+      font-size: 9.5px;
+      line-height: 1.35;
+    }
+
+    .price-updated {
+      color: #2f6b50;
+      font-size: 10px;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    /* Listing-level Vaccination Proof */
+    .vaccination-card {
+      margin-bottom: 20px;
+      padding: 14px;
+      border: 1px solid #c7e5c4;
+      border-radius: 14px;
+      background-color: #fbfdfb;
+    }
+
+    .vaccination-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .vaccination-heading h3 {
+      color: #12372a;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .required-badge {
+      color: #c53030;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .vaccination-intro {
+      color: #5f6f66;
+      font-size: 11px;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+
+    .status-options {
+      display: grid;
+      grid-template-columns: 1.1fr 1.3fr 1fr;
+      border: 1px solid #d8e2dc;
+      border-radius: 11px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .status-options input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .status-options label {
+      padding: 10px 5px;
+      background: #ffffff;
+      color: #4a5568;
+      border-right: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .status-options label:last-of-type {
+      border-right: 0;
+    }
+
+    .status-options input:checked + label {
+      background-color: #12372a;
+      color: #ffffff;
+    }
+
+    .proof-fields[hidden] {
+      display: none;
+    }
+
+    .proof-upload {
+      display: block;
+      padding: 14px;
+      border: 1.5px dashed #9fc7ad;
+      border-radius: 12px;
+      background-color: #f4faf6;
+      color: #12372a;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .proof-upload input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+    }
+
+    .proof-file-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid #dfe8e2;
+      border-radius: 10px;
+      background-color: #ffffff;
+      font-size: 11px;
+    }
+
+    .proof-file-row[hidden] {
+      display: none;
+    }
+
+    .file-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #2d3748;
+      font-weight: 600;
+    }
+
+    .attached-badge {
+      flex-shrink: 0;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background-color: #dff2e5;
+      color: #166534;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .proof-note {
+      margin-top: 9px;
+      color: #718096;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .proof-preview-link {
+      display: inline-flex;
+      margin-top: 10px;
+      color: #12372a;
+      font-size: 11px;
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    /* Seller address and vector-only area pin */
+    .location-card {
+      margin-bottom: 20px;
+      padding: 14px;
+      border: 1px solid #c7e5c4;
+      border-radius: 14px;
+      background: #fbfdfb;
+    }
+
+    .location-card h3 {
+      color: #12372a;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    .location-card p {
+      color: #5f6f66;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .pin-preview {
+      position: relative;
+      height: 128px;
+      margin: 12px 0;
+      overflow: hidden;
+      border: 1px solid #c7e5c4;
+      border-radius: 12px;
+      background: #eaf5ed;
+    }
+
+    .pin-preview svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .pin-preview .is-hidden {
+      display: none;
+    }
+
+    .pin-preview-label {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      color: #12372a;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .pin-location-button {
+      display: flex;
+      width: 100%;
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      border: 1px solid #12372a;
+      border-radius: 10px;
+      background: #ffffff;
+      color: #12372a;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .pin-location-button svg {
+      width: 17px;
+      height: 17px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    .pin-location-button:focus-visible {
+      outline: 3px solid #80b796;
+      outline-offset: 2px;
+    }
+
+    .pin-coordinates .form-group {
+      margin-bottom: 8px;
+    }
+
+    .pin-status {
+      min-height: 31px;
+      margin-top: 2px;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #2f6b50;
+    }
+
+    .pin-status.is-error {
+      color: #c53030;
+    }
+
+    /* Fixed Bottom Action Bar */
+    .bottom-bar {
+      position: static;
+      width: 100%;
+      background-color: #ffffff;
+      border-top: 1px solid #edf2f7;
+      padding: 12px 20px 24px 20px;
+      z-index: 10;
+      border-radius: 0 0 40px 40px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background-color: #12372a;
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .btn-submit:hover {
+      background-color: #0c261d;
+    }
+
+    @media (max-width: 420px) {
+      body {
+        padding: 0;
+      }
+
+      .mobile-screen {
+        width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .bottom-bar {
+        border-radius: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-screen">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-icons">
+        <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor">
+          <rect x="0" y="8" width="2" height="2" rx="0.5"/>
+          <rect x="4" y="6" width="2" height="4" rx="0.5"/>
+          <rect x="8" y="3" width="2" height="7" rx="0.5"/>
+          <rect x="12" y="0" width="2" height="10" rx="0.5"/>
+        </svg>
+        <svg width="14" height="11" viewBox="0 0 16 12" fill="currentColor">
+          <path d="M8 12a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm-4.95-4.95a7 7 0 0 1 9.9 0l-1.41 1.41a5 5 0 0 0-7.07 0L3.05 7.05zm-2.83-2.83a11 11 0 0 1 15.56 0l-1.42 1.42a9 9 0 0 0-12.72 0L.22 4.22z"/>
+        </svg>
+        <svg width="20" height="10" viewBox="0 0 22 11" fill="currentColor">
+          <rect x="0" y="0" width="18" height="11" rx="2.5" fill-opacity="0.3"/>
+          <rect x="1.5" y="1.5" width="13" height="8" rx="1.5"/>
+          <path d="M19 4h1.5v3H19z" fill-opacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- App Header Nav -->
+    <div class="app-header">
+      <button class="header-btn" onclick="window.history.back()">
+        <svg viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <h2 class="header-title">Create Listing</h2>
+      <div style="width: 36px;"></div>
+    </div>
+
+    <!-- Scrollable Form Container -->
+    <div class="scroll-container">
+      <form id="listingForm">
+
+        <!-- Image Upload Section -->
+        <div class="form-group">
+          <label class="form-label">Photos <span>*</span></label>
+          <div class="media-grid">
+            <div class="upload-box">
+              <svg viewBox="0 0 24 24">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              <span>Add</span>
+            </div>
+            <div class="media-thumb">
+              <svg viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <button type="button" class="remove-thumb">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Title Input -->
+        <div class="form-group">
+          <label class="form-label">Listing Title <span>*</span></label>
+          <input type="text" class="input-box" name="listingTitle" placeholder="e.g. Brahman Bull (Pure Breed)" value="Brahman Bull (Pure Breed)" required />
+        </div>
+
+        <!-- Category Dropdown -->
+        <div class="form-group">
+          <label class="form-label">Category <span>*</span></label>
+          <select class="input-box" id="category" name="category" required>
+            <option value="cattle" selected>Cattle</option>
+            <option value="goats">Goats</option>
+            <option value="swine">Swine</option>
+            <option value="poultry">Poultry</option>
+            <option value="feeds">Feeds &amp; Supplies</option>
+          </select>
+        </div>
+
+        <!-- Age & Weight Row -->
+        <div class="row-grid">
+          <div class="form-group">
+            <label class="form-label">Age / Stage</label>
+            <input type="text" class="input-box" name="ageStage" placeholder="e.g. 2 Yrs" value="2 Yrs" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Weight (kg) <span>*</span></label>
+            <input type="number" class="input-box" id="weight" name="weight" min="1" step="0.1" placeholder="e.g. 450" value="450" required />
+          </div>
+        </div>
+
+        <!-- Listing-level Vaccination Proof -->
+        <section class="vaccination-card" aria-labelledby="vaccinationTitle">
+          <div class="vaccination-heading">
+            <h3 id="vaccinationTitle">Vaccination Information</h3>
+            <span class="required-badge">Required</span>
+          </div>
+          <p class="vaccination-intro">Declare the status of this livestock. Proof is required only when it is listed as vaccinated.</p>
+
+          <div class="status-options" role="radiogroup" aria-label="Vaccination status">
+            <input type="radio" id="vaccinated" name="vaccinationStatus" value="vaccinated" checked />
+            <label for="vaccinated">Vaccinated</label>
+            <input type="radio" id="notVaccinated" name="vaccinationStatus" value="not-vaccinated" />
+            <label for="notVaccinated">Not vaccinated</label>
+            <input type="radio" id="vaccinationUnknown" name="vaccinationStatus" value="unknown" />
+            <label for="vaccinationUnknown">Unknown</label>
+          </div>
+
+          <div class="proof-fields" id="proofFields">
+            <div class="row-grid">
+              <div class="form-group">
+                <label class="form-label" for="vaccinationDate">Vaccination Date <span>*</span></label>
+                <input type="date" class="input-box" id="vaccinationDate" name="vaccinationDate" value="2026-01-15" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="vaccineName">Vaccine / Disease <span>*</span></label>
+                <input type="text" class="input-box" id="vaccineName" name="vaccineName" value="FMD Vaccine (Type O &amp; A)" required />
+              </div>
+            </div>
+
+            <label class="form-label" for="vaccinationProof">Vaccination Proof <span>*</span></label>
+            <label class="proof-upload" for="vaccinationProof">
+              Upload proof — PDF, JPG or PNG
+              <input type="file" id="vaccinationProof" name="vaccinationProof" accept=".pdf,image/jpeg,image/png" required />
+            </label>
+            <div class="proof-file-row" id="proofFileRow" hidden>
+              <span class="file-name" id="proofFileName"></span>
+              <span class="attached-badge">Attached</span>
+            </div>
+            <a class="proof-preview-link" href="VaccinationProofScreen.html">Preview buyer proof screen</a>
+          </div>
+
+          <p class="proof-note">Proof applies only to this livestock listing. It is shown as seller-provided unless reviewed by an authorized party.</p>
+        </section>
+
+        <!-- Actual Livestock Location -->
+        <div class="row-grid">
+          <div class="form-group">
+            <label class="form-label">Municipality / City <span>*</span></label>
+            <input type="text" class="input-box" id="city" name="city" placeholder="City / Municipality" value="Tagum City" autocomplete="address-level2" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Province <span>*</span></label>
+            <select class="input-box" id="province" name="province" autocomplete="address-level1" required>
+              <option value="Davao del Norte" selected>Davao del Norte</option>
+              <option value="Davao de Oro">Davao de Oro</option>
+              <option value="Davao del Sur">Davao del Sur</option>
+              <option value="Bukidnon">Bukidnon</option>
+              <option value="Other">Other province</option>
+            </select>
+          </div>
+        </div>
+        <span class="field-help" style="margin-top: -14px; margin-bottom: 20px;">Prefilled from the seller profile. Change this if the livestock is located elsewhere.</span>
+
+        <!-- Seller contact address stays separate from the livestock's public area pin. -->
+        <div class="form-group">
+          <label class="form-label" for="sellerAddress">Seller address (private)</label>
+          <input type="text" class="input-box" id="sellerAddress" name="sellerAddress" placeholder="House no., street, barangay" autocomplete="street-address" />
+          <span class="field-help">Use this for pickup arrangements. Share the exact address with a buyer only when you are ready.</span>
+        </div>
+
+        <section class="location-card" aria-labelledby="pinTitle">
+          <h3 id="pinTitle">Pin livestock location</h3>
+          <p>Set an approximate area pin for buyers. It may differ from your seller address.</p>
+
+          <div class="pin-preview" aria-hidden="true">
+            <svg viewBox="0 0 320 128" xmlns="http://www.w3.org/2000/svg">
+              <rect width="320" height="128" fill="#eaf5ed" />
+              <circle cx="160" cy="64" r="83" fill="none" stroke="#c8e2d0" stroke-width="1.5" />
+              <circle cx="160" cy="64" r="52" fill="none" stroke="#b7d6c1" stroke-width="1.5" />
+              <circle cx="160" cy="64" r="23" fill="none" stroke="#9fc7ad" stroke-width="1.5" />
+              <path d="M0 64h320M160 0v128" stroke="#c8e2d0" stroke-width="1.5" stroke-dasharray="5 6" />
+              <g id="pinMarker" class="is-hidden">
+                <circle cx="160" cy="58" r="26" fill="#12372a" fill-opacity=".11" />
+                <path d="M160 27c-14 0-25 11-25 25 0 18 25 42 25 42s25-24 25-42c0-14-11-25-25-25z" fill="#12372a" />
+                <circle cx="160" cy="52" r="9" fill="#ffffff" />
+              </g>
+            </svg>
+            <span class="pin-preview-label" id="pinPreviewLabel">Area pin preview</span>
+          </div>
+
+          <button type="button" class="pin-location-button" id="useCurrentLocation">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle><circle cx="12" cy="12" r="2"></circle><path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path></svg>
+            <span id="pinButtonLabel">Use my current location</span>
+          </button>
+
+          <div class="row-grid pin-coordinates">
+            <div class="form-group">
+              <label class="form-label" for="pinLatitude">Latitude <span>*</span></label>
+              <input type="number" class="input-box" id="pinLatitude" name="pinLatitude" min="-90" max="90" step="any" inputmode="decimal" placeholder="e.g. 7.448" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pinLongitude">Longitude <span>*</span></label>
+              <input type="number" class="input-box" id="pinLongitude" name="pinLongitude" min="-180" max="180" step="any" inputmode="decimal" placeholder="e.g. 125.807" required />
+            </div>
+          </div>
+          <p class="pin-status" id="pinStatus" role="status" aria-live="polite">No pin set yet. Use your current location or enter coordinates.</p>
+          <p>Only an approximate area should be shown to buyers; keep the exact pickup address private.</p>
+        </section>
+
+        <!-- Embedded Regional Price Assistant -->
+        <section class="price-assistant" aria-labelledby="priceAssistantTitle">
+          <div class="price-assistant-header">
+            <h3 class="price-assistant-title" id="priceAssistantTitle">Regional Price Assistant</h3>
+            <span class="reference-badge">Market reference</span>
+          </div>
+          <p class="reference-location" id="referenceLocation">Cattle reference for Tagum City, Davao del Norte</p>
+          <div class="reference-grid">
+            <div class="reference-stat">
+              <span>Reference rate</span>
+              <strong id="referenceRate">₱110–₱125/kg</strong>
+            </div>
+            <div class="reference-stat">
+              <span>Estimated value</span>
+              <strong id="estimatedValue">₱49,500–₱56,250</strong>
+            </div>
+          </div>
+          <div class="price-actions">
+            <button type="button" class="btn-use-price" id="useSuggestedPrice">Use ₱53,000</button>
+            <a class="btn-full-calculator" href="pricecalculator.html" aria-label="Open the full price calculator">Open full calculator</a>
+          </div>
+          <p class="price-updated" id="priceBasis">Based on 450 kg live weight and province-level reference data.</p>
+          <p class="price-disclaimer">Advisory estimate only. Breed, age, health, documentation, transport, and local demand may affect the final price.</p>
+        </section>
+
+        <!-- Seller-Controlled Listing Price -->
+        <div class="form-group">
+          <label class="form-label" for="price">Listing Price (₱) <span>*</span></label>
+          <input type="number" class="input-box" id="price" name="price" min="1" step="1" placeholder="Enter your selling price" value="45000" required />
+          <span class="field-help">You control the final price. Use the suggestion or enter your own amount.</span>
+        </div>
+
+        <!-- Description Textarea -->
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="input-box" name="description" placeholder="Provide details about breed, diet, vaccinations, or temperament...">Healthy, grass-fed Pure Brahman Bull. Fully dewormed and complete with updated vaccination records. Ideal for breeding stock.</textarea>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Submit Action Button Footer -->
+    <div class="bottom-bar">
+      <button type="submit" class="btn-submit" form="listingForm">Publish Listing</button>
+    </div>
+
+  </div>
+
+  <script>
+    const marketReferences = {
+      "Davao del Norte": { cattle: [110, 125], goats: [180, 230], swine: [170, 200], poultry: [120, 180] },
+      "Davao de Oro":   { cattle: [108, 123], goats: [175, 225], swine: [168, 198], poultry: [118, 175] },
+      "Davao del Sur":  { cattle: [112, 128], goats: [185, 235], swine: [172, 205], poultry: [125, 185] },
+      "Bukidnon":       { cattle: [105, 120], goats: [170, 220], swine: [165, 195], poultry: [115, 170] },
+      "Other":          { cattle: [105, 125], goats: [170, 230], swine: [165, 200], poultry: [115, 180] }
+    };
+
+    const category = document.getElementById('category');
+    const weight = document.getElementById('weight');
+    const city = document.getElementById('city');
+    const province = document.getElementById('province');
+    const price = document.getElementById('price');
+    const useSuggestedPrice = document.getElementById('useSuggestedPrice');
+    const pinLatitude = document.getElementById('pinLatitude');
+    const pinLongitude = document.getElementById('pinLongitude');
+    const pinStatus = document.getElementById('pinStatus');
+    const pinMarker = document.getElementById('pinMarker');
+    const pinPreviewLabel = document.getElementById('pinPreviewLabel');
+    const pinButtonLabel = document.getElementById('pinButtonLabel');
+    const useCurrentLocation = document.getElementById('useCurrentLocation');
+    let suggestedPrice = 0;
+
+    function updatePin() {
+      const ready = pinLatitude.value.trim() !== '' && pinLongitude.value.trim() !== '';
+      const valid = ready && pinLatitude.checkValidity() && pinLongitude.checkValidity();
+      pinMarker.classList.toggle('is-hidden', !valid);
+      pinStatus.classList.toggle('is-error', ready && !valid);
+      pinPreviewLabel.textContent = valid ? 'Buyer-visible area pin' : 'Area pin preview';
+
+      if (valid) {
+        const latitude = Number(pinLatitude.value);
+        const longitude = Number(pinLongitude.value);
+        const northSouth = latitude >= 0 ? 'N' : 'S';
+        const eastWest = longitude >= 0 ? 'E' : 'W';
+        pinStatus.textContent = `Area pin set near ${city.value.trim() || 'the selected city'}: ${Math.abs(latitude).toFixed(3)}° ${northSouth}, ${Math.abs(longitude).toFixed(3)}° ${eastWest}.`;
+      } else if (ready) {
+        pinStatus.textContent = 'Latitude must be between -90 and 90; longitude between -180 and 180.';
+      } else {
+        pinStatus.textContent = 'No pin set yet. Use your current location or enter coordinates.';
+      }
+    }
+
+    useCurrentLocation.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        pinStatus.textContent = 'Location is unavailable here. Enter coordinates manually.';
+        pinStatus.classList.add('is-error');
+        return;
+      }
+
+      useCurrentLocation.disabled = true;
+      pinButtonLabel.textContent = 'Finding your location…';
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          pinLatitude.value = position.coords.latitude.toFixed(6);
+          pinLongitude.value = position.coords.longitude.toFixed(6);
+          useCurrentLocation.disabled = false;
+          pinButtonLabel.textContent = 'Use my current location';
+          updatePin();
+        },
+        () => {
+          useCurrentLocation.disabled = false;
+          pinButtonLabel.textContent = 'Use my current location';
+          pinStatus.textContent = 'Location access was unavailable. Enter coordinates manually.';
+          pinStatus.classList.add('is-error');
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+      );
+    });
+
+    [pinLatitude, pinLongitude, city].forEach(field => field.addEventListener('input', updatePin));
+
+    function peso(value) {
+      return `₱${Math.round(value).toLocaleString('en-PH')}`;
+    }
+
+    function updatePriceReference() {
+      const provinceName = province.value;
+      const categoryName = category.value;
+      const liveWeight = Number(weight.value) || 0;
+      const provinceData = marketReferences[provinceName] || marketReferences.Other;
+      const rates = provinceData[categoryName];
+
+      if (!rates) {
+        document.getElementById('referenceLocation').textContent = 'Market reference is not applicable to feeds and supplies.';
+        document.getElementById('referenceRate').textContent = 'Not applicable';
+        document.getElementById('estimatedValue').textContent = 'Set manually';
+        document.getElementById('priceBasis').textContent = 'Enter a seller-defined price for this category.';
+        useSuggestedPrice.textContent = 'No suggestion';
+        useSuggestedPrice.disabled = true;
+        suggestedPrice = 0;
+        return;
+      }
+
+      if (!liveWeight) {
+        document.getElementById('referenceRate').textContent = `${peso(rates[0])}–${peso(rates[1])}/kg`;
+        document.getElementById('estimatedValue').textContent = 'Enter live weight';
+        document.getElementById('priceBasis').textContent = 'A valid live weight is required to calculate an estimate.';
+        useSuggestedPrice.textContent = 'Enter weight first';
+        useSuggestedPrice.disabled = true;
+        suggestedPrice = 0;
+        return;
+      }
+
+      const minimum = liveWeight * rates[0];
+      const maximum = liveWeight * rates[1];
+      suggestedPrice = Math.round(((minimum + maximum) / 2) / 500) * 500;
+      const locationText = [city.value.trim(), provinceName === 'Other' ? 'selected province' : provinceName]
+        .filter(Boolean)
+        .join(', ');
+      const categoryText = category.options[category.selectedIndex].text;
+
+      document.getElementById('referenceLocation').textContent = `${categoryText} reference for ${locationText}`;
+      document.getElementById('referenceRate').textContent = `${peso(rates[0])}–${peso(rates[1])}/kg`;
+      document.getElementById('estimatedValue').textContent = `${peso(minimum)}–${peso(maximum)}`;
+      document.getElementById('priceBasis').textContent = `Based on ${liveWeight.toLocaleString()} kg live weight and province-level reference data.`;
+      useSuggestedPrice.textContent = `Use ${peso(suggestedPrice)}`;
+      useSuggestedPrice.disabled = false;
+    }
+
+    useSuggestedPrice.addEventListener('click', () => {
+      if (!suggestedPrice) return;
+      price.value = suggestedPrice;
+      price.focus();
+    });
+
+    const vaccinationStatuses = document.querySelectorAll('input[name="vaccinationStatus"]');
+    const proofFields = document.getElementById('proofFields');
+    const vaccinationDate = document.getElementById('vaccinationDate');
+    const vaccineName = document.getElementById('vaccineName');
+    const vaccinationProof = document.getElementById('vaccinationProof');
+    const proofFileRow = document.getElementById('proofFileRow');
+    const proofFileName = document.getElementById('proofFileName');
+
+    function updateVaccinationRequirements() {
+      const selectedStatus = document.querySelector('input[name="vaccinationStatus"]:checked').value;
+      const proofRequired = selectedStatus === 'vaccinated';
+      proofFields.hidden = !proofRequired;
+      vaccinationDate.required = proofRequired;
+      vaccineName.required = proofRequired;
+      vaccinationProof.required = proofRequired;
+
+      if (!proofRequired) {
+        vaccinationProof.value = '';
+        proofFileRow.hidden = true;
+        proofFileName.textContent = '';
+      }
+    }
+
+    vaccinationStatuses.forEach(status => {
+      status.addEventListener('change', updateVaccinationRequirements);
+    });
+
+    vaccinationProof.addEventListener('change', () => {
+      const file = vaccinationProof.files[0];
+      proofFileRow.hidden = !file;
+      proofFileName.textContent = file ? file.name : '';
+    });
+
+    document.getElementById('listingForm').addEventListener('submit', event => {
+      event.preventDefault();
+      if (!event.currentTarget.reportValidity()) return;
+      document.querySelector('.btn-submit').textContent = 'Listing Ready to Publish';
+    });
+
+    [category, weight, city, province].forEach(field => {
+      field.addEventListener('input', updatePriceReference);
+      field.addEventListener('change', updatePriceReference);
+    });
+
+    updatePriceReference();
+    updateVaccinationRequirements();
+  </script>
+
+</body>
+</html>

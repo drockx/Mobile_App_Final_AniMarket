@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Tab = 'home' | 'messages' | 'market' | 'profile';
 
@@ -11,11 +11,6 @@ type MarketplaceBottomBarProps = {
 
 const forest = '#12372a';
 const muted = '#8497b2';
-
-function showComingSoon(title: string, message: string) {
-  if (Platform.OS === 'web') window.alert(`${title}\n${message}`);
-  else Alert.alert(title, message);
-}
 
 const icons = {
   home: { ios: 'house', android: 'home', web: 'home' },
@@ -58,7 +53,7 @@ export function MarketplaceBottomBar({ activeTab, bottomInset }: MarketplaceBott
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Sell livestock"
-        onPress={() => showComingSoon('Sell livestock', 'Listing creation is coming soon.')}
+        onPress={() => router.push('/listings/create')}
         style={styles.sellTab}
       >
         <View style={styles.sellCircle}><SymbolView name={icons.add} size={20} tintColor="#fff" /></View>

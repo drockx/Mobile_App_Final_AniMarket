@@ -4,4 +4,5 @@ import type { Listing } from './listing';
 export interface ListingRepository {
   getAll(): readonly Listing[];
   getById(id: string): Listing | undefined;
+  add(listing: Listing): void;
 }

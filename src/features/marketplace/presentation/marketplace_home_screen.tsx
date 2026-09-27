@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -51,7 +51,7 @@ const icons = {
 function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.title} details`} onPress={onPress} style={styles.card}>
-      <Image source={getListingImage(listing.id)} contentFit="cover" style={styles.cardImage} />
+      <Image source={listing.imageUri ? { uri: listing.imageUri } : getListingImage(listing.id)} contentFit="cover" style={styles.cardImage} />
       <View style={styles.cardBody}>
         <Text numberOfLines={2} style={styles.cardTitle}>{listing.title}</Text>
         <Text numberOfLines={2} style={styles.cardDetails}>{listing.details}</Text>
@@ -65,6 +65,7 @@ type MarketplaceHomeScreenProps = {
   marketplace: MarketplaceService;
   routeFilters: SearchFilters;
   routeKey: string;
+  isFocused: boolean;
   onOpenListing: (id: string) => void;
   onOpenFilters: (filters: SearchFilters) => void;
 };
@@ -73,6 +74,7 @@ export function MarketplaceHomeScreen({
   marketplace,
   routeFilters,
   routeKey,
+  isFocused,
   onOpenListing,
   onOpenFilters,
 }: MarketplaceHomeScreenProps) {
@@ -83,8 +85,8 @@ export function MarketplaceHomeScreen({
   const query = routeFilters.query;
   const verifiedOnly = verifiedDraft?.routeKey === routeKey ? verifiedDraft.value : routeFilters.verifiedOnly;
 
-  const visibleListings = useMemo(
-    () => marketplace.findListings(toListingCriteria({
+  const visibleListings = isFocused
+    ? marketplace.findListings(toListingCriteria({
       category,
       query,
       verifiedOnly,
@@ -93,10 +95,7 @@ export function MarketplaceHomeScreen({
       maxPrice: routeFilters.maxPrice,
       vaccinatedOnly: routeFilters.vaccinatedOnly,
       sort: routeFilters.sort,
-    })),
-    [category, query, routeFilters.location, routeFilters.minPrice, routeFilters.maxPrice,
-      verifiedOnly, routeFilters.vaccinatedOnly, routeFilters.sort, marketplace],
-  );
+    })) : [];
 
   function openFilters() {
     onOpenFilters({ ...routeFilters, category, query, verifiedOnly });

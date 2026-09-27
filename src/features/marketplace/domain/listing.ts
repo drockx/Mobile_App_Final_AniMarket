@@ -18,6 +18,9 @@ export type Listing = {
   health: string;
   healthVerification: HealthVerification;
   description: string;
+  imageUri?: string;
+  imageUris?: string[];
+  vaccinationProof?: { name: string; uri: string };
   seller?: { name: string; memberSince: string };
 };
 

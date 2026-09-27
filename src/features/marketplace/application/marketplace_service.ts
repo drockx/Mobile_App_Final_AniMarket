@@ -4,6 +4,7 @@ import type { ListingRepository } from '../domain/listing_repository';
 export type MarketplaceService = {
   findListings(criteria: ListingCriteria): Listing[];
   getListing(id: string): Listing | undefined;
+  publishListing(listing: Omit<Listing, 'id'>): Listing;
 };
 
 export function createMarketplaceService(repository: ListingRepository): MarketplaceService {
@@ -13,6 +14,11 @@ export function createMarketplaceService(repository: ListingRepository): Marketp
     },
     getListing(id) {
       return repository.getById(id);
+    },
+    publishListing(input) {
+      const listing = { ...input, id: `seller-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
+      repository.add(listing);
+      return listing;
     },
   };
 }

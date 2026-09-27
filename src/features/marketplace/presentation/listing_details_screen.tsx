@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -47,6 +48,7 @@ export function ListingDetailsScreen({
   onBack: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const [selectedPhoto, setSelectedPhoto] = useState(0);
   const listing = marketplace.getListing(listingId ?? '');
 
   if (!listing) {
@@ -66,6 +68,9 @@ export function ListingDetailsScreen({
     { label: 'Age', value: listing.age },
     { label: 'Health', value: listing.health },
   ];
+  const photos = listing.imageUris?.length ? listing.imageUris : listing.imageUri ? [listing.imageUri] : [];
+  const activePhoto = photos[selectedPhoto] ?? photos[0];
+  const imageSource = activePhoto ? { uri: activePhoto } : getListingImage(listing.id);
 
   const share = async () => {
     try {
@@ -81,7 +86,7 @@ export function ListingDetailsScreen({
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={{ paddingTop: insets.top, backgroundColor: '#1a1a1a' }}>
           <View style={styles.hero}>
-            <Image source={getListingImage(listing.id)} contentFit="cover" style={StyleSheet.absoluteFill} />
+            <Image source={imageSource} contentFit="cover" style={StyleSheet.absoluteFill} />
             <View style={styles.heroActions}>
               <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} style={styles.heroButton}>
                 <Icon name={icons.back} color="#fff" size={20} />
@@ -107,9 +112,11 @@ export function ListingDetailsScreen({
           </View>
 
           <View style={styles.thumbnails}>
-            <View style={[styles.thumbnail, styles.thumbnailActive]}>
-              <Image source={getListingImage(listing.id)} contentFit="cover" style={styles.thumbnailImage} />
-            </View>
+            {(photos.length ? photos : [null]).map((uri, index) => (
+              <Pressable key={`${uri ?? listing.id}-${index}`} accessibilityRole="button" accessibilityLabel={`View photo ${index + 1}`} accessibilityState={{ selected: selectedPhoto === index }} onPress={() => setSelectedPhoto(index)} style={[styles.thumbnail, selectedPhoto === index && styles.thumbnailActive]}>
+                <Image source={uri ? { uri } : getListingImage(listing.id)} contentFit="cover" style={styles.thumbnailImage} />
+              </Pressable>
+            ))}
           </View>
 
           <View style={styles.specRow}>
