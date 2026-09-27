@@ -12,6 +12,8 @@ export type Listing = {
   price: number;
   verified: boolean;
   location: string;
+  streetPurok?: string;
+  barangay?: string;
   subtitle?: string;
   weight: string;
   age: string;
@@ -23,6 +25,12 @@ export type Listing = {
   vaccinationProof?: { name: string; uri: string };
   seller?: { name: string; memberSince: string };
 };
+
+export type PickupPin = { latitude: number; longitude: number };
+
+export function formatListingAddress(listing: Listing): string {
+  return [listing.streetPurok, listing.barangay, listing.location].filter(Boolean).join(', ');
+}
 
 export type ListingCriteria = {
   category: LivestockCategory | null;

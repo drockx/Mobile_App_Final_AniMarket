@@ -1,10 +1,10 @@
-import { filterListings, type Listing, type ListingCriteria } from '../domain/listing';
+import { filterListings, type Listing, type ListingCriteria, type PickupPin } from '../domain/listing';
 import type { ListingRepository } from '../domain/listing_repository';
 
 export type MarketplaceService = {
   findListings(criteria: ListingCriteria): Listing[];
   getListing(id: string): Listing | undefined;
-  publishListing(listing: Omit<Listing, 'id'>): Listing;
+  publishListing(listing: Omit<Listing, 'id'>, pickupPin: PickupPin): Listing;
 };
 
 export function createMarketplaceService(repository: ListingRepository): MarketplaceService {
@@ -15,9 +15,9 @@ export function createMarketplaceService(repository: ListingRepository): Marketp
     getListing(id) {
       return repository.getById(id);
     },
-    publishListing(input) {
+    publishListing(input, pickupPin) {
       const listing = { ...input, id: `seller-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
-      repository.add(listing);
+      repository.add(listing, pickupPin);
       return listing;
     },
   };

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import {
@@ -31,6 +32,8 @@ const icons = {
   photo: { ios: 'photo', android: 'image', web: 'image' },
   chevron: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
   calendar: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' },
+  pin: { ios: 'mappin', android: 'location_on', web: 'location_on' },
+  locate: { ios: 'location', android: 'my_location', web: 'my_location' },
 } as const;
 
 function Icon({ name, size = 19, color = colors.forest }: { name: IconName; size?: number; color?: string }) {
@@ -50,7 +53,7 @@ function Field({
   label, required, value, onChangeText, placeholder, keyboardType = 'default', multiline = false,
 }: {
   label: string; required?: boolean; value: string; onChangeText: (value: string) => void;
-  placeholder?: string; keyboardType?: 'default' | 'decimal-pad' | 'number-pad'; multiline?: boolean;
+  placeholder?: string; keyboardType?: 'default' | 'decimal-pad' | 'number-pad' | 'numbers-and-punctuation'; multiline?: boolean;
 }) {
   return (
     <View style={styles.field}>
@@ -109,6 +112,14 @@ function validDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value && date.getTime() <= Date.now();
 }
 
+function validPin(latitude: string, longitude: string) {
+  if (!latitude.trim() || !longitude.trim()) return false;
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+  return Number.isFinite(lat) && Number.isFinite(lng)
+    && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+}
+
 export function CreateListingScreen({ marketplace, onClose, onPublished, onMarketReference }: {
   marketplace: MarketplaceService;
   onClose: () => void;
@@ -127,6 +138,12 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
   const [proof, setProof] = useState<{ name: string; uri: string } | null>(null);
   const [city, setCity] = useState('Tagum City');
   const [province, setProvince] = useState('Davao del Norte');
+  const [streetPurok, setStreetPurok] = useState('');
+  const [barangay, setBarangay] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [locationMessage, setLocationMessage] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
@@ -166,6 +183,27 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
     }
   }
 
+  async function useCurrentLocation() {
+    if (locating) return;
+    setLocating(true);
+    setLocationMessage('');
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== 'granted') {
+        setLocationMessage('Location permission was denied. Enter the coordinates below.');
+        return;
+      }
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setLatitude(position.coords.latitude.toFixed(6));
+      setLongitude(position.coords.longitude.toFixed(6));
+      setLocationMessage('Current location set. Adjust the coordinates if the livestock is elsewhere.');
+    } catch {
+      setLocationMessage('Could not get your location. Enter the coordinates below.');
+    } finally {
+      setLocating(false);
+    }
+  }
+
   function publish() {
     let problem = '';
     if (!photos.length) problem = 'Add at least one livestock photo.';
@@ -175,19 +213,23 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
     else if (vaccination === 'vaccinated' && !vaccineName.trim()) problem = 'Enter the vaccine or disease.';
     else if (vaccination === 'vaccinated' && !proof) problem = 'Attach vaccination proof.';
     else if (!city.trim()) problem = 'Enter the municipality or city.';
+    else if (!streetPurok.trim()) problem = 'Enter the street or purok.';
+    else if (!barangay.trim()) problem = 'Enter the barangay.';
+    else if (!validPin(latitude, longitude)) problem = 'Set a valid pickup pin using your location or coordinates.';
     else if (!Number.isFinite(Number(price)) || Number(price) <= 0) problem = 'Enter a valid listing price.';
     if (problem) { setError(problem); showMessage('Complete your listing', problem); return; }
 
     const listing = marketplace.publishListing({
       title: title.trim(), category, details: `${age.trim() || 'Age not specified'} · ${weight.trim()} kg`,
       price: Number(price), verified: false, location: `${city.trim()}, ${province}`,
+      streetPurok: streetPurok.trim(), barangay: barangay.trim(),
       weight: `${weight.trim()} kg`, age: age.trim() || 'Not specified',
       health: vaccination === 'vaccinated' ? 'Vaccinated' : vaccination === 'not-vaccinated' ? 'Not vaccinated' : 'Unknown',
       healthVerification: { status: 'unverified' },
       description: description.trim() || 'No description provided.',
       imageUri: photos[0], imageUris: photos, vaccinationProof: proof ?? undefined,
       seller: { name: 'Juan Dela Cruz', memberSince: '2026' },
-    });
+    }, { latitude: Number(latitude), longitude: Number(longitude) });
     onPublished(listing.id);
   }
 
@@ -279,6 +321,32 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
         </View>
         <Text style={styles.locationHelp}>Prefilled from your profile. Change this if the livestock is located elsewhere.</Text>
 
+        <Field label="Street / Purok" required value={streetPurok} onChangeText={setStreetPurok} placeholder="House no., street, purok" />
+        <Field label="Barangay" required value={barangay} onChangeText={setBarangay} placeholder="Barangay" />
+        <Text style={styles.publicAddress}>Shown on listings: {[streetPurok.trim(), barangay.trim(), city.trim(), province].filter(Boolean).join(', ')}</Text>
+
+        <View style={styles.pinCard}>
+          <View style={styles.sectionHead}>
+            <Text style={styles.cardTitle}>Pin livestock location</Text>
+            <Text style={styles.privateBadge}>After order only</Text>
+          </View>
+          <View style={styles.pinPreview}>
+            <View style={styles.pinRingOuter}><View style={styles.pinRingInner} /></View>
+            {validPin(latitude, longitude)
+              ? <View style={styles.pinMarker}><Icon name={icons.pin} size={30} color="#fff" /></View>
+              : <Text style={styles.pinPrompt}>Set a pin below</Text>}
+          </View>
+          <Pressable accessibilityRole="button" accessibilityState={{ disabled: locating }} disabled={locating} onPress={useCurrentLocation} style={styles.locateButton}>
+            <Icon name={icons.locate} size={17} />
+            <Text style={styles.locateText}>{locating ? 'Getting location…' : 'Use my current location'}</Text>
+          </Pressable>
+          {!!locationMessage && <Text style={styles.locationMessage}>{locationMessage}</Text>}
+          <View style={styles.row}>
+            <View style={styles.rowItem}><Field label="Latitude" required value={latitude} onChangeText={setLatitude} keyboardType="numbers-and-punctuation" placeholder="e.g. 7.4486" /></View>
+            <View style={styles.rowItem}><Field label="Longitude" required value={longitude} onChangeText={setLongitude} keyboardType="numbers-and-punctuation" placeholder="e.g. 125.807" /></View>
+          </View>
+        </View>
+
         <View style={styles.priceCard}>
           <View style={styles.sectionHead}>
             <Text style={styles.cardTitle}>Regional Price Assistant</Text>
@@ -355,6 +423,17 @@ const styles = StyleSheet.create({
   attachedBadge: { color: '#166534', fontSize: 10, fontWeight: '700', backgroundColor: '#dff2e5', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 4 },
   proofNote: { color: '#718096', fontSize: 11, lineHeight: 15 },
   locationHelp: { marginTop: -10, color: '#8491a6', fontSize: 11, lineHeight: 15 },
+  publicAddress: { marginTop: -9, color: '#64748b', fontSize: 11, lineHeight: 16 },
+  pinCard: { padding: 14, gap: 11, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 14, backgroundColor: '#fbfdfb' },
+  privateBadge: { color: '#276749', backgroundColor: '#e4f3e8', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, fontSize: 10, fontWeight: '700' },
+  pinPreview: { height: 116, borderRadius: 10, borderWidth: 1, borderColor: '#d9e9dd', backgroundColor: '#eaf5ed', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  pinRingOuter: { position: 'absolute', width: 110, height: 110, borderRadius: 55, borderWidth: 1, borderColor: '#bedbc7', alignItems: 'center', justifyContent: 'center' },
+  pinRingInner: { width: 70, height: 70, borderRadius: 35, borderWidth: 1, borderColor: '#b5d4bf' },
+  pinMarker: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.forest, alignItems: 'center', justifyContent: 'center' },
+  pinPrompt: { color: '#527260', fontSize: 12, fontWeight: '700', backgroundColor: '#eaf5ed', paddingHorizontal: 8 },
+  locateButton: { minHeight: 44, alignSelf: 'flex-start', paddingHorizontal: 12, borderWidth: 1, borderColor: '#b9d8c2', borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#fff' },
+  locateText: { color: colors.forest, fontSize: 12, fontWeight: '700' },
+  locationMessage: { color: '#64748b', fontSize: 11, lineHeight: 16 },
   priceCard: { padding: 15, gap: 10, borderRadius: 14, backgroundColor: '#eaf5ed' },
   marketBadge: { flexShrink: 0, color: '#1b4d3e', backgroundColor: '#d6eadc', fontSize: 10, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12 },
   referenceLocation: { color: '#4a5568', fontSize: 12, lineHeight: 17 },

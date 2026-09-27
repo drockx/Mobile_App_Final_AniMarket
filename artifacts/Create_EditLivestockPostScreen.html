@@ -521,7 +521,23 @@
       color: #12372a;
       font-size: 14px;
       font-weight: 800;
-      margin-bottom: 5px;
+    }
+
+    .location-card-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .order-only-badge {
+      flex-shrink: 0;
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: #d6eadc;
+      color: #1b4d3e;
+      font-size: 10px;
+      font-weight: 700;
     }
 
     .location-card p {
@@ -599,11 +615,14 @@
     }
 
     .pin-status {
-      min-height: 31px;
       margin-top: 2px;
       font-size: 11px;
       line-height: 1.4;
       color: #2f6b50;
+    }
+
+    .pin-status[hidden] {
+      display: none;
     }
 
     .pin-status.is-error {
@@ -810,16 +829,24 @@
         </div>
         <span class="field-help" style="margin-top: -14px; margin-bottom: 20px;">Prefilled from the seller profile. Change this if the livestock is located elsewhere.</span>
 
-        <!-- Seller contact address stays separate from the livestock's public area pin. -->
-        <div class="form-group">
-          <label class="form-label" for="sellerAddress">Seller address (private)</label>
-          <input type="text" class="input-box" id="sellerAddress" name="sellerAddress" placeholder="House no., street, barangay" autocomplete="street-address" />
-          <span class="field-help">Use this for pickup arrangements. Share the exact address with a buyer only when you are ready.</span>
+        <!-- The written address appears on listings; the map pin is reserved for orders. -->
+        <div class="row-grid">
+          <div class="form-group">
+            <label class="form-label" for="streetPurok">Street / Purok <span>*</span></label>
+            <input type="text" class="input-box" id="streetPurok" name="streetPurok" placeholder="Street or purok" autocomplete="address-line1" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="barangay">Barangay <span>*</span></label>
+            <input type="text" class="input-box" id="barangay" name="barangay" placeholder="Barangay" autocomplete="address-level3" required />
+          </div>
         </div>
+        <span class="field-help" id="publicLocationPreview" style="margin-top: -14px; margin-bottom: 20px;">Shown on listing: Tagum City, Davao del Norte.</span>
 
         <section class="location-card" aria-labelledby="pinTitle">
-          <h3 id="pinTitle">Pin livestock location</h3>
-          <p>Set an approximate area pin for buyers. It may differ from your seller address.</p>
+          <div class="location-card-heading">
+            <h3 id="pinTitle">Pin livestock location</h3>
+            <span class="order-only-badge">After order only</span>
+          </div>
 
           <div class="pin-preview" aria-hidden="true">
             <svg viewBox="0 0 320 128" xmlns="http://www.w3.org/2000/svg">
@@ -852,8 +879,7 @@
               <input type="number" class="input-box" id="pinLongitude" name="pinLongitude" min="-180" max="180" step="any" inputmode="decimal" placeholder="e.g. 125.807" required />
             </div>
           </div>
-          <p class="pin-status" id="pinStatus" role="status" aria-live="polite">No pin set yet. Use your current location or enter coordinates.</p>
-          <p>Only an approximate area should be shown to buyers; keep the exact pickup address private.</p>
+          <p class="pin-status" id="pinStatus" role="status" aria-live="polite" hidden></p>
         </section>
 
         <!-- Embedded Regional Price Assistant -->
@@ -919,6 +945,9 @@
     const province = document.getElementById('province');
     const price = document.getElementById('price');
     const useSuggestedPrice = document.getElementById('useSuggestedPrice');
+    const streetPurok = document.getElementById('streetPurok');
+    const barangay = document.getElementById('barangay');
+    const publicLocationPreview = document.getElementById('publicLocationPreview');
     const pinLatitude = document.getElementById('pinLatitude');
     const pinLongitude = document.getElementById('pinLongitude');
     const pinStatus = document.getElementById('pinStatus');
@@ -928,23 +957,23 @@
     const useCurrentLocation = document.getElementById('useCurrentLocation');
     let suggestedPrice = 0;
 
+    function updatePublicLocation() {
+      const provinceName = province.value === 'Other' ? 'Other province' : province.value;
+      const address = [streetPurok.value.trim(), barangay.value.trim(), city.value.trim(), provinceName]
+        .filter(Boolean)
+        .join(', ');
+      publicLocationPreview.textContent = `Shown on listing: ${address}.`;
+    }
+
     function updatePin() {
       const ready = pinLatitude.value.trim() !== '' && pinLongitude.value.trim() !== '';
       const valid = ready && pinLatitude.checkValidity() && pinLongitude.checkValidity();
       pinMarker.classList.toggle('is-hidden', !valid);
+      pinPreviewLabel.textContent = valid ? 'Pin saved for orders' : 'Area pin preview';
+      pinStatus.hidden = !ready || valid;
       pinStatus.classList.toggle('is-error', ready && !valid);
-      pinPreviewLabel.textContent = valid ? 'Buyer-visible area pin' : 'Area pin preview';
-
-      if (valid) {
-        const latitude = Number(pinLatitude.value);
-        const longitude = Number(pinLongitude.value);
-        const northSouth = latitude >= 0 ? 'N' : 'S';
-        const eastWest = longitude >= 0 ? 'E' : 'W';
-        pinStatus.textContent = `Area pin set near ${city.value.trim() || 'the selected city'}: ${Math.abs(latitude).toFixed(3)}° ${northSouth}, ${Math.abs(longitude).toFixed(3)}° ${eastWest}.`;
-      } else if (ready) {
+      if (ready && !valid) {
         pinStatus.textContent = 'Latitude must be between -90 and 90; longitude between -180 and 180.';
-      } else {
-        pinStatus.textContent = 'No pin set yet. Use your current location or enter coordinates.';
       }
     }
 
@@ -952,6 +981,7 @@
       if (!navigator.geolocation) {
         pinStatus.textContent = 'Location is unavailable here. Enter coordinates manually.';
         pinStatus.classList.add('is-error');
+        pinStatus.hidden = false;
         return;
       }
 
@@ -970,12 +1000,17 @@
           pinButtonLabel.textContent = 'Use my current location';
           pinStatus.textContent = 'Location access was unavailable. Enter coordinates manually.';
           pinStatus.classList.add('is-error');
+          pinStatus.hidden = false;
         },
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     });
 
-    [pinLatitude, pinLongitude, city].forEach(field => field.addEventListener('input', updatePin));
+    [pinLatitude, pinLongitude].forEach(field => field.addEventListener('input', updatePin));
+    [streetPurok, barangay, city, province].forEach(field => {
+      field.addEventListener('input', updatePublicLocation);
+      field.addEventListener('change', updatePublicLocation);
+    });
 
     function peso(value) {
       return `₱${Math.round(value).toLocaleString('en-PH')}`;
@@ -1077,6 +1112,8 @@
 
     updatePriceReference();
     updateVaccinationRequirements();
+    updatePublicLocation();
+    updatePin();
   </script>
 
 </body>

@@ -6,6 +6,7 @@ import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { MarketplaceService } from '../application/marketplace_service';
+import { formatListingAddress } from '../domain/listing';
 import { getListingImage } from './listing_images';
 
 const green = '#12372a';
@@ -108,7 +109,7 @@ export function ListingDetailsScreen({
 
           <View style={styles.locationRow}>
             <Icon name={icons.location} color="#718096" size={14} />
-            <Text style={styles.location}>{listing.location}</Text>
+            <Text style={styles.location}>{formatListingAddress(listing)}</Text>
           </View>
 
           <View style={styles.thumbnails}>

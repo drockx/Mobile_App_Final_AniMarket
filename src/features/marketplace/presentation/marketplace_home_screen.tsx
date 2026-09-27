@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
 
 import type { MarketplaceService } from '../application/marketplace_service';
-import type { Listing, LivestockCategory } from '../domain/listing';
+import { formatListingAddress, type Listing, type LivestockCategory } from '../domain/listing';
 import { toListingCriteria, type SearchFilters } from './search_filters';
 import { getListingImage } from './listing_images';
 
@@ -55,6 +55,7 @@ function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => vo
       <View style={styles.cardBody}>
         <Text numberOfLines={2} style={styles.cardTitle}>{listing.title}</Text>
         <Text numberOfLines={2} style={styles.cardDetails}>{listing.details}</Text>
+        <Text numberOfLines={2} style={styles.cardAddress}>{formatListingAddress(listing)}</Text>
         <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
       </View>
     </Pressable>
@@ -441,6 +442,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 1,
   },
+  cardAddress: { color: '#718096', fontSize: 11, lineHeight: 15, marginTop: 4 },
   price: {
     color: palette.green,
     fontSize: 15,

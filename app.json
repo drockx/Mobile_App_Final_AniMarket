@@ -26,6 +26,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow AniMarket to use your location to set a private livestock pickup pin."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Allow AniMarket to select photos for livestock listings.",
