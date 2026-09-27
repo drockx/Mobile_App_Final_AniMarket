@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
+import { notificationStore } from '@/features/notifications/notification_store';
 
 import type { MarketplaceService } from '../application/marketplace_service';
 import { formatListingAddress, type Listing, type LivestockCategory } from '../domain/listing';
@@ -68,6 +69,7 @@ type MarketplaceHomeScreenProps = {
   routeKey: string;
   isFocused: boolean;
   onOpenListing: (id: string) => void;
+  onOpenNotifications: () => void;
   onOpenFilters: (filters: SearchFilters) => void;
 };
 
@@ -77,9 +79,11 @@ export function MarketplaceHomeScreen({
   routeKey,
   isFocused,
   onOpenListing,
+  onOpenNotifications,
   onOpenFilters,
 }: MarketplaceHomeScreenProps) {
   const insets = useSafeAreaInsets();
+  const notifications = useSyncExternalStore(notificationStore.subscribe, notificationStore.getSnapshot, notificationStore.getSnapshot);
   const [categoryDraft, setCategoryDraft] = useState<{ routeKey: string; value: LivestockCategory | null } | null>(null);
   const [verifiedDraft, setVerifiedDraft] = useState<{ routeKey: string; value: boolean } | null>(null);
   const category = categoryDraft?.routeKey === routeKey ? categoryDraft.value : routeFilters.category;
@@ -119,11 +123,11 @@ export function MarketplaceHomeScreen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Notifications"
-            onPress={() => Alert.alert('Notifications', 'You have no new notifications.')}
+            onPress={onOpenNotifications}
             style={styles.notificationButton}
           >
             <Icon name={icons.notification} size={20} color="#23352f" />
-            <View style={styles.notificationDot} />
+            {notifications.some((item) => item.unread) && <View style={styles.notificationDot} />}
           </Pressable>
         </View>
 

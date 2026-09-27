@@ -16,6 +16,7 @@ export default function HomeRoute() {
       routeKey={JSON.stringify(params)}
       isFocused={isFocused}
       onOpenListing={(id) => router.push({ pathname: '/listings/id', params: { id } })}
+      onOpenNotifications={() => router.push('/notifications')}
       onOpenFilters={(filters) => router.push({
         pathname: '/search_filter',
         params: params.applied === 'true'
