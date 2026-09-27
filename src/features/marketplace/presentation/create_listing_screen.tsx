@@ -13,7 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { marketReferenceData } from '@/features/market_reference/market_reference_dependencies';
 
 import type { MarketplaceService } from '../application/marketplace_service';
-import type { LivestockCategory } from '../domain/listing';
+import type { LivestockCategory, PickupPin } from '../domain/listing';
+import { PickupLocationMap } from './pickup_location_map';
 
 const colors = {
   forest: '#12372a', ink: '#1a202c', muted: '#64748b', line: '#e2e8f0',
@@ -32,7 +33,6 @@ const icons = {
   photo: { ios: 'photo', android: 'image', web: 'image' },
   chevron: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
   calendar: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' },
-  pin: { ios: 'mappin', android: 'location_on', web: 'location_on' },
   locate: { ios: 'location', android: 'my_location', web: 'my_location' },
 } as const;
 
@@ -53,7 +53,7 @@ function Field({
   label, required, value, onChangeText, placeholder, keyboardType = 'default', multiline = false,
 }: {
   label: string; required?: boolean; value: string; onChangeText: (value: string) => void;
-  placeholder?: string; keyboardType?: 'default' | 'decimal-pad' | 'number-pad' | 'numbers-and-punctuation'; multiline?: boolean;
+  placeholder?: string; keyboardType?: 'default' | 'decimal-pad' | 'number-pad'; multiline?: boolean;
 }) {
   return (
     <View style={styles.field}>
@@ -112,14 +112,6 @@ function validDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value && date.getTime() <= Date.now();
 }
 
-function validPin(latitude: string, longitude: string) {
-  if (!latitude.trim() || !longitude.trim()) return false;
-  const lat = Number(latitude);
-  const lng = Number(longitude);
-  return Number.isFinite(lat) && Number.isFinite(lng)
-    && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
-}
-
 export function CreateListingScreen({ marketplace, onClose, onPublished, onMarketReference }: {
   marketplace: MarketplaceService;
   onClose: () => void;
@@ -140,8 +132,8 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
   const [province, setProvince] = useState('Davao del Norte');
   const [streetPurok, setStreetPurok] = useState('');
   const [barangay, setBarangay] = useState('');
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
+  const [pickupPin, setPickupPin] = useState<PickupPin | null>(null);
+  const [mapCenter, setMapCenter] = useState<PickupPin | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState('');
   const [price, setPrice] = useState('');
@@ -190,15 +182,16 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
     try {
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== 'granted') {
-        setLocationMessage('Location permission was denied. Enter the coordinates below.');
+        setLocationMessage('Location permission was denied. Tap the map to set the pickup pin.');
         return;
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setLatitude(position.coords.latitude.toFixed(6));
-      setLongitude(position.coords.longitude.toFixed(6));
-      setLocationMessage('Current location set. Adjust the coordinates if the livestock is elsewhere.');
+      const nextPin = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      setPickupPin(nextPin);
+      setMapCenter(nextPin);
+      setLocationMessage('Current location set. Tap the map or drag the pin if the livestock is elsewhere.');
     } catch {
-      setLocationMessage('Could not get your location. Enter the coordinates below.');
+      setLocationMessage('Could not get your location. Tap the map to set the pickup pin.');
     } finally {
       setLocating(false);
     }
@@ -215,9 +208,14 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
     else if (!city.trim()) problem = 'Enter the municipality or city.';
     else if (!streetPurok.trim()) problem = 'Enter the street or purok.';
     else if (!barangay.trim()) problem = 'Enter the barangay.';
-    else if (!validPin(latitude, longitude)) problem = 'Set a valid pickup pin using your location or coordinates.';
+    else if (!pickupPin) problem = 'Tap the map or use your current location to set a pickup pin.';
     else if (!Number.isFinite(Number(price)) || Number(price) <= 0) problem = 'Enter a valid listing price.';
-    if (problem) { setError(problem); showMessage('Complete your listing', problem); return; }
+    if (problem || !pickupPin) {
+      const message = problem || 'Tap the map or use your current location to set a pickup pin.';
+      setError(message);
+      showMessage('Complete your listing', message);
+      return;
+    }
 
     const listing = marketplace.publishListing({
       title: title.trim(), category, details: `${age.trim() || 'Age not specified'} · ${weight.trim()} kg`,
@@ -229,7 +227,7 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
       description: description.trim() || 'No description provided.',
       imageUri: photos[0], imageUris: photos, vaccinationProof: proof ?? undefined,
       seller: { name: 'Juan Dela Cruz', memberSince: '2026' },
-    }, { latitude: Number(latitude), longitude: Number(longitude) });
+    }, pickupPin);
     onPublished(listing.id);
   }
 
@@ -330,21 +328,16 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
             <Text style={styles.cardTitle}>Pin livestock location</Text>
             <Text style={styles.privateBadge}>After order only</Text>
           </View>
-          <View style={styles.pinPreview}>
-            <View style={styles.pinRingOuter}><View style={styles.pinRingInner} /></View>
-            {validPin(latitude, longitude)
-              ? <View style={styles.pinMarker}><Icon name={icons.pin} size={30} color="#fff" /></View>
-              : <Text style={styles.pinPrompt}>Set a pin below</Text>}
+          <Text style={styles.mapHelp}>Tap the map to mark where the livestock is located. Drag the pin to adjust it.</Text>
+          <View style={styles.mapFrame}>
+            <PickupLocationMap pin={pickupPin} center={mapCenter} onPinChange={setPickupPin} />
           </View>
           <Pressable accessibilityRole="button" accessibilityState={{ disabled: locating }} disabled={locating} onPress={useCurrentLocation} style={styles.locateButton}>
             <Icon name={icons.locate} size={17} />
             <Text style={styles.locateText}>{locating ? 'Getting location…' : 'Use my current location'}</Text>
           </Pressable>
           {!!locationMessage && <Text style={styles.locationMessage}>{locationMessage}</Text>}
-          <View style={styles.row}>
-            <View style={styles.rowItem}><Field label="Latitude" required value={latitude} onChangeText={setLatitude} keyboardType="numbers-and-punctuation" placeholder="e.g. 7.4486" /></View>
-            <View style={styles.rowItem}><Field label="Longitude" required value={longitude} onChangeText={setLongitude} keyboardType="numbers-and-punctuation" placeholder="e.g. 125.807" /></View>
-          </View>
+          <Text style={styles.pinStatus}>{pickupPin ? 'Pickup pin set' : 'No pickup pin selected yet'}</Text>
         </View>
 
         <View style={styles.priceCard}>
@@ -426,14 +419,12 @@ const styles = StyleSheet.create({
   publicAddress: { marginTop: -9, color: '#64748b', fontSize: 11, lineHeight: 16 },
   pinCard: { padding: 14, gap: 11, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 14, backgroundColor: '#fbfdfb' },
   privateBadge: { color: '#276749', backgroundColor: '#e4f3e8', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, fontSize: 10, fontWeight: '700' },
-  pinPreview: { height: 116, borderRadius: 10, borderWidth: 1, borderColor: '#d9e9dd', backgroundColor: '#eaf5ed', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  pinRingOuter: { position: 'absolute', width: 110, height: 110, borderRadius: 55, borderWidth: 1, borderColor: '#bedbc7', alignItems: 'center', justifyContent: 'center' },
-  pinRingInner: { width: 70, height: 70, borderRadius: 35, borderWidth: 1, borderColor: '#b5d4bf' },
-  pinMarker: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.forest, alignItems: 'center', justifyContent: 'center' },
-  pinPrompt: { color: '#527260', fontSize: 12, fontWeight: '700', backgroundColor: '#eaf5ed', paddingHorizontal: 8 },
+  mapHelp: { color: '#64748b', fontSize: 11, lineHeight: 16 },
+  mapFrame: { borderRadius: 10, borderWidth: 1, borderColor: '#d9e9dd', overflow: 'hidden', backgroundColor: '#eaf5ed' },
   locateButton: { minHeight: 44, alignSelf: 'flex-start', paddingHorizontal: 12, borderWidth: 1, borderColor: '#b9d8c2', borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#fff' },
   locateText: { color: colors.forest, fontSize: 12, fontWeight: '700' },
   locationMessage: { color: '#64748b', fontSize: 11, lineHeight: 16 },
+  pinStatus: { color: colors.forest, fontSize: 11, lineHeight: 15, fontWeight: '700' },
   priceCard: { padding: 15, gap: 10, borderRadius: 14, backgroundColor: '#eaf5ed' },
   marketBadge: { flexShrink: 0, color: '#1b4d3e', backgroundColor: '#d6eadc', fontSize: 10, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12 },
   referenceLocation: { color: '#4a5568', fontSize: 12, lineHeight: 17 },
