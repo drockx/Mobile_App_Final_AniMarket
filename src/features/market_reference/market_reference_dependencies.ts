@@ -1,4 +1,4 @@
-import { regionalMarkets } from './data/market_reference_data';
+import { davaoDelNorteMarkets } from './data/market_reference_data';
 
 /** Sample references for the prototype; replace with verified market data before production use. */
-export const marketReferenceData = regionalMarkets;
+export const marketReferenceData = davaoDelNorteMarkets;

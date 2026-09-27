@@ -1,3 +1,5 @@
+import { isDavaoDelNorteLocation } from '@/constants/davao_del_norte';
+
 export type LivestockCategory = 'Pig' | 'Cow' | 'Chicken' | 'Goat';
 
 export type HealthVerification =
@@ -50,6 +52,7 @@ export function filterListings(
   const search = criteria.query.trim().toLowerCase();
 
   const filtered = listings.filter((listing) => {
+    if (!isDavaoDelNorteLocation(listing.location)) return false;
     const matchesCategory = criteria.category === null || listing.category === criteria.category;
     const matchesSearch = !search || `${listing.title} ${listing.category} ${listing.details}`.toLowerCase().includes(search);
     const matchesLocation = !criteria.location || listing.location === criteria.location;

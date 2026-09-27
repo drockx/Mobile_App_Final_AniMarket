@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel, davaoDelNorteLocation } from '@/constants/davao_del_norte';
+
 import type { LivestockCategory } from '../domain/listing';
 import {
   emptyFilters,
@@ -31,7 +33,13 @@ const categories: { label: string; value: LivestockCategory }[] = [
   { label: 'Poultry', value: 'Chicken' },
 ];
 
-const locations = ['', 'Tagum City, Davao del Norte'];
+const locations = [
+  { label: 'All Davao del Norte', value: '' },
+  ...DAVAO_DEL_NORTE_LOCALITIES.map((locality) => ({
+    label: `${davaoDelNorteLocalityLabel(locality)}, ${DAVAO_DEL_NORTE}`,
+    value: davaoDelNorteLocation(locality),
+  })),
+];
 const sortOptions: { label: string; value: SortOrder }[] = [
   { label: 'Newest First', value: 'newest' },
   { label: 'Price: Low to High', value: 'price-asc' },
@@ -155,14 +163,14 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
           onPress={() => setOpenMenu(openMenu === 'location' ? null : 'location')}
           style={styles.selectField}
         >
-          <Text numberOfLines={1} style={styles.selectText}>{filters.location || 'All Locations'}</Text>
+          <Text numberOfLines={1} style={styles.selectText}>{locations.find((item) => item.value === filters.location)?.label ?? locations[0].label}</Text>
           <Text style={styles.chevron}>⌄</Text>
         </Pressable>
         {openMenu === 'location' && (
           <View style={styles.menu}>
             {locations.map((location) => (
-              <Pressable key={location} onPress={() => { update('location', location); setOpenMenu(null); }} style={styles.menuItem}>
-                <Text style={styles.menuText}>{location || 'All Locations'}</Text>
+              <Pressable key={location.value} onPress={() => { update('location', location.value); setOpenMenu(null); }} style={styles.menuItem}>
+                <Text style={styles.menuText}>{location.label}</Text>
               </Pressable>
             ))}
           </View>

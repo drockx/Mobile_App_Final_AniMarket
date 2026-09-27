@@ -27,7 +27,7 @@ export const emptyFilters: SearchFilters = {
 export const featuredFilters: SearchFilters = {
   ...emptyFilters,
   category: 'Cow',
-  location: 'Tagum City, Davao del Norte',
+  location: '',
   minPrice: '10000',
   maxPrice: '60000',
   verifiedOnly: true,

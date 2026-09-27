@@ -13,10 +13,9 @@ export type MarketPrice = {
   history: readonly number[];
 };
 
-export type RegionalMarket = {
+export type LocalMarket = {
   id: string;
   name: string;
   location: string;
-  sampleTime: string;
   prices: readonly MarketPrice[];
 };

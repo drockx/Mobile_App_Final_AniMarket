@@ -114,7 +114,7 @@ export function MarketplaceHomeScreen({
           <Icon name={icons.location} size={19} />
           <View style={styles.locationText}>
             <Text style={styles.locationCaption}>LOCATION</Text>
-            <Text style={styles.locationName}>Davao City, PH</Text>
+            <Text style={styles.locationName}>Davao del Norte</Text>
           </View>
           <Pressable
             accessibilityRole="button"

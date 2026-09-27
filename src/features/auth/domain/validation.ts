@@ -1,3 +1,5 @@
+import { DAVAO_DEL_NORTE, isDavaoDelNorteLocality } from '@/constants/davao_del_norte';
+
 export type LoginValues = {
   username: string;
   password: string;
@@ -46,8 +48,10 @@ export function validateRegistrationFields(
 
   if (!values.purok.trim()) errors.purok = 'Purok or street is required.';
   if (!values.barangay.trim()) errors.barangay = 'Barangay is required.';
-  if (!values.municipalityCity.trim()) errors.municipalityCity = 'Municipality or city is required.';
-  if (!values.province.trim()) errors.province = 'Province is required.';
+  if (!isDavaoDelNorteLocality(values.municipalityCity)) {
+    errors.municipalityCity = 'Choose a city or municipality in Davao del Norte.';
+  }
+  if (values.province !== DAVAO_DEL_NORTE) errors.province = 'Province must be Davao del Norte.';
 
   if (!values.postalCode.trim()) {
     errors.postalCode = 'Postal code is required.';

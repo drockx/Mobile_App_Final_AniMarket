@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
 
-import type { MarketCategory, MarketPrice, RegionalMarket } from '../domain/market_reference';
+import type { LocalMarket, MarketCategory, MarketPrice } from '../domain/market_reference';
 
 const forest = '#12372a';
 const ink = '#17221d';
@@ -79,7 +79,7 @@ function PriceCard({ item, onHistory, onCalculator }: {
   );
 }
 
-export function MarketReferenceScreen({ markets }: { markets: readonly RegionalMarket[] }) {
+export function MarketReferenceScreen({ markets }: { markets: readonly LocalMarket[] }) {
   const insets = useSafeAreaInsets();
   const [marketId, setMarketId] = useState('tagum');
   const [marketOpen, setMarketOpen] = useState(false);
@@ -126,7 +126,7 @@ export function MarketReferenceScreen({ markets }: { markets: readonly RegionalM
 
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.regionCard}>
-          <Text style={styles.eyebrow}>SELECTED DAVAO REGION MARKET</Text>
+          <Text style={styles.eyebrow}>DAVAO DEL NORTE MARKET</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Choose market, currently ${market.name}`}
@@ -156,13 +156,8 @@ export function MarketReferenceScreen({ markets }: { markets: readonly RegionalM
               ))}
             </View>
           )}
-          <Text style={styles.marketMeta}>{market.location} • City-level reference</Text>
-          <View style={styles.freshnessRow}>
-            <View style={styles.freshnessDot} />
-            <Text style={styles.freshness}>Current sample</Text>
-            <Text style={styles.freshnessMeta}>• Sample time: {market.sampleTime}</Text>
-          </View>
-          <Text style={styles.marketMeta}>Source: {market.name} sample feed</Text>
+          <Text style={styles.marketMeta}>{market.location} • Local sample reference</Text>
+          <Text style={styles.marketMeta}>Sample data for the prototype; verify prices before trading.</Text>
         </View>
 
         <View style={styles.toolsRow}>
@@ -268,10 +263,6 @@ const styles = StyleSheet.create({
   marketOptionLocation: { color: muted, fontSize: 12, lineHeight: 16, marginTop: 2 },
   marketOptionCheck: { color: forest, fontSize: 18, lineHeight: 22, fontWeight: '800' },
   marketMeta: { color: '#53675b', fontSize: 13, lineHeight: 18, marginTop: 5 },
-  freshnessRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 4 },
-  freshnessDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#16a34a' },
-  freshness: { color: '#166534', fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  freshnessMeta: { color: '#53675b', fontSize: 13, lineHeight: 18 },
   toolsRow: { marginTop: 13, flexDirection: 'row', gap: 8 },
   searchField: { flex: 1, minWidth: 0, minHeight: 44, paddingHorizontal: 11, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
   searchInput: { flex: 1, minHeight: 42, marginLeft: 7, paddingVertical: 0, color: ink, fontSize: 14 },

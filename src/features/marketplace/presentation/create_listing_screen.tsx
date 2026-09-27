@@ -10,6 +10,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel, davaoDelNorteLocation,
+  type DavaoDelNorteLocality,
+} from '@/constants/davao_del_norte';
 import { marketReferenceData } from '@/features/market_reference/market_reference_dependencies';
 
 import type { MarketplaceService } from '../application/marketplace_service';
@@ -24,7 +28,6 @@ const categories: { label: string; value: LivestockCategory }[] = [
   { label: 'Cattle', value: 'Cow' }, { label: 'Goats', value: 'Goat' },
   { label: 'Swine', value: 'Pig' }, { label: 'Poultry', value: 'Chicken' },
 ];
-const provinces = ['Davao del Norte', 'Davao de Oro', 'Davao del Sur', 'Bukidnon', 'Other province'];
 type VaccinationStatus = 'vaccinated' | 'not-vaccinated' | 'unknown';
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
 const icons = {
@@ -90,11 +93,13 @@ function SelectField({ label, value, options, onSelect }: {
         <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
           <View style={styles.optionSheet}>
             <Text style={styles.optionTitle}>{label}</Text>
-            {options.map((option) => (
-              <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: value === option.value }} onPress={() => { onSelect(option.value); setOpen(false); }} style={styles.option}>
-                <Text style={[styles.optionText, value === option.value && styles.optionSelected]}>{option.label}</Text>
-              </Pressable>
-            ))}
+            <ScrollView style={styles.optionList} keyboardShouldPersistTaps="handled">
+              {options.map((option) => (
+                <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: value === option.value }} onPress={() => { onSelect(option.value); setOpen(false); }} style={styles.option}>
+                  <Text style={[styles.optionText, value === option.value && styles.optionSelected]}>{option.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
         </Pressable>
       </Modal>
@@ -128,8 +133,7 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
   const [vaccinationDate, setVaccinationDate] = useState('');
   const [vaccineName, setVaccineName] = useState('');
   const [proof, setProof] = useState<{ name: string; uri: string } | null>(null);
-  const [city, setCity] = useState('Tagum City');
-  const [province, setProvince] = useState('Davao del Norte');
+  const [city, setCity] = useState<DavaoDelNorteLocality>('Tagum City');
   const [streetPurok, setStreetPurok] = useState('');
   const [barangay, setBarangay] = useState('');
   const [pickupPin, setPickupPin] = useState<PickupPin | null>(null);
@@ -141,8 +145,8 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
   const [error, setError] = useState('');
 
   const reference = useMemo(() => {
-    const market = marketReferenceData.find((item) => item.location.toLowerCase() === `${city.trim()}, ${province}`.toLowerCase())
-      ?? marketReferenceData.find((item) => item.location.endsWith(province));
+    const market = marketReferenceData.find((item) => item.location === davaoDelNorteLocation(city))
+      ?? marketReferenceData[0];
     const marketCategory = { Cow: 'cow', Goat: 'goat', Pig: 'pig', Chicken: 'poultry' }[category];
     const rate = market?.prices.find((item) => item.category === marketCategory);
     const kg = Number(weight);
@@ -150,7 +154,7 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
     const suggested = rate && perKg && Number.isFinite(kg) && kg > 0
       ? Math.max(100, Math.round((kg * (rate.min + rate.max) / 2) / 500) * 500) : null;
     return { market, rate, perKg, kg, suggested };
-  }, [category, city, province, weight]);
+  }, [category, city, weight]);
 
   async function addPhotos() {
     try {
@@ -205,7 +209,6 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
     else if (vaccination === 'vaccinated' && !validDate(vaccinationDate)) problem = 'Enter a valid vaccination date in YYYY-MM-DD format.';
     else if (vaccination === 'vaccinated' && !vaccineName.trim()) problem = 'Enter the vaccine or disease.';
     else if (vaccination === 'vaccinated' && !proof) problem = 'Attach vaccination proof.';
-    else if (!city.trim()) problem = 'Enter the municipality or city.';
     else if (!streetPurok.trim()) problem = 'Enter the street or purok.';
     else if (!barangay.trim()) problem = 'Enter the barangay.';
     else if (!pickupPin) problem = 'Tap the map or use your current location to set a pickup pin.';
@@ -219,7 +222,7 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
 
     const listing = marketplace.publishListing({
       title: title.trim(), category, details: `${age.trim() || 'Age not specified'} · ${weight.trim()} kg`,
-      price: Number(price), verified: false, location: `${city.trim()}, ${province}`,
+      price: Number(price), verified: false, location: davaoDelNorteLocation(city),
       streetPurok: streetPurok.trim(), barangay: barangay.trim(),
       weight: `${weight.trim()} kg`, age: age.trim() || 'Not specified',
       health: vaccination === 'vaccinated' ? 'Vaccinated' : vaccination === 'not-vaccinated' ? 'Not vaccinated' : 'Unknown',
@@ -313,15 +316,18 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
           <Text style={styles.proofNote}>Proof applies only to this listing. It is shown as seller-provided unless reviewed by an authorized party.</Text>
         </View>
 
-        <View style={styles.row}>
-          <View style={styles.rowItem}><Field label="Municipality / City" required value={city} onChangeText={setCity} placeholder="City / Municipality" /></View>
-          <View style={styles.rowItem}><SelectField label="Province" value={province} options={provinces.map((name) => ({ label: name, value: name }))} onSelect={setProvince} /></View>
+        <SelectField label="Municipality / City" value={city} options={DAVAO_DEL_NORTE_LOCALITIES.map((name) => ({ label: davaoDelNorteLocalityLabel(name), value: name }))} onSelect={(value) => setCity(value as DavaoDelNorteLocality)} />
+        <View style={styles.field}>
+          <Label>Province</Label>
+          <View style={[styles.input, styles.fixedField]}>
+            <Text style={styles.inputText}>{DAVAO_DEL_NORTE}</Text>
+          </View>
         </View>
-        <Text style={styles.locationHelp}>Prefilled from your profile. Change this if the livestock is located elsewhere.</Text>
+        <Text style={styles.locationHelp}>Select the Davao del Norte city or municipality where the livestock is located.</Text>
 
         <Field label="Street / Purok" required value={streetPurok} onChangeText={setStreetPurok} placeholder="House no., street, purok" />
         <Field label="Barangay" required value={barangay} onChangeText={setBarangay} placeholder="Barangay" />
-        <Text style={styles.publicAddress}>Shown on listings: {[streetPurok.trim(), barangay.trim(), city.trim(), province].filter(Boolean).join(', ')}</Text>
+        <Text style={styles.publicAddress}>Shown on listings: {[streetPurok.trim(), barangay.trim(), davaoDelNorteLocation(city)].filter(Boolean).join(', ')}</Text>
 
         <View style={styles.pinCard}>
           <View style={styles.sectionHead}>
@@ -342,10 +348,10 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
 
         <View style={styles.priceCard}>
           <View style={styles.sectionHead}>
-            <Text style={styles.cardTitle}>Regional Price Assistant</Text>
+            <Text style={styles.cardTitle}>Davao del Norte Price Guide</Text>
             <Text style={styles.marketBadge}>Market reference</Text>
           </View>
-          <Text style={styles.referenceLocation}>{reference.market ? `${categories.find((item) => item.value === category)?.label} reference for ${reference.market.location}` : 'No local market reference for this area'}</Text>
+          <Text style={styles.referenceLocation}>{reference.market ? `${categories.find((item) => item.value === category)?.label} sample from ${reference.market.location}` : 'No Davao del Norte market reference available'}</Text>
           <View style={styles.referenceRow}>
             <View style={styles.referenceStat}><Text style={styles.statLabel}>REFERENCE RATE</Text><Text style={styles.statValue}>{reference.rate ? `${peso(reference.rate.min)}–${peso(reference.rate.max)}${reference.perKg ? '/kg' : '/head'}` : 'Unavailable'}</Text></View>
             <View style={styles.referenceStat}><Text style={styles.statLabel}>ESTIMATED VALUE</Text><Text style={styles.statValue}>{reference.suggested !== null && reference.rate ? `${peso(reference.kg * reference.rate.min)}–${peso(reference.kg * reference.rate.max)}` : reference.perKg ? 'Enter live weight' : 'Set manually'}</Text></View>
@@ -388,6 +394,7 @@ const styles = StyleSheet.create({
   input: { minHeight: 46, width: '100%', paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 11, backgroundColor: colors.input, color: '#2d3748', fontSize: 14, lineHeight: 20 },
   inputText: { flex: 1, color: '#2d3748', fontSize: 14, lineHeight: 20 },
   select: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 7 },
+  fixedField: { justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   rowItem: { flex: 1, minWidth: 0 },
   textArea: { minHeight: 100, paddingTop: 12 },
@@ -447,6 +454,7 @@ const styles = StyleSheet.create({
   publishText: { color: '#fff', fontSize: 15, lineHeight: 20, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(10,28,20,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   optionSheet: { width: '100%', maxWidth: 360, padding: 12, borderRadius: 16, backgroundColor: '#fff' },
+  optionList: { maxHeight: 430 },
   optionTitle: { color: colors.forest, fontSize: 16, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 10 },
   option: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 10, borderTopWidth: 1, borderTopColor: '#edf2f7' },
   optionText: { color: colors.ink, fontSize: 14 },

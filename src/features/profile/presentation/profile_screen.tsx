@@ -199,7 +199,7 @@ export function ProfileScreen({ onMessages, onMarketReference, onLogOut }: Profi
           <View style={styles.menu}>
             <MenuItem title="Messages" symbol={icon.messages} badge="3 unread" onPress={onMessages} />
             <MenuItem title="Price Calculator" symbol={icon.calculator} onPress={() => showUnavailable('Price Calculator')} />
-            <MenuItem title="Davao Regional Market Reference" symbol={icon.chart} onPress={onMarketReference} last />
+            <MenuItem title="Davao del Norte Market Reference" symbol={icon.chart} onPress={onMarketReference} last />
           </View>
 
           <View style={styles.accountGroup}>

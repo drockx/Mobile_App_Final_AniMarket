@@ -1,3 +1,5 @@
+import { isDavaoDelNorteLocation } from '@/constants/davao_del_norte';
+
 import { filterListings, type Listing, type ListingCriteria, type PickupPin } from '../domain/listing';
 import type { ListingRepository } from '../domain/listing_repository';
 
@@ -13,9 +15,13 @@ export function createMarketplaceService(repository: ListingRepository): Marketp
       return filterListings(repository.getAll(), criteria);
     },
     getListing(id) {
-      return repository.getById(id);
+      const listing = repository.getById(id);
+      return listing && isDavaoDelNorteLocation(listing.location) ? listing : undefined;
     },
     publishListing(input, pickupPin) {
+      if (!isDavaoDelNorteLocation(input.location)) {
+        throw new Error('Listings must be located in Davao del Norte.');
+      }
       const listing = { ...input, id: `seller-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` };
       repository.add(listing, pickupPin);
       return listing;
