@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -34,8 +35,9 @@ const icons = {
 } as const;
 
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
-type ChatMessage = { id: string; text: string; mine: boolean; time: string };
+type ChatMessage = { id: string; text: string; imageUri?: string; mine: boolean; time: string };
 type OfferStatus = 'pending' | 'accepted' | 'declined';
+const sessionMessages = new Map<string, ChatMessage[]>();
 
 function Icon({ name, size = 20, color = forest }: { name: IconName; size?: number; color?: string }) {
   return <SymbolView name={name} size={size} tintColor={color} />;
@@ -59,7 +61,8 @@ function MessageBubble({ message, initials }: { message: ChatMessage; initials: 
       {!message.mine && <View style={styles.smallAvatar}><Text style={styles.smallAvatarText}>{initials}</Text></View>}
       <View style={styles.messageWrap}>
         <View style={[styles.bubble, message.mine && styles.myBubble]}>
-          <Text style={[styles.bubbleText, message.mine && styles.myBubbleText]}>{message.text}</Text>
+          {message.imageUri && <Image accessibilityLabel="Conversation photo" source={{ uri: message.imageUri }} contentFit="cover" style={styles.chatImage} />}
+          {!!message.text && <Text style={[styles.bubbleText, message.mine && styles.myBubbleText, message.imageUri && styles.imageCaption]}>{message.text}</Text>}
         </View>
         <Text style={[styles.messageTime, message.mine && styles.myTime]}>{message.time}</Text>
       </View>
@@ -79,8 +82,10 @@ function OfferDetail({ label, value }: { label: string; value: string }) {
 export function ConversationScreen({ conversation, onBack }: { conversation?: Conversation; onBack: () => void }) {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>(() => conversation ? initialMessages(conversation) : []);
+  const scrollAfterMessage = useRef(false);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => conversation ? sessionMessages.get(conversation.id) ?? initialMessages(conversation) : []);
   const [draft, setDraft] = useState('');
+  const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
   const [offerStatus, setOfferStatus] = useState<OfferStatus>('pending');
   const [offerPrice, setOfferPrice] = useState(98);
   const [counterDraft, setCounterDraft] = useState('99');
@@ -99,12 +104,19 @@ export function ConversationScreen({ conversation, onBack }: { conversation?: Co
     );
   }
 
+  const addLocalMessage = (text: string, imageUri?: string) => {
+    scrollAfterMessage.current = true;
+    const current = sessionMessages.get(conversation.id) ?? messages;
+    const next = [...current, { id: `${Date.now()}-${current.length}`, text, imageUri, mine: true, time: 'Just now · On this device' }];
+    sessionMessages.set(conversation.id, next);
+    setMessages(next);
+  };
+
   const send = () => {
     const text = draft.trim();
     if (!text) return;
-    setMessages((current) => [...current, { id: `${Date.now()}-${current.length}`, text, mine: true, time: 'Just now · On this device' }]);
+    addLocalMessage(text);
     setDraft('');
-    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   };
 
   const attachDocument = async () => {
@@ -118,11 +130,24 @@ export function ConversationScreen({ conversation, onBack }: { conversation?: Co
 
   const attachPhoto = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false });
-      if (!result.canceled) setNotice('Photo selected. Sending photos requires a connected messaging service.');
+      if (Platform.OS !== 'web') {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          setNotice('Camera permission is required to take a photo.');
+          return;
+        }
+      }
+      const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: false });
+      if (!result.canceled && result.assets[0]?.uri) setCapturedPhotoUri(result.assets[0].uri);
     } catch {
-      setNotice('Unable to select photo. Please try again.');
+      setNotice('Unable to open the camera. Check that a camera is available and try again.');
     }
+  };
+
+  const sendCapturedPhoto = () => {
+    if (!capturedPhotoUri) return;
+    addLocalMessage('', capturedPhotoUri);
+    setCapturedPhotoUri(null);
   };
 
   const submitCounter = () => {
@@ -185,7 +210,18 @@ export function ConversationScreen({ conversation, onBack }: { conversation?: Co
           </View>
         )}
 
-        <ScrollView ref={scrollRef} contentContainerStyle={styles.chat} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.chat}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => {
+            if (scrollAfterMessage.current) {
+              scrollAfterMessage.current = false;
+              scrollRef.current?.scrollToEnd({ animated: true });
+            }
+          }}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.date}>{isJuan(conversation) ? 'TODAY, SEPTEMBER 21' : 'CONVERSATION'}</Text>
           {messages.map((message) => (
             <View key={message.id}>
@@ -233,9 +269,9 @@ export function ConversationScreen({ conversation, onBack }: { conversation?: Co
 
         <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 10) }]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Attach document" hitSlop={6} onPress={attachDocument} style={styles.composerIcon}><Icon name={icons.attach} size={21} /></Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Attach photo" hitSlop={6} onPress={attachPhoto} style={styles.composerIcon}><Icon name={icons.camera} size={21} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Take photo" hitSlop={6} onPress={attachPhoto} style={styles.composerIcon}><Icon name={icons.camera} size={21} /></Pressable>
           <TextInput accessibilityLabel="Message" multiline onChangeText={setDraft} placeholder="Write a message..." placeholderTextColor={muted} style={styles.messageInput} value={draft} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Send message" accessibilityState={{ disabled: !draft.trim() }} disabled={!draft.trim()} onPress={send} style={[styles.sendButton, !draft.trim() && styles.sendDisabled]}><Icon name={icons.send} size={18} color="#fff" /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Send message on this device" accessibilityState={{ disabled: !draft.trim() }} disabled={!draft.trim()} onPress={send} style={[styles.sendButton, !draft.trim() && styles.sendDisabled]}><Icon name={icons.send} size={18} color="#fff" /></Pressable>
         </View>
       </View>
 
@@ -251,6 +287,21 @@ export function ConversationScreen({ conversation, onBack }: { conversation?: Co
               <Pressable accessibilityRole="button" onPress={() => setCounterOpen(false)} style={[styles.modalButton, styles.modalCancel]}><Text style={styles.modalCancelText}>Cancel</Text></Pressable>
               <Pressable accessibilityRole="button" onPress={submitCounter} style={[styles.modalButton, styles.modalSave]}><Text style={styles.modalSaveText}>Update price</Text></Pressable>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={capturedPhotoUri !== null} animationType="slide" onRequestClose={() => setCapturedPhotoUri(null)}>
+        <View style={[styles.photoReview, { paddingTop: insets.top + 14, paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <StatusBar style="light" />
+          <Text style={styles.photoReviewTitle}>Send photo to {conversation.participant}?</Text>
+          <Text style={styles.photoReviewNote}>This conversation is stored on this device only.</Text>
+          <View style={styles.photoReviewMedia}>
+            {capturedPhotoUri && <Image accessibilityLabel="Captured photo preview" source={{ uri: capturedPhotoUri }} contentFit="contain" style={styles.photoReviewImage} />}
+          </View>
+          <View style={styles.photoReviewActions}>
+            <Pressable accessibilityRole="button" onPress={() => setCapturedPhotoUri(null)} style={[styles.photoReviewButton, styles.photoCancel]}><Text style={styles.photoCancelText}>Cancel</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={sendCapturedPhoto} style={[styles.photoReviewButton, styles.photoSend]}><Text style={styles.photoSendText}>Send photo</Text></Pressable>
           </View>
         </View>
       </Modal>
@@ -296,6 +347,8 @@ const styles = StyleSheet.create({
   myBubble: { borderBottomLeftRadius: 13, borderBottomRightRadius: 4, backgroundColor: forest },
   bubbleText: { color: '#17221d', fontSize: 13, lineHeight: 18 },
   myBubbleText: { color: '#fff' },
+  chatImage: { width: 190, height: 140, borderRadius: 8 },
+  imageCaption: { marginTop: 6 },
   messageTime: { color: muted, fontSize: 10, marginHorizontal: 4, marginTop: 4 },
   myTime: { textAlign: 'right' },
   offerPlacement: { marginHorizontal: 22, marginBottom: 10 },
@@ -343,4 +396,15 @@ const styles = StyleSheet.create({
   modalSave: { backgroundColor: forest },
   modalCancelText: { color: forest, fontSize: 13, fontWeight: '700' },
   modalSaveText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  photoReview: { flex: 1, paddingHorizontal: 18, backgroundColor: '#101c17' },
+  photoReviewTitle: { color: '#fff', fontSize: 18, lineHeight: 24, fontWeight: '700' },
+  photoReviewNote: { color: '#c5dfd0', fontSize: 12, lineHeight: 17, marginTop: 5 },
+  photoReviewMedia: { flex: 1, minHeight: 0, marginVertical: 18 },
+  photoReviewImage: { width: '100%', height: '100%' },
+  photoReviewActions: { flexDirection: 'row', gap: 10 },
+  photoReviewButton: { flex: 1, minHeight: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  photoCancel: { borderWidth: 1, borderColor: '#b7d3bf' },
+  photoSend: { backgroundColor: '#d8eddd' },
+  photoCancelText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  photoSendText: { color: forest, fontSize: 14, fontWeight: '800' },
 });
