@@ -3,6 +3,7 @@ import { filterConversations, type Conversation, type ConversationSide } from '.
 export type MessageService = {
   list(side: ConversationSide, query: string): Conversation[];
   badgeCount(side: ConversationSide): number;
+  get(id: string): Conversation | undefined;
 };
 
 export function createMessageService(
@@ -12,5 +13,6 @@ export function createMessageService(
   return {
     list: (side, query) => filterConversations(conversations, side, query),
     badgeCount: (side) => badges[side],
+    get: (id) => conversations.find((conversation) => conversation.id === id),
   };
 }

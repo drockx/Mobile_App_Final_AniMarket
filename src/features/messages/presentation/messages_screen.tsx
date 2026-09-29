@@ -41,12 +41,14 @@ function ConversationCard({
       <View style={styles.avatar}><Text style={styles.avatarText}>{conversation.initials}</Text></View>
       <View style={styles.cardCopy}>
         <View style={styles.nameRow}>
-          <Text numberOfLines={2} style={styles.name}>{conversation.participant}</Text>
+          <Text numberOfLines={1} style={styles.name}>{conversation.participant}</Text>
           {conversation.verifiedSeller && <Text style={styles.sellerTag}>Seller</Text>}
         </View>
-        <Text style={styles.time}>{conversation.time}</Text>
+        <Text numberOfLines={1} style={styles.listing}>{conversation.listing}</Text>
+        <Text numberOfLines={1} style={styles.preview}>{conversation.preview}</Text>
       </View>
       <View style={styles.cardEnd}>
+        <Text style={styles.time}>{conversation.time}</Text>
         {conversation.unreadCount > 0 ? (
           <View style={styles.unreadBadge}>
             <Text style={styles.unreadText}>{conversation.unreadCount} unread</Text>
@@ -166,15 +168,17 @@ const styles = StyleSheet.create({
   sectionRow: { marginTop: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   sectionCount: { color: '#586b60', fontSize: 12, lineHeight: 16 },
-  card: { minHeight: 76, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
+  card: { minHeight: 84, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
   avatar: { width: 46, height: 46, borderRadius: 13, backgroundColor: '#c7e4d1', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: forest, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   cardCopy: { flex: 1, minWidth: 0, marginLeft: 10 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   name: { flexShrink: 1, color: '#17221d', fontSize: 14, lineHeight: 19, fontWeight: '700' },
   sellerTag: { color: '#22583e', backgroundColor: '#e4f4e9', borderRadius: 5, overflow: 'hidden', paddingHorizontal: 5, paddingVertical: 2, fontSize: 12, lineHeight: 16, fontWeight: '700' },
-  cardEnd: { minWidth: 28, alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'center' },
-  time: { color: '#586b60', marginTop: 3, fontSize: 12, lineHeight: 16 },
+  listing: { color: '#2d6a4f', fontSize: 11, lineHeight: 16, fontWeight: '700', marginTop: 3 },
+  preview: { color: muted, fontSize: 11, lineHeight: 16, marginTop: 2 },
+  cardEnd: { minWidth: 56, alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'space-between' },
+  time: { color: '#586b60', fontSize: 11, lineHeight: 16 },
   unreadBadge: { minHeight: 24, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, backgroundColor: '#e8f5ed', alignItems: 'center', justifyContent: 'center' },
   unreadText: { color: forest, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   chevronBadge: { width: 27, height: 27, borderRadius: 9, backgroundColor: '#e8f5ed', alignItems: 'center', justifyContent: 'center' },
