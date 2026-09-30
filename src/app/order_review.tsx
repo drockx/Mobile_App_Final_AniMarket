@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 
-import { checkoutService, getCheckoutItem, getOrderReview } from '@/features/orders/orders_dependencies';
+import { checkoutService, getOrderReview, saveOrderRequest } from '@/features/orders/orders_dependencies';
 import { OrderReviewScreen } from '@/features/orders/presentation/order_review_screen';
 import { useAccount } from '@/features/profile/profile_store';
 import { openPlacedOrder, openSavedOrder } from '@/navigation/app_navigation';
@@ -19,7 +19,7 @@ export default function OrderReviewRoute() {
     onBack={() => { if (router.canGoBack()) router.back(); else edit(); }}
     onEdit={edit}
     onViewListing={example || !listingId ? undefined : () => router.push({ pathname: '/listings/id', params: { id: listingId } })}
-    onSave={(reviewed) => checkoutService.saveRequest(getCheckoutItem(listingId), reviewed)}
+    onSave={(reviewed) => saveOrderRequest(listingId, reviewed)}
     onContinue={() => router.dismissTo('/home')}
     onStatus={openSavedOrder}
     onPlaced={openPlacedOrder}

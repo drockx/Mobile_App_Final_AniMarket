@@ -5,4 +5,5 @@ export interface ListingRepository {
   getAll(): readonly Listing[];
   getById(id: string): Listing | undefined;
   add(listing: Listing, pickupPin: PickupPin): void;
+  getPickupPin(id: string): PickupPin | undefined;
 }

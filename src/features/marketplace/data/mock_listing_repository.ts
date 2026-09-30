@@ -10,7 +10,11 @@ export const mockListingRepository: ListingRepository = {
   getAll: () => [...createdListings, ...listings],
   getById: (id) => createdListings.find((listing) => listing.id === id) ?? listings.find((listing) => listing.id === id),
   add: (listing, pickupPin) => {
-    orderOnlyPickupPins.set(listing.id, pickupPin);
+    orderOnlyPickupPins.set(listing.id, { ...pickupPin });
     createdListings.unshift(listing);
+  },
+  getPickupPin: (id) => {
+    const point = orderOnlyPickupPins.get(id);
+    return point ? { ...point } : undefined;
   },
 };

@@ -12,13 +12,78 @@ require.extensions['.ts'] = (module, filename) => {
 };
 
 const { createCheckoutService } = require('../src/features/orders/application/checkout_service.ts');
-const { emptyCheckoutForm, PICKUP_TIMES } = require('../src/features/orders/domain/checkout.ts');
+const { emptyCheckoutForm, PICKUP_TIMES, selectDeliveryLocation, updateCheckoutField } = require('../src/features/orders/domain/checkout.ts');
 const { createExampleReviewForm } = require('../src/features/orders/data/mock_order_review.ts');
 const { mockCheckoutItem } = require('../src/features/orders/data/mock_checkout_item.ts');
 const { createExampleOrderStatus } = require('../src/features/orders/data/mock_order_status.ts');
 const { orderStatusCopy, orderProgress } = require('../src/features/orders/domain/order_status.ts');
 const { filterOrders } = require('../src/features/orders/domain/order_list.ts');
 const now = new Date(2026, 8, 30, 12);
+
+test('a new city pin fills the new address and removes unrelated house details and landmarks', () => {
+  const form = createExampleReviewForm(now);
+  const location = { coordinate: { latitude: 7.3, longitude: 125.68 }, source: 'search', address: { label: 'Panabo', city: 'Panabo City', province: 'Davao del Norte', postalCode: '8105' } };
+  const changed = selectDeliveryLocation(form, location);
+  assert.equal(changed.city, 'Panabo City');
+  assert.equal(changed.postal, '8105');
+  assert.equal(changed.street, '');
+  assert.equal(changed.barangay, '');
+  assert.equal(changed.landmark, '');
+  location.coordinate.latitude = 8;
+  assert.equal(changed.deliveryLocation.coordinate.latitude, 7.3);
+  assert.equal(form.city, 'Tagum City');
+});
+
+test('manual details remain editable when the reverse address is unavailable', () => {
+  const form = selectDeliveryLocation(emptyCheckoutForm(), createExampleReviewForm(now).deliveryLocation);
+  const city = updateCheckoutField(form, 'city', 'Tagum City');
+  const province = updateCheckoutField(city, 'province', 'Davao del Norte');
+  assert.deepEqual(province.deliveryLocation.coordinate, form.deliveryLocation.coordinate);
+  const located = selectDeliveryLocation(createExampleReviewForm(now), { ...form.deliveryLocation, address: { label: 'Tagum', city: 'Tagum', province: 'Davao del Norte' } });
+  assert.equal(located.street, 'Purok 2');
+  assert.equal(updateCheckoutField(located, 'city', 'Tagum City').deliveryLocation, located.deliveryLocation);
+  assert.equal(updateCheckoutField(located, 'city', 'Panabo City').deliveryLocation, null);
+  assert.equal(updateCheckoutField(located, 'province', 'Davao Oriental').deliveryLocation, null);
+  assert.equal(updateCheckoutField(located, 'street', 'Purok 3').deliveryLocation, located.deliveryLocation);
+});
+
+test('delivery requires a valid confirmed pin in the same city and province', () => {
+  const service = createCheckoutService();
+  const form = createExampleReviewForm(now);
+  assert.ok(service.review(mockCheckoutItem, { ...form, deliveryLocation: null }, now).errors.deliveryLocation);
+  assert.ok(service.review(mockCheckoutItem, { ...form, deliveryLocation: { ...form.deliveryLocation, coordinate: { latitude: NaN, longitude: 125 } } }, now).errors.deliveryLocation);
+  const located = { ...form.deliveryLocation, address: { label: 'Selected point', city: 'Tagum City', province: 'Davao del Norte', countryCode: 'PH' } };
+  assert.ok(service.review(mockCheckoutItem, { ...form, city: 'Panabo City', deliveryLocation: located }, now).errors.deliveryLocation);
+  assert.ok(service.review(mockCheckoutItem, { ...form, province: 'Davao Oriental', deliveryLocation: located }, now).errors.deliveryLocation);
+  assert.ok(service.review(mockCheckoutItem, { ...form, city: 'Tagum', deliveryLocation: located }, now).draft);
+});
+
+test('delivery coordinates remain fixed through form edits, request history and cancellation', () => {
+  const service = createCheckoutService();
+  const form = createExampleReviewForm(now);
+  const originalPoint = { ...form.deliveryLocation.coordinate };
+  service.review(mockCheckoutItem, form, now);
+  form.deliveryLocation.coordinate.latitude = 8;
+  const restored = service.getForm(mockCheckoutItem.id);
+  restored.deliveryLocation.coordinate.longitude = 124;
+  const request = service.saveRequest(mockCheckoutItem, true, now).request;
+  assert.deepEqual(request.draft.delivery.location.coordinate, originalPoint);
+  service.review(mockCheckoutItem, form, now);
+  assert.deepEqual(service.getOrder(request.id).draft.delivery.location.coordinate, originalPoint);
+  assert.deepEqual(service.cancelRequest(request.id, now).request.draft.delivery.location.coordinate, originalPoint);
+});
+
+test('seller pickup coordinates are copied into the placed order without modifying the public item', () => {
+  const service = createCheckoutService();
+  const form = { ...emptyCheckoutForm(), pickupDate: '2026-10-01', pickupTime: PICKUP_TIMES[0] };
+  service.review(mockCheckoutItem, form, now);
+  const point = { latitude: 7.4482, longitude: 125.807 };
+  const request = service.saveRequest(mockCheckoutItem, true, now, point).request;
+  point.latitude = 8;
+  assert.equal(request.pickupPin.latitude, 7.4482);
+  assert.equal(request.draft.item.pickupPin, undefined);
+  assert.equal(service.cancelRequest(request.id, now).request.pickupPin.latitude, 7.4482);
+});
 
 test('delivery review carries destination, receiver, payment, and estimated total', () => {
   const service = createCheckoutService();

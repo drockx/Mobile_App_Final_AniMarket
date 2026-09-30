@@ -6,6 +6,9 @@ import { filterListings, type Listing, type ListingCriteria } from './domain/lis
 
 /** The app's current catalog wiring. Replace the repository when a real API is available. */
 export const sellerListingsService = createSellerListingsService(mockSellerListings);
+// Private storage is consulted only when creating an order, never for public catalog rendering.
+// A production repository must authorize buyer/seller access on the server.
+export const getOrderPickupPin = (listingId: string) => mockListingRepository.getPickupPin(listingId);
 const catalogService = createMarketplaceService(mockListingRepository);
 function visibleCatalog(): Listing[] {
   const owned = new Map(sellerListingsService.getSnapshot().map((item) => [item.id, item]));

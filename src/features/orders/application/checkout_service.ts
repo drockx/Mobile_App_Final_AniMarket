@@ -1,4 +1,5 @@
 import { checkoutTotals, TRANSPORT_ESTIMATE, validateCheckout, type CheckoutDraft, type CheckoutForm, type CheckoutItem, type OrderRequest, type SaveOrderResult } from '../domain/checkout';
+import { copyLocation, isCoordinate, type Coordinate } from '../../location/domain/location';
 
 export function createCheckoutService() {
   // Matches the app's session-based demo stores. Requests stay local; no seller is notified.
@@ -19,7 +20,7 @@ export function createCheckoutService() {
     },
     getForm: (listingId: string): CheckoutForm | undefined => {
       const form = drafts.get(listingId)?.form;
-      return form ? { ...form } : undefined;
+      return form ? { ...form, deliveryLocation: form.deliveryLocation ? copyLocation(form.deliveryLocation) : null } : undefined;
     },
     getDraft: (listingId: string) => drafts.get(listingId)?.draft,
     getRequest: (listingId: string) => drafts.get(listingId)?.request,
@@ -35,7 +36,7 @@ export function createCheckoutService() {
       publish();
       return { request, error: null };
     },
-    saveRequest(item: CheckoutItem | undefined, reviewed: boolean, now = new Date()): SaveOrderResult {
+    saveRequest(item: CheckoutItem | undefined, reviewed: boolean, now = new Date(), pickupPin?: Coordinate): SaveOrderResult {
       if (!reviewed) return { request: null, error: 'Confirm that you reviewed the order before continuing.' };
       if (!item) return { request: null, error: 'This listing is no longer available. Return to the marketplace.' };
       const entry = drafts.get(item.id);
@@ -51,6 +52,7 @@ export function createCheckoutService() {
       const request: OrderRequest = {
         id: `ANM-${now.getFullYear()}-${String(++requestNumber).padStart(6, '0')}`,
         createdAt: now.toISOString(), status: 'saved-locally', draft: entry.draft,
+        pickupPin: isCoordinate(pickupPin) ? { ...pickupPin } : undefined,
       };
       entry.request = request;
       requests.set(request.id, request);
@@ -68,11 +70,12 @@ export function createCheckoutService() {
           date: form.deliveryDate, receiver: form.receiver.trim(), phone: form.phone.replace(/[\s()-]/g, ''),
           street: form.street.trim(), barangay: form.barangay.trim(), city: form.city.trim(), province: form.province,
           postal: form.postal.trim(), landmark: form.landmark.trim(), notes: form.notes.trim(), accessibleDestination: true,
+          location: copyLocation(form.deliveryLocation!),
           feeMin: TRANSPORT_ESTIMATE.min, feeMax: TRANSPORT_ESTIMATE.max,
         } : null,
         totalMin: total.min, totalMax: total.max,
       };
-      drafts.set(item.id, { form: { ...form }, draft });
+      drafts.set(item.id, { form: { ...form, deliveryLocation: form.deliveryLocation ? copyLocation(form.deliveryLocation) : null }, draft });
       return { errors: {}, draft };
     },
   };

@@ -7,9 +7,11 @@ import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleS
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getListingImage } from '@/features/marketplace/presentation/listing_images';
+import type { SelectedLocation } from '@/features/location/domain/location';
+import { LocationPicker } from '@/features/location/presentation/location_picker';
 
 import type { CheckoutService } from '../application/checkout_service';
-import { checkoutTotals, DELIVERY_PROVINCES, emptyCheckoutForm, PICKUP_TIMES, validateCheckout, type CheckoutForm, type CheckoutItem } from '../domain/checkout';
+import { checkoutTotals, DELIVERY_PROVINCES, emptyCheckoutForm, PICKUP_TIMES, selectDeliveryLocation, updateCheckoutField, validateCheckout, type CheckoutForm, type CheckoutItem } from '../domain/checkout';
 import { CheckoutButton, checkoutColors as color, CheckoutDate, CheckoutField, checkoutIcons as icons, CheckoutSelect, FieldError } from './checkout_controls';
 import { amountRange, money, OrderNotice as Notice, OrderSteps, OrderSummaryRow as SummaryRow } from './order_components';
 
@@ -30,7 +32,10 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
   const totals = item ? checkoutTotals(item, form.fulfillment) : null;
 
   function update<K extends keyof CheckoutForm>(key: K, value: CheckoutForm[K]) {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => updateCheckoutField(current, key, value));
+  }
+  function selectDestination(location: SelectedLocation) {
+    setForm((current) => selectDeliveryLocation(current, location));
   }
   function changeMode(fulfillment: CheckoutForm['fulfillment']) {
     update('fulfillment', fulfillment); setAttempted(false);
@@ -87,6 +92,8 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
             <CheckoutField label="Receiver name" required value={form.receiver} onChangeText={(value) => update('receiver', value)} placeholder="Full name" autoComplete="name" error={errors.receiver} />
             <CheckoutField label="Receiver phone" required value={form.phone} onChangeText={(value) => update('phone', value)} placeholder="09XX XXX XXXX" keyboardType="phone-pad" autoComplete="tel" maxLength={20} error={errors.phone} />
             <Text style={styles.addressHeading}>Delivery address</Text>
+            <LocationPicker label="Delivery destination" value={form.deliveryLocation} onSelect={selectDestination} allowedProvinces={DELIVERY_PROVINCES} addressQuery={[form.street, form.barangay, form.city, form.province].filter(Boolean).join(', ')} error={errors.deliveryLocation} />
+            <Text style={styles.helper}>Check the destination pin, then complete your house, purok, barangay, and landmark below.</Text>
             <View style={[styles.addressRow, stackAddress && styles.addressColumn]}>
               <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Purok/Street" required value={form.street} onChangeText={(value) => update('street', value)} placeholder="Purok 2" error={errors.street} /></View>
               <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Barangay" required value={form.barangay} onChangeText={(value) => update('barangay', value)} placeholder="Barangay name" error={errors.barangay} /></View>
@@ -107,9 +114,7 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
             <View style={styles.pickupBox}>
               <Text style={styles.pickupTitle}>Seller pickup location</Text><Text style={styles.pickupCopy}>{item.sellerAddress}</Text>
               <Text style={styles.pickupCopy}>{item.availability ? <><Text style={styles.bold}>Available: </Text>{item.availability}</> : 'Confirm the pickup point and availability with the seller.'}</Text>
-              <LinearGradient accessibilityLabel="Illustration of the pickup area" colors={['#d7eadc', '#f7fbf8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.mapIllustration}>
-                <View style={styles.mapRoad} /><View style={styles.mapPin}><SymbolView name={icons.pin} size={30} tintColor={color.green} /></View>
-              </LinearGradient>
+              <Text style={styles.pickupCopy}>The seller’s exact pickup pin appears in Order Status after placing the request, when provided.</Text>
             </View>
             <CheckoutDate label="Preferred pickup date" value={form.pickupDate} onSelect={(value) => update('pickupDate', value)} error={errors.pickupDate} excludedDays={item.unavailablePickupDays} />
             <CheckoutSelect label="Preferred time" required value={form.pickupTime} onSelect={(value) => update('pickupTime', value)} options={PICKUP_TIMES.map((time) => ({ label: time, value: time }))} placeholder="Select time" error={errors.pickupTime} />
@@ -168,9 +173,6 @@ const styles = StyleSheet.create({
   pickupTitle: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: color.green },
   pickupCopy: { fontSize: 13, lineHeight: 18, color: color.muted, marginTop: 6 },
   bold: { fontWeight: '700' },
-  mapIllustration: { height: 92, borderRadius: 10, marginTop: 12, overflow: 'hidden' },
-  mapRoad: { position: 'absolute', width: '140%', height: 44, backgroundColor: '#fff', borderWidth: 1, borderColor: color.line, transform: [{ rotate: '16deg' }], left: '-20%', top: 50 },
-  mapPin: { position: 'absolute', top: 22, left: '50%', marginLeft: -15, width: 30, height: 30, backgroundColor: '#fff', borderRadius: 15 },
   transportCard: { marginTop: 12, borderWidth: 1, borderColor: '#cfe1d4', backgroundColor: '#f3faf5', borderRadius: 13, padding: 12 },
   transportTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   transportTitle: { flex: 1, minWidth: 0, fontSize: 15, lineHeight: 20, fontWeight: '700', color: color.green },

@@ -1,4 +1,5 @@
 import { isDavaoDelNorteLocation } from '@/constants/davao_del_norte';
+import { locationIssue } from '../../location/domain/location';
 
 import { filterListings, type Listing, type ListingCriteria, type PickupPin } from '../domain/listing';
 import type { ListingRepository } from '../domain/listing_repository';
@@ -19,6 +20,8 @@ export function createMarketplaceService(repository: ListingRepository): Marketp
       return listing && isDavaoDelNorteLocation(listing.location) ? listing : undefined;
     },
     publishListing(input, pickupPin) {
+      const pinIssue = locationIssue({ coordinate: pickupPin, address: null, source: 'map' });
+      if (pinIssue) throw new Error(pinIssue);
       if (!isDavaoDelNorteLocation(input.location)) {
         throw new Error('Listings must be located in Davao del Norte.');
       }

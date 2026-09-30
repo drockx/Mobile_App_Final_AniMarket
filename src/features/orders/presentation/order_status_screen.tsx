@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LocationPreview } from '@/features/location/presentation/location_preview';
 
 import { livestockAmount, type OrderRequest, type SaveOrderResult } from '../domain/checkout';
 import { orderProgress, orderStatusCopy } from '../domain/order_status';
@@ -93,6 +94,9 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
           </> : pickup && <>
             <OrderSummaryRow detail label="Preferred date" value={readableDate(pickup.date)} /><OrderSummaryRow detail label="Preferred time" value={pickup.time} /><OrderSummaryRow detail label="Pickup point" value={item.sellerAddress} />
           </>}</View>
+          {delivery && <LocationPreview label={example ? 'Example destination pin' : 'Confirmed delivery destination'} coordinate={delivery.location.coordinate} />}
+          {request.pickupPin && <LocationPreview label="Seller pickup point" coordinate={request.pickupPin} />}
+          {!delivery && !request.pickupPin && <Text style={styles.body}>The seller has not provided an exact pickup pin. Confirm the meeting point with the seller.</Text>}
           {delivery && <View style={styles.transporter}><View style={[styles.transporterTop, compact && styles.column]}><Text style={[styles.transporterName, compact && styles.noFlex]}>Davao Livestock Transport Cooperative</Text><OrderBadge label="To confirm" pending /></View><Text style={styles.body}>Livestock-ready vehicle • Ventilated partitions</Text><Text style={styles.body}>Vehicle availability, driver details, and the final quote require confirmation.</Text></View>}
         </OrderCard>
 

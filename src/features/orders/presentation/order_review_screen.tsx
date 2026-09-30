@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LocationPreview } from '@/features/location/presentation/location_preview';
 
 import { livestockAmount, type CheckoutDraft, type OrderRequest, type SaveOrderResult } from '../domain/checkout';
 import { CheckoutButton, checkoutColors as color, checkoutIcons as icons, CheckoutSheet, FieldError } from './checkout_controls';
@@ -90,6 +91,7 @@ export function OrderReviewScreen({ draft, example = false, buyerName = '', buye
               <OrderSummaryRow detail label="Pickup point" value={item.sellerAddress} />
             </>}
           </View>
+          {delivery && <LocationPreview label={example ? 'Example destination pin' : 'Confirmed delivery destination'} coordinate={delivery.location.coordinate} />}
           {delivery && <View style={styles.transporter}>
             <View style={[styles.transporterTop, compact && styles.column]}><Text style={[styles.transporterName, compact && styles.noFlex]}>Davao Livestock Transport Cooperative</Text><Badge label="To confirm" pending /></View>
             <Text style={styles.body}>Livestock-ready vehicle • Ventilated partitions</Text><Text style={styles.body}>Vehicle availability and the final quote require confirmation.</Text>

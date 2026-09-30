@@ -1,6 +1,7 @@
 import { checkoutTotals, TRANSPORT_ESTIMATE, type OrderRequest } from '../domain/checkout';
 import { mockCheckoutItem } from './mock_checkout_item';
 import { createExampleReviewForm } from './mock_order_review';
+import { copyLocation } from '../../location/domain/location';
 
 export function createExampleOrderStatus(now = new Date()): OrderRequest {
   const form = createExampleReviewForm(now);
@@ -13,6 +14,7 @@ export function createExampleOrderStatus(now = new Date()): OrderRequest {
         date: form.deliveryDate, receiver: form.receiver, phone: form.phone.replace(/\s/g, ''),
         street: form.street, barangay: form.barangay, city: form.city, province: form.province,
         postal: form.postal, landmark: form.landmark, notes: form.notes, accessibleDestination: true,
+        location: copyLocation(form.deliveryLocation!),
         feeMin: TRANSPORT_ESTIMATE.min, feeMax: TRANSPORT_ESTIMATE.max,
       },
       totalMin: total.min, totalMax: total.max,

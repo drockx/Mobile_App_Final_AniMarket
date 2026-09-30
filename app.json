@@ -28,7 +28,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow AniMarket to use your location to set a private livestock pickup pin."
+          "locationWhenInUsePermission": "Allow AniMarket to use your current location to choose a livestock pickup point or delivery address."
         }
       ],
       [

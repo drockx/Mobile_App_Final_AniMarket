@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import {
@@ -15,10 +14,11 @@ import {
   type DavaoDelNorteLocality,
 } from '@/constants/davao_del_norte';
 import { marketReferenceData } from '@/features/market_reference/market_reference_dependencies';
+import { listingLocality, locationIssue, type SelectedLocation } from '@/features/location/domain/location';
+import { LocationPicker } from '@/features/location/presentation/location_picker';
 
 import type { MarketplaceService } from '../application/marketplace_service';
-import type { ListingPriceUnit, LivestockCategory, PickupPin } from '../domain/listing';
-import { PickupLocationMap } from './pickup_location_map';
+import type { ListingPriceUnit, LivestockCategory } from '../domain/listing';
 
 const colors = {
   forest: '#12372a', ink: '#1a202c', muted: '#64748b', line: '#e2e8f0',
@@ -36,7 +36,6 @@ const icons = {
   photo: { ios: 'photo', android: 'image', web: 'image' },
   chevron: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
   calendar: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' },
-  locate: { ios: 'location', android: 'my_location', web: 'my_location' },
 } as const;
 
 function Icon({ name, size = 19, color = colors.forest }: { name: IconName; size?: number; color?: string }) {
@@ -141,10 +140,8 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
   const [city, setCity] = useState<DavaoDelNorteLocality>('Tagum City');
   const [streetPurok, setStreetPurok] = useState('');
   const [barangay, setBarangay] = useState('');
-  const [pickupPin, setPickupPin] = useState<PickupPin | null>(null);
-  const [mapCenter, setMapCenter] = useState<PickupPin | null>(null);
-  const [locating, setLocating] = useState(false);
-  const [locationMessage, setLocationMessage] = useState('');
+  const [pickupLocation, setPickupLocation] = useState<SelectedLocation | null>(null);
+  const pickupPin = pickupLocation?.coordinate;
   const [price, setPrice] = useState(initialPrice);
   const [priceUnit, setPriceUnit] = useState<ListingPriceUnit>(initialPriceUnit);
   const [description, setDescription] = useState('');
@@ -185,26 +182,13 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
     }
   }
 
-  async function useCurrentLocation() {
-    if (locating) return;
-    setLocating(true);
-    setLocationMessage('');
-    try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (permission.status !== 'granted') {
-        setLocationMessage('Location permission was denied. Tap the map to set the pickup pin.');
-        return;
-      }
-      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const nextPin = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-      setPickupPin(nextPin);
-      setMapCenter(nextPin);
-      setLocationMessage('Current location set. Tap the map or drag the pin if the livestock is elsewhere.');
-    } catch {
-      setLocationMessage('Could not get your location. Tap the map to set the pickup pin.');
-    } finally {
-      setLocating(false);
-    }
+  function selectPickup(location: SelectedLocation) {
+    const locality = listingLocality(location.address?.city);
+    setPickupLocation(location);
+    if (locality) setCity(locality);
+    if (location.address?.street || (locality && locality !== city)) setStreetPurok(location.address?.street ?? '');
+    if (location.address?.barangay || (locality && locality !== city)) setBarangay(location.address?.barangay ?? '');
+    setError('');
   }
 
   function publish() {
@@ -217,10 +201,11 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
     else if (vaccination === 'vaccinated' && !proof) problem = 'Attach vaccination proof.';
     else if (!streetPurok.trim()) problem = 'Enter the street or purok.';
     else if (!barangay.trim()) problem = 'Enter the barangay.';
-    else if (!pickupPin) problem = 'Tap the map or use your current location to set a pickup pin.';
+    else if (locationIssue(pickupLocation, [DAVAO_DEL_NORTE])) problem = locationIssue(pickupLocation, [DAVAO_DEL_NORTE])!;
+    else if (pickupLocation?.address?.city && listingLocality(pickupLocation.address.city) !== city) problem = 'Confirm a pickup pin in the selected municipality or city.';
     else if (!Number.isFinite(Number(price)) || Number(price) <= 0) problem = 'Enter a valid listing price.';
     if (problem || !pickupPin) {
-      const message = problem || 'Tap the map or use your current location to set a pickup pin.';
+      const message = problem || 'Choose and confirm the livestock pickup point on the map.';
       setError(message);
       showMessage('Complete your listing', message);
       return;
@@ -322,7 +307,7 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
           <Text style={styles.proofNote}>Proof applies only to this listing. It is shown as seller-provided unless reviewed by an authorized party.</Text>
         </View>
 
-        <SelectField label="Municipality / City" value={city} options={DAVAO_DEL_NORTE_LOCALITIES.map((name) => ({ label: davaoDelNorteLocalityLabel(name), value: name }))} onSelect={(value) => setCity(value as DavaoDelNorteLocality)} />
+        <SelectField label="Municipality / City" value={city} options={DAVAO_DEL_NORTE_LOCALITIES.map((name) => ({ label: davaoDelNorteLocalityLabel(name), value: name }))} onSelect={(value) => { if (value !== city) setPickupLocation(null); setCity(value as DavaoDelNorteLocality); }} />
         <View style={styles.field}>
           <Label>Province</Label>
           <View style={[styles.input, styles.fixedField]}>
@@ -340,16 +325,8 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
             <Text style={styles.cardTitle}>Pin livestock location</Text>
             <Text style={styles.privateBadge}>After order only</Text>
           </View>
-          <Text style={styles.mapHelp}>Tap the map to mark where the livestock is located. Drag the pin to adjust it.</Text>
-          <View style={styles.mapFrame}>
-            <PickupLocationMap pin={pickupPin} center={mapCenter} onPinChange={setPickupPin} />
-          </View>
-          <Pressable accessibilityRole="button" accessibilityState={{ disabled: locating }} disabled={locating} onPress={useCurrentLocation} style={styles.locateButton}>
-            <Icon name={icons.locate} size={17} />
-            <Text style={styles.locateText}>{locating ? 'Getting location…' : 'Use my current location'}</Text>
-          </Pressable>
-          {!!locationMessage && <Text style={styles.locationMessage}>{locationMessage}</Text>}
-          <Text style={styles.pinStatus}>{pickupPin ? 'Pickup pin set' : 'No pickup pin selected yet'}</Text>
+          <Text style={styles.mapHelp}>Confirm the livestock entrance or pickup point. Exact coordinates are shared with the order, while the address above appears on the listing.</Text>
+          <LocationPicker label="Livestock pickup point" value={pickupLocation} onSelect={selectPickup} allowedProvinces={[DAVAO_DEL_NORTE]} addressQuery={[streetPurok, barangay, city, DAVAO_DEL_NORTE].filter(Boolean).join(', ')} />
         </View>
 
         <View style={styles.priceCard}>
@@ -433,12 +410,7 @@ const styles = StyleSheet.create({
   publicAddress: { marginTop: -9, color: '#64748b', fontSize: 11, lineHeight: 16 },
   pinCard: { padding: 14, gap: 11, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 14, backgroundColor: '#fbfdfb' },
   privateBadge: { color: '#276749', backgroundColor: '#e4f3e8', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, fontSize: 10, fontWeight: '700' },
-  mapHelp: { color: '#64748b', fontSize: 11, lineHeight: 16 },
-  mapFrame: { borderRadius: 10, borderWidth: 1, borderColor: '#d9e9dd', overflow: 'hidden', backgroundColor: '#eaf5ed' },
-  locateButton: { minHeight: 44, alignSelf: 'flex-start', paddingHorizontal: 12, borderWidth: 1, borderColor: '#b9d8c2', borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#fff' },
-  locateText: { color: colors.forest, fontSize: 12, fontWeight: '700' },
-  locationMessage: { color: '#64748b', fontSize: 11, lineHeight: 16 },
-  pinStatus: { color: colors.forest, fontSize: 11, lineHeight: 15, fontWeight: '700' },
+  mapHelp: { color: '#52647a', fontSize: 13, lineHeight: 19 },
   priceCard: { padding: 15, gap: 10, borderRadius: 14, backgroundColor: '#eaf5ed' },
   marketBadge: { flexShrink: 0, color: '#1b4d3e', backgroundColor: '#d6eadc', fontSize: 10, fontWeight: '700', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12 },
   referenceLocation: { color: '#4a5568', fontSize: 12, lineHeight: 17 },

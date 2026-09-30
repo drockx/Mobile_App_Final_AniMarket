@@ -39,6 +39,19 @@ npx tsc --noEmit
 npm run check:architecture
 npm run check:orders
 npm run check:navigation
+npm run check:location
 ```
 
 The catalog is sample data. Login currently validates required fields and opens the marketplace; registration validates locally. Neither form is connected to an authentication service yet.
+
+## Location selection and maps
+
+Listings and delivery checkout use the same location picker: search a street, barangay, city or landmark; use foreground GPS; tap or move the map under the fixed pin; then confirm. Cancelling keeps the previous selection. Nearby address fields fill when available, and the user completes house/purok, barangay and landmark details. A reverse-geocoding failure leaves manual pin selection available. City/province changes require a matching confirmed pin. Delivery checkout validates the point and carries it unchanged to review and status, including cancelled requests. Published listing pickup coordinates are stored outside the public catalog and become available on the placed order. Sample listings without coordinates show an honest missing-pin message.
+
+Native maps use the installed `react-native-maps` library (Apple Maps on iOS, Google Maps on Android); web maps use MapLibre and OpenFreeMap. Address search and reverse lookup use the [Photon API](https://github.com/komoot/photon/blob/master/docs/api-v1.md). Search is explicit, reverse lookup is debounced and cached, requests time out and obsolete selections are discarded. The public Photon demo supports moderate development use without an availability guarantee. For production volume, set `EXPO_PUBLIC_GEOCODER_URL` to a hosted Photon-compatible endpoint with appropriate web CORS. Search text and selected coordinates are sent to that provider. Receiver names, phones, landmarks and transport notes are not included in geocoder requests. The provider base URL is public app configuration; do not put a secret key there.
+
+Expo Go already includes native map setup. For a standalone Android build, copy `.env.example` to `.env.local`, set `GOOGLE_MAPS_ANDROID_API_KEY`, and configure the same variable in the EAS build environment. Enable Maps SDK for Android and restrict the key to the app's Android package and signing SHA-1. [Expo SDK 57 map setup](https://docs.expo.dev/versions/v57.0.0/sdk/map-view/) describes the configuration. `app.config.ts` injects the key through the map plugin and refuses an EAS Android build without it. No key is committed. Rebuild the native app after changing native configuration. Browser GPS requires HTTPS (localhost also works); location permission is requested only when the user taps Use my current location. Background tracking is not used.
+
+This app still uses session-based listing and order repositories. Production storage must persist both address and coordinates, and authorize access to exact seller pickup coordinates on the server. Location selection is connected to real GPS, map tiles and geocoding; it does not add seller notifications, transport dispatch or server persistence.
+
+`npm run check:location -- --live` additionally checks the configured geocoder against a public Tagum search and reverse lookup, including web CORS. Device GPS permissions, real map gestures and Android key restrictions still need device testing.

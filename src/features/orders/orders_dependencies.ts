@@ -1,4 +1,4 @@
-import { marketplaceService } from '@/features/marketplace/marketplace_dependencies';
+import { getOrderPickupPin, marketplaceService } from '@/features/marketplace/marketplace_dependencies';
 import { formatListingAddress } from '@/features/marketplace/domain/listing';
 
 import { createCheckoutService } from './application/checkout_service';
@@ -8,6 +8,11 @@ import { createExampleOrderStatus } from './data/mock_order_status';
 import type { CheckoutItem } from './domain/checkout';
 
 export const checkoutService = createCheckoutService();
+
+export function saveOrderRequest(listingId: string | undefined, reviewed: boolean) {
+  const item = getCheckoutItem(listingId);
+  return checkoutService.saveRequest(item, reviewed, new Date(), item ? getOrderPickupPin(item.id) : undefined);
+}
 
 export function getCheckoutItem(id?: string): CheckoutItem | undefined {
   if (!id || id === mockCheckoutItem.id) return mockCheckoutItem;
