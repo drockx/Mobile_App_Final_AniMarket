@@ -19,7 +19,8 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
   const { width, fontScale } = useWindowDimensions();
   const compact = width < 360 || fontScale > 1.15;
   const stackActions = width < 380 || fontScale > 1.05;
-  const [request, setRequest] = useState(order);
+  const [exampleRequest, setExampleRequest] = useState(order);
+  const request = example ? exampleRequest : order;
   const [cancelOpen, setCancelOpen] = useState(false);
   const [listingOpen, setListingOpen] = useState(false);
   const [contactAction, setContactAction] = useState<'phone' | 'message' | null>(null);
@@ -29,7 +30,7 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
     if (!request) return;
     const result = onCancel(request.id);
     setError(result.error ?? undefined);
-    if (result.request) { setRequest(result.request); setCancelOpen(false); }
+    if (result.request) { if (example) setExampleRequest(result.request); setCancelOpen(false); }
   }
   function messageSeller() {
     if (onMessage) onMessage(); else setContactAction('message');
@@ -37,7 +38,7 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
 
   if (!request) return <View style={[styles.missing, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
     <StatusBar style="dark" /><Text accessibilityRole="header" style={styles.missingTitle}>Order unavailable</Text>
-    <Text style={styles.body}>This order request is not available in the current session.</Text><CheckoutButton label="Back to Marketplace" onPress={onMarketplace} />
+    <Text style={styles.body}>This order request is not available in the current session.</Text><CheckoutButton label="My Orders" onPress={onBack} /><CheckoutButton secondary label="Back to Marketplace" onPress={onMarketplace} />
   </View>;
 
   const { item, delivery, pickup } = request.draft;

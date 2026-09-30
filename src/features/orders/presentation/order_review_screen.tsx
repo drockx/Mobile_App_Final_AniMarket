@@ -21,11 +21,12 @@ function Person({ name, description, badge }: { name: string; description: strin
   </View>;
 }
 
-export function OrderReviewScreen({ draft, example = false, buyerName = '', buyerPhone = '', savedRequest, onBack, onEdit, onViewListing, onSave, onContinue, onStatus }: {
+export function OrderReviewScreen({ draft, example = false, buyerName = '', buyerPhone = '', savedRequest, onBack, onEdit, onViewListing, onSave, onContinue, onStatus, onPlaced }: {
   draft?: CheckoutDraft; example?: boolean; buyerName?: string; buyerPhone?: string; savedRequest?: OrderRequest;
   onBack: () => void; onEdit: () => void; onViewListing?: () => void;
   onSave: (reviewed: boolean) => SaveOrderResult; onContinue: () => void;
   onStatus: (orderId: string) => void;
+  onPlaced: (orderId: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
@@ -40,7 +41,7 @@ export function OrderReviewScreen({ draft, example = false, buyerName = '', buye
     if (request) return;
     const result = onSave(agreed);
     setError(result.error ?? undefined);
-    if (result.request) { setRequest(result.request); onStatus(result.request.id); }
+    if (result.request) { setRequest(result.request); onPlaced(result.request.id); }
   }
 
   if (!draft) return <View style={[styles.missing, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>

@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { checkoutService, getCheckoutItem } from '@/features/orders/orders_dependencies';
 import { OrderCheckoutScreen } from '@/features/orders/presentation/order_checkout_screen';
 import { useAccount } from '@/features/profile/profile_store';
+import { backOrReplace } from '@/navigation/app_navigation';
 
 export default function OrderCheckoutRoute() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -12,6 +13,6 @@ export default function OrderCheckoutRoute() {
     key={item?.id ?? 'missing'} item={item} service={checkoutService}
     receiverName={account.personal.fullName} receiverPhone={account.personal.phone}
     onReview={(listingId) => router.push({ pathname: '/order_review', params: { id: listingId } })}
-    onBack={() => { if (router.canGoBack()) router.back(); else router.replace('/home'); }}
+    onBack={() => backOrReplace('/home')}
   />;
 }

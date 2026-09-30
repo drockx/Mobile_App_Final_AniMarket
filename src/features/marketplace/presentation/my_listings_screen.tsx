@@ -39,11 +39,12 @@ function Badge({ status }: { status: ListingStatus }) {
   return <View style={[styles.badge, { backgroundColor }]}><View style={[styles.dot, { backgroundColor: tint }]} /><Text style={[styles.badgeText, { color: tint }]}>{capitalize(status)}</Text></View>;
 }
 
-export function MyListingsScreen({ service, onBack, onCreate, onInquiries }: {
+export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrders }: {
   service: SellerListingsService;
   onBack: () => void;
   onCreate: (listing?: SellerListing, continueDraft?: boolean) => void;
   onInquiries: () => void;
+  onOrders: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
@@ -168,7 +169,7 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries }: {
             {dialog?.kind === 'more' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Listing actions</Text><Text style={styles.dialogCopy}>{dialog.listing.title}</Text>{(dialog.listing.status === 'active' || dialog.listing.status === 'paused') && <Button secondary label={dialog.listing.status === 'active' ? 'Pause Listing' : 'Resume Listing'} onPress={() => togglePaused(dialog.listing)} />}<Button secondary label="List Similar" onPress={() => { const listing = dialog.listing; setDialog(null); onCreate(listing); }} /><Button secondary destructive label="Delete Listing" onPress={() => setDialog({ kind: 'delete', listing: dialog.listing })} /><Button secondary label="Cancel" onPress={() => setDialog(null)} /></>}
             {dialog?.kind === 'delete' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Delete listing?</Text><Text style={styles.dialogCopy}>{dialog.listing.title} will be removed from My Listings. This cannot be undone during this session.</Text><Button destructive label="Delete Listing" onPress={() => { service.remove(dialog.listing.id); setDialog(null); setFeedback('Listing deleted.'); }} /><Button secondary label="Cancel" onPress={() => setDialog(null)} /></>}
             {dialog?.kind === 'preview' && <><Text accessibilityRole="header" style={styles.dialogTitle}>{dialog.listing.title}</Text><Badge status={dialog.listing.status} /><Text style={styles.price}>{money(dialog.listing.price)} {dialog.listing.unit}</Text><Text style={styles.dialogCopy}>{dialog.listing.details}{'\n'}{dialog.listing.location}</Text><View style={styles.notice}><Text style={styles.noticeText}>{dialog.listing.notice}</Text></View><Button label="Continue Draft" onPress={() => { const listing = dialog.listing; setDialog(null); onCreate(listing, true); }} /><Button secondary label="Close" onPress={() => setDialog(null)} /></>}
-            {dialog?.kind === 'order' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Completed order</Text><Text style={styles.dialogCopy}>{dialog.listing.orderId}{'\n'}{dialog.listing.title}{'\n'}{money(dialog.listing.price)} {dialog.listing.unit}</Text><Text style={styles.dialogCopy}>This is a sample completed order. Order tracking is not yet connected in this demo.</Text><Button label="Close" onPress={() => setDialog(null)} /></>}
+            {dialog?.kind === 'order' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Completed order</Text><Text style={styles.dialogCopy}>{dialog.listing.orderId}{'\n'}{dialog.listing.title}{'\n'}{money(dialog.listing.price)} {dialog.listing.unit}</Text><Text style={styles.dialogCopy}>This sample sale is separate from your current session. View your placed requests and their status in My Orders.</Text><Button label="My Orders" onPress={() => { setDialog(null); onOrders(); }} /><Button secondary label="Close" onPress={() => setDialog(null)} /></>}
           </ScrollView>
         </View>
       </KeyboardAvoidingView>

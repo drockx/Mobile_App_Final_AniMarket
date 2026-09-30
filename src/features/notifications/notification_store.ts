@@ -10,6 +10,10 @@ export type AppNotification = {
   meta: string;
   action: string;
   destination: NotificationDestination;
+  orderId?: string;
+  conversationId?: string;
+  side?: 'buying' | 'selling';
+  draftId?: string;
   unread: boolean;
   icon: 'message' | 'order' | 'listing' | 'delivery' | 'bell' | 'complete' | 'rating';
 };

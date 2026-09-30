@@ -11,8 +11,8 @@ import type { CheckoutItem } from '../domain/checkout';
 import { checkoutColors as color, checkoutIcons as icons } from './checkout_controls';
 import { money } from './order_components';
 
-export function OrderBadge({ label, pending = false }: { label: string; pending?: boolean }) {
-  return <Text style={[styles.badge, pending && styles.pendingBadge]}>{label}</Text>;
+export function OrderBadge({ label, pending = false, cancelled = false }: { label: string; pending?: boolean; cancelled?: boolean }) {
+  return <Text style={[styles.badge, pending && styles.pendingBadge, cancelled && styles.cancelledBadge]}>{label}</Text>;
 }
 
 export function OrderCard({ title, meta, action, onAction, children }: {
@@ -39,7 +39,7 @@ export function OrderConfirmation({ title, description, status, ready = false }:
   </View>;
 }
 
-export function OrderItem({ item }: { item: CheckoutItem }) {
+export function OrderItem({ item, showBadges = true }: { item: CheckoutItem; showBadges?: boolean }) {
   const { width, fontScale } = useWindowDimensions();
   const stackPrice = width < 420 || fontScale > 1.15;
   const image = item.imageUri ? { uri: item.imageUri } : getListingImage(item.id);
@@ -55,11 +55,11 @@ export function OrderItem({ item }: { item: CheckoutItem }) {
       </View>
       {!stackPrice && <View style={styles.priceBlock}><Text style={styles.productPrice}>{money(item.price)}</Text>{item.priceUnit && <Text style={styles.priceUnit}>{item.priceUnit}</Text>}</View>}
     </View>
-    <View style={styles.chips}>
+    {showBadges && <View style={styles.chips}>
       <OrderBadge label={item.vaccinationProofName ? 'Vaccination proof attached' : item.healthVerified ? 'Health records noted' : 'Health records to confirm'} pending={!item.vaccinationProofName && !item.healthVerified} />
       <OrderBadge label={item.verified ? 'Verified seller' : 'Seller verification to confirm'} pending={!item.verified} />
       <OrderBadge label="Availability to confirm" pending />
-    </View>
+    </View>}
   </>;
 }
 
@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.75 },
   badge: { alignSelf: 'flex-start', flexShrink: 1, maxWidth: '100%', borderRadius: 12, paddingVertical: 4, paddingHorizontal: 8, backgroundColor: color.mint, color: color.green, fontSize: 12, lineHeight: 16, fontWeight: '700', overflow: 'hidden' },
   pendingBadge: { color: '#895000', backgroundColor: color.warn },
+  cancelledBadge: { color: color.danger, backgroundColor: '#fff1ef' },
   body: { color: color.muted, fontSize: 13, lineHeight: 18, marginTop: 3 },
   confirmation: { flexDirection: 'row', alignItems: 'flex-start', gap: 9 },
   checkIcon: { width: 28, height: 28, flexShrink: 0, borderRadius: 7, backgroundColor: color.mint, alignItems: 'center', justifyContent: 'center' },

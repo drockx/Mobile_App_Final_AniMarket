@@ -44,6 +44,7 @@ function Icon({ name, size = 20, color = forest }: { name: IconName; size?: numb
 }
 
 function initialMessages(conversation: Conversation): ChatMessage[] {
+  if (conversation.empty) return [];
   if (!isJuan(conversation)) {
     return [{ id: 'initial', text: conversation.preview, mine: false, time: conversation.time }];
   }

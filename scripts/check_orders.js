@@ -17,6 +17,7 @@ const { createExampleReviewForm } = require('../src/features/orders/data/mock_or
 const { mockCheckoutItem } = require('../src/features/orders/data/mock_checkout_item.ts');
 const { createExampleOrderStatus } = require('../src/features/orders/data/mock_order_status.ts');
 const { orderStatusCopy, orderProgress } = require('../src/features/orders/domain/order_status.ts');
+const { filterOrders } = require('../src/features/orders/domain/order_list.ts');
 const now = new Date(2026, 8, 30, 12);
 
 test('delivery review carries destination, receiver, payment, and estimated total', () => {
@@ -165,4 +166,61 @@ test('local and cancelled statuses never claim that the seller was notified', ()
   assert.equal(orderStatusCopy(cancelled).pill, 'Cancelled');
   assert.equal(orderProgress(cancelled)[0].state, 'cancelled');
   assert.ok(orderProgress(cancelled).every((stage) => stage.state !== 'current'));
+});
+
+test('My Orders publishes stable snapshots only when a request is placed or cancelled', () => {
+  const service = createCheckoutService();
+  const empty = service.getSnapshot();
+  let updates = 0;
+  const unsubscribe = service.subscribe(() => { updates++; });
+  service.review(mockCheckoutItem, createExampleReviewForm(now), now);
+  assert.equal(service.getSnapshot(), empty);
+  assert.ok(service.saveRequest(mockCheckoutItem, false, now).error);
+  assert.equal(updates, 0);
+  const request = service.saveRequest(mockCheckoutItem, true, now).request;
+  const placed = service.getSnapshot();
+  assert.deepEqual(placed, [request]);
+  assert.equal(service.getSnapshot(), placed);
+  service.saveRequest(mockCheckoutItem, true, now);
+  assert.equal(service.getSnapshot(), placed);
+  assert.equal(updates, 1);
+  service.cancelRequest(request.id, now);
+  const cancelled = service.getSnapshot();
+  assert.notEqual(cancelled, placed);
+  assert.equal(cancelled.length, 1);
+  assert.equal(cancelled[0].status, 'cancelled');
+  assert.equal(placed[0].status, 'saved-locally');
+  service.cancelRequest(request.id, now);
+  assert.equal(service.getSnapshot(), cancelled);
+  assert.equal(updates, 2);
+  unsubscribe();
+  service.saveRequest(mockCheckoutItem, true, now);
+  assert.equal(updates, 2);
+});
+
+test('order history puts new requests first and retains cancelled requests and original details', () => {
+  const service = createCheckoutService();
+  const form = createExampleReviewForm(now);
+  service.review(mockCheckoutItem, form, now);
+  const first = service.saveRequest(mockCheckoutItem, true, now).request;
+  service.cancelRequest(first.id, now);
+  service.review(mockCheckoutItem, { ...form, notes: 'Updated arrangement' }, now);
+  const second = service.saveRequest(mockCheckoutItem, true, now).request;
+  assert.deepEqual(service.getSnapshot().map((order) => order.id), [second.id, first.id]);
+  assert.equal(service.getSnapshot()[1].status, 'cancelled');
+  assert.equal(service.getSnapshot()[1].draft.delivery.notes, form.notes);
+});
+
+test('My Orders filters status and searches livestock, seller, and order number without altering history', () => {
+  const example = createExampleOrderStatus(now);
+  const orders = [example, { ...example, id: 'cancelled-order', status: 'cancelled' }];
+  assert.equal(filterOrders(orders, 'all', '').length, 2);
+  assert.deepEqual(filterOrders(orders, 'active', ''), [example]);
+  assert.equal(filterOrders(orders, 'cancelled', '')[0].id, 'cancelled-order');
+  assert.equal(filterOrders(orders, 'all', '  BRAHMAN  ').length, 2);
+  assert.equal(filterOrders(orders, 'active', 'juan').length, 1);
+  assert.equal(filterOrders(orders, 'all', example.id).length, 1);
+  assert.deepEqual(filterOrders(orders, 'active', 'cancelled-order'), []);
+  assert.equal(orders.length, 2);
+  assert.deepEqual(filterOrders([], 'all', ''), []);
 });

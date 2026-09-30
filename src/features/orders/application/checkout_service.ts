@@ -4,8 +4,19 @@ export function createCheckoutService() {
   // Matches the app's session-based demo stores. Requests stay local; no seller is notified.
   const drafts = new Map<string, { form: CheckoutForm; draft: CheckoutDraft; request?: OrderRequest }>();
   const requests = new Map<string, OrderRequest>();
+  const listeners = new Set<() => void>();
+  let snapshot: readonly OrderRequest[] = [];
   let requestNumber = 0;
+  function publish() {
+    snapshot = Array.from(requests.values()).reverse();
+    listeners.forEach((listener) => listener());
+  }
   return {
+    getSnapshot: () => snapshot,
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => { listeners.delete(listener); };
+    },
     getForm: (listingId: string): CheckoutForm | undefined => {
       const form = drafts.get(listingId)?.form;
       return form ? { ...form } : undefined;
@@ -21,6 +32,7 @@ export function createCheckoutService() {
       requests.set(orderId, request);
       const entry = drafts.get(request.draft.item.id);
       if (entry?.request?.id === orderId) entry.request = request;
+      publish();
       return { request, error: null };
     },
     saveRequest(item: CheckoutItem | undefined, reviewed: boolean, now = new Date()): SaveOrderResult {
@@ -42,6 +54,7 @@ export function createCheckoutService() {
       };
       entry.request = request;
       requests.set(request.id, request);
+      publish();
       return { request, error: null };
     },
     review(item: CheckoutItem, form: CheckoutForm, now = new Date()) {

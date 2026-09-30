@@ -10,6 +10,8 @@ export type Conversation = {
   time: string;
   unreadCount: number;
   verifiedSeller: boolean;
+  listingId?: string;
+  empty?: boolean;
 };
 
 export function filterConversations(

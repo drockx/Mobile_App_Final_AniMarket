@@ -2,6 +2,8 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useAccount } from '@/features/profile/profile_store';
+
 type Tab = 'home' | 'messages' | 'market' | 'profile';
 
 type MarketplaceBottomBarProps = {
@@ -46,10 +48,11 @@ function NavigationItem({
 }
 
 export function MarketplaceBottomBar({ activeTab, bottomInset }: MarketplaceBottomBarProps) {
+  const account = useAccount();
   return (
     <View accessibilityRole="tablist" style={[styles.bottomBar, { paddingBottom: Math.max(bottomInset, 12) }]}>
-      <NavigationItem label="Home" icon={icons.home} active={activeTab === 'home'} onPress={() => router.navigate('/home')} />
-      <NavigationItem label="Messages" icon={icons.messages} active={activeTab === 'messages'} onPress={() => router.navigate('/messages')} />
+      <NavigationItem label="Home" icon={icons.home} active={activeTab === 'home'} onPress={() => { if (activeTab !== 'home') router.dismissTo('/home'); }} />
+      <NavigationItem label="Messages" icon={icons.messages} active={activeTab === 'messages'} onPress={() => { if (activeTab !== 'messages') router.dismissTo('/messages'); }} />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Sell livestock"
@@ -62,9 +65,9 @@ export function MarketplaceBottomBar({ activeTab, bottomInset }: MarketplaceBott
         label="Market Reference"
         icon={icons.chart}
         active={activeTab === 'market'}
-        onPress={() => router.navigate('/market_reference')}
+        onPress={() => { if (activeTab !== 'market') router.dismissTo('/market_reference'); }}
       />
-      <NavigationItem label="Profile" icon={icons.profile} active={activeTab === 'profile'} onPress={() => router.navigate('/profile')} />
+      <NavigationItem label="Profile" icon={icons.profile} active={activeTab === 'profile'} onPress={() => { if (activeTab !== 'profile') router.dismissTo(account.signedIn ? '/profile' : '/login'); }} />
     </View>
   );
 }

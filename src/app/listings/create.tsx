@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { marketplaceService, sellerListingsService } from '@/features/marketplace/marketplace_dependencies';
 import { CreateListingScreen } from '@/features/marketplace/presentation/create_listing_screen';
+import { backOrReplace } from '@/navigation/app_navigation';
 
 export default function CreateListingRoute() {
   const { suggestedPrice, suggestedCategory, suggestedWeight, suggestedTitle, suggestedUnit, draftId } = useLocalSearchParams<{ suggestedPrice?: string; suggestedCategory?: string; suggestedWeight?: string; suggestedTitle?: string; suggestedUnit?: string; draftId?: string }>();
@@ -16,10 +17,7 @@ export default function CreateListingRoute() {
       initialWeight={initialWeight}
       initialTitle={suggestedTitle}
       initialPriceUnit={suggestedUnit === 'per kg' || suggestedUnit === 'total' ? suggestedUnit : 'per head'}
-      onClose={() => {
-        if (router.canGoBack()) router.back();
-        else router.replace('/home');
-      }}
+      onClose={() => backOrReplace('/home')}
       onPublished={(id) => {
         if (draftId) sellerListingsService.remove(draftId);
         router.replace({ pathname: '/listings/id', params: { id } });

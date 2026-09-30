@@ -44,11 +44,13 @@ export function ListingDetailsScreen({
   marketplace,
   onBack,
   onOrder,
+  onChat,
 }: {
   listingId?: string;
   marketplace: MarketplaceService;
   onBack: () => void;
   onOrder: (id: string) => void;
+  onChat?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [selectedPhoto, setSelectedPhoto] = useState(0);
@@ -163,7 +165,7 @@ export function ListingDetailsScreen({
         <Pressable onPress={() => unavailable('Calling')} accessibilityRole="button" accessibilityLabel="Call seller" style={styles.callButton}>
           <Icon name={icons.phone} size={20} />
         </Pressable>
-        <Pressable onPress={() => unavailable('Chat')} accessibilityRole="button" style={styles.chatButton}>
+        <Pressable onPress={onChat ?? (() => unavailable('Chat'))} accessibilityRole="button" style={styles.chatButton}>
           <Icon name={icons.chat} color="#fff" size={18} />
           <Text style={styles.chatText}>Chat Seller</Text>
         </Pressable>

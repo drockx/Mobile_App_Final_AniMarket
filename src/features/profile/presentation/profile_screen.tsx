@@ -92,7 +92,9 @@ function MenuItem({
 
 type ProfileScreenProps = {
   activeListingCount: number;
+  orderCount: number;
   onMyListings: () => void;
+  onMyOrders: () => void;
   onMessages: () => void;
   onMarketReference: () => void;
   onPriceCalculator: () => void;
@@ -101,7 +103,7 @@ type ProfileScreenProps = {
   onLogOut: () => void;
 };
 
-export function ProfileScreen({ activeListingCount, onMyListings, onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onLogOut }: ProfileScreenProps) {
+export function ProfileScreen({ activeListingCount, orderCount, onMyListings, onMyOrders, onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onLogOut }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const compact = width < 360;
@@ -180,7 +182,7 @@ export function ProfileScreen({ activeListingCount, onMyListings, onMessages, on
             </View>
 
             <View style={styles.stats}>
-              {[['4.8', 'RATING'], [String(activeListingCount), 'ACTIVE LISTINGS'], ['12', 'ORDERS']].map(([value, label], index) => (
+              {[['4.8', 'RATING'], [String(activeListingCount), 'ACTIVE LISTINGS'], [String(orderCount), 'ORDERS']].map(([value, label], index) => (
                 <View key={label} style={[styles.stat, index < 2 && styles.statDivider]}>
                   <Text style={styles.statValue}>{value}</Text>
                   <Text style={styles.statLabel}>{label}</Text>
@@ -198,7 +200,7 @@ export function ProfileScreen({ activeListingCount, onMyListings, onMessages, on
             <QuickAction
               title="My Orders"
               symbol={icon.orders}
-              onPress={() => showUnavailable('My Orders')}
+              onPress={onMyOrders}
             />
           </View>
 

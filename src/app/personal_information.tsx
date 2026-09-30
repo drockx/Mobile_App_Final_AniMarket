@@ -1,10 +1,6 @@
-import { router } from 'expo-router';
-
 import { PersonalInformationScreen } from '@/features/profile/presentation/personal_information_screen';
+import { backOrReplace } from '@/navigation/app_navigation';
 
 export default function PersonalInformationRoute() {
-  return <PersonalInformationScreen onBack={() => {
-    if (router.canGoBack()) router.back();
-    else router.replace('/profile');
-  }} />;
+  return <PersonalInformationScreen onBack={() => backOrReplace('/profile')} />;
 }

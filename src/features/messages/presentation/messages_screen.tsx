@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
 
 import type { MessageService } from '../application/message_service';
-import type { Conversation, ConversationSide } from '../domain/conversation';
+import { filterConversations, type Conversation, type ConversationSide } from '../domain/conversation';
 
 const forest = '#12372a';
 const muted = '#75847b';
@@ -71,7 +71,8 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
   const insets = useSafeAreaInsets();
   const [side, setSide] = useState<ConversationSide>(initialSide);
   const [query, setQuery] = useState('');
-  const conversations = useMemo(() => service.list(side, query), [service, side, query]);
+  const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
+  const conversations = filterConversations(snapshot, side, query);
 
   return (
     <View style={styles.background}>
