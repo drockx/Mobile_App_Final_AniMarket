@@ -1,10 +1,10 @@
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { dateKey, parseDate, tomorrowKey } from '../domain/checkout';
 
-export const checkoutColors = { green: '#12372a', mid: '#2d6a4f', mint: '#eaf5ed', line: '#dfe8e2', text: '#17221d', muted: '#69756f', warn: '#fff8e7', warnLine: '#f2dfae', danger: '#b42318' };
+export const checkoutColors = { green: '#12372a', mid: '#2d6a4f', mint: '#eaf5ed', line: '#dfe8e2', text: '#17221d', muted: '#52647a', warn: '#fff8e7', warnLine: '#f2dfae', danger: '#b42318' };
 export const checkoutIcons = {
   back: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
   next: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
@@ -78,6 +78,8 @@ export function CheckoutSelect({ label, value, options, onSelect, placeholder, r
 }
 
 export function CheckoutDate({ label, value, onSelect, error, excludedDays = [] }: { label: string; value: string; onSelect: (value: string) => void; error?: string; excludedDays?: readonly number[] }) {
+  const { fontScale } = useWindowDimensions();
+  const listDates = fontScale > 1.3;
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState(() => {
     const initial = parseDate(value || tomorrowKey())!;
@@ -104,15 +106,16 @@ export function CheckoutDate({ label, value, onSelect, error, excludedDays = [] 
         <Text accessibilityLiveRegion="polite" style={controlStyles.monthName}>{month.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} style={controlStyles.monthArrow}><SymbolView name={checkoutIcons.next} size={18} tintColor={checkoutColors.green} /></Pressable>
       </View>
-      <View style={controlStyles.calendar}>
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <Text key={day} style={controlStyles.weekday}>{day}</Text>)}
+      <View style={listDates ? controlStyles.calendarList : controlStyles.calendar}>
+        {!listDates && ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <Text key={day} style={controlStyles.weekday}>{day}</Text>)}
         {Array.from({ length: firstDay + days }, (_, index) => {
-          if (index < firstDay) return <View key={`blank-${index}`} style={controlStyles.dateCell} />;
+          if (index < firstDay) return listDates ? null : <View key={`blank-${index}`} style={controlStyles.dateCell} />;
           const day = new Date(month.getFullYear(), month.getMonth(), index - firstDay + 1, 12);
           const key = dateKey(day);
           const disabled = key < minimum || excludedDays.includes(day.getDay());
-          return <Pressable key={key} accessibilityRole="button" accessibilityLabel={day.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} accessibilityState={{ selected: key === value, disabled }} disabled={disabled} onPress={() => { onSelect(key); setOpen(false); }} style={controlStyles.dateCell}>
-            <View style={[controlStyles.dayCircle, key === value && controlStyles.selectedDay]}><Text style={[controlStyles.dayText, disabled && controlStyles.disabledDay, key === value && { color: '#fff' }]}>{day.getDate()}</Text></View>
+          return <Pressable key={key} accessibilityRole="button" accessibilityLabel={day.toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} accessibilityState={{ selected: key === value, disabled }} disabled={disabled} onPress={() => { onSelect(key); setOpen(false); }} style={listDates ? [controlStyles.listDate, key === value && controlStyles.selectedDay] : controlStyles.dateCell}>
+            {listDates ? <Text style={[controlStyles.listDateText, disabled && controlStyles.disabledDay, key === value && { color: '#fff' }]}>{day.toLocaleDateString('en-PH', { weekday: 'long', month: 'short', day: 'numeric' })}{key === value ? ' ✓' : ''}</Text> :
+              <View style={[controlStyles.dayCircle, key === value && controlStyles.selectedDay]}><Text style={[controlStyles.dayText, disabled && controlStyles.disabledDay, key === value && { color: '#fff' }]}>{day.getDate()}</Text></View>}
           </Pressable>;
         })}
       </View>
@@ -123,10 +126,37 @@ export function CheckoutDate({ label, value, onSelect, error, excludedDays = [] 
 }
 
 const controlStyles = StyleSheet.create({
-  field: { marginTop: 11 }, label: { fontSize: 12, lineHeight: 17, fontWeight: '700', color: checkoutColors.text, marginBottom: 6 }, required: { color: checkoutColors.danger },
-  input: { minHeight: 44, borderWidth: 1, borderColor: '#d9e2dc', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fbfdfb', color: checkoutColors.text, fontSize: 13, lineHeight: 18 }, inputText: { flex: 1, minWidth: 0, color: checkoutColors.text, fontSize: 13, lineHeight: 18 }, multiline: { minHeight: 76 }, select: { flexDirection: 'row', alignItems: 'center', gap: 8 }, invalid: { borderColor: checkoutColors.danger }, error: { color: checkoutColors.danger, fontSize: 11, lineHeight: 16, marginTop: 5 },
-  button: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12, backgroundColor: checkoutColors.green, alignItems: 'center', justifyContent: 'center' }, buttonText: { color: '#fff', fontSize: 15, lineHeight: 20, fontWeight: '800', textAlign: 'center' }, secondary: { backgroundColor: '#fff', borderWidth: 1, borderColor: checkoutColors.line },
-  backdrop: { flex: 1, backgroundColor: '#12372a70', padding: 16, justifyContent: 'center', alignItems: 'center' }, sheet: { width: '100%', maxWidth: 390, maxHeight: '85%', backgroundColor: '#fff', borderRadius: 18 }, sheetContent: { padding: 18, gap: 12 }, sheetTitle: { color: checkoutColors.green, fontSize: 18, lineHeight: 24, fontWeight: '700' },
-  option: { minHeight: 48, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: checkoutColors.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }, optionText: { flex: 1, color: checkoutColors.text, fontSize: 13, lineHeight: 18 }, optionSelected: { color: checkoutColors.green, fontWeight: '700' },
-  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }, monthArrow: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, monthName: { flex: 1, color: checkoutColors.green, fontSize: 15, fontWeight: '700', textAlign: 'center' }, calendar: { flexDirection: 'row', flexWrap: 'wrap' }, weekday: { width: '14.2857%', paddingVertical: 8, textAlign: 'center', fontSize: 10, color: checkoutColors.muted, fontWeight: '700' }, dateCell: { width: '14.2857%', minHeight: 44, alignItems: 'center', justifyContent: 'center' }, dayCircle: { width: 34, minHeight: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }, dayText: { fontSize: 13, color: checkoutColors.text }, disabledDay: { color: '#a8b2ab' }, selectedDay: { backgroundColor: checkoutColors.green }, calendarHelp: { color: checkoutColors.muted, fontSize: 12, lineHeight: 18 },
+  field: { marginTop: 12 },
+  label: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: checkoutColors.text, marginBottom: 7 },
+  required: { color: checkoutColors.danger },
+  input: { minHeight: 48, borderWidth: 1, borderColor: '#d9e2dc', borderRadius: 11, paddingHorizontal: 13, paddingVertical: 12, backgroundColor: '#fbfdfb', color: checkoutColors.text, fontSize: 14, lineHeight: 20 },
+  inputText: { flex: 1, minWidth: 0, color: checkoutColors.text, fontSize: 14, lineHeight: 20 },
+  multiline: { minHeight: 96 },
+  select: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  invalid: { borderColor: checkoutColors.danger },
+  error: { color: checkoutColors.danger, fontSize: 13, lineHeight: 18, marginTop: 6 },
+  button: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12, backgroundColor: checkoutColors.green, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { color: '#fff', fontSize: 15, lineHeight: 20, fontWeight: '800', textAlign: 'center' },
+  secondary: { backgroundColor: '#fff', borderWidth: 1, borderColor: checkoutColors.line },
+  backdrop: { flex: 1, backgroundColor: '#12372a70', padding: 16, justifyContent: 'center', alignItems: 'center' },
+  sheet: { width: '100%', maxWidth: 390, maxHeight: '85%', backgroundColor: '#fff', borderRadius: 18 },
+  sheetContent: { padding: 18, gap: 12 },
+  sheetTitle: { color: checkoutColors.green, fontSize: 18, lineHeight: 24, fontWeight: '700' },
+  option: { minHeight: 48, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: checkoutColors.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  optionText: { flex: 1, minWidth: 0, color: checkoutColors.text, fontSize: 14, lineHeight: 20 },
+  optionSelected: { color: checkoutColors.green, fontWeight: '700' },
+  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+  monthArrow: { width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  monthName: { flex: 1, minWidth: 0, color: checkoutColors.green, fontSize: 15, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
+  calendar: { flexDirection: 'row', flexWrap: 'wrap' },
+  weekday: { width: '14.2857%', paddingVertical: 8, textAlign: 'center', fontSize: 12, lineHeight: 16, color: checkoutColors.muted, fontWeight: '700' },
+  dateCell: { width: '14.2857%', minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  dayCircle: { minWidth: 34, maxWidth: '100%', minHeight: 36, paddingHorizontal: 2, paddingVertical: 4, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  dayText: { fontSize: 14, lineHeight: 20, color: checkoutColors.text },
+  calendarList: { gap: 4 },
+  listDate: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 10 },
+  listDateText: { fontSize: 14, lineHeight: 20, color: checkoutColors.text },
+  disabledDay: { color: '#a8b2ab' },
+  selectedDay: { backgroundColor: checkoutColors.green },
+  calendarHelp: { color: checkoutColors.muted, fontSize: 13, lineHeight: 18 },
 });

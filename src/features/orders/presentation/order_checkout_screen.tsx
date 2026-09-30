@@ -22,7 +22,12 @@ function Notice({ children }: { children: string }) {
 }
 
 function SummaryRow({ label, value, total = false }: { label: string; value: string; total?: boolean }) {
-  return <View style={[styles.summaryRow, total && styles.totalRow]}><Text style={[styles.summaryLabel, total && styles.totalLabel]}>{label}</Text><Text style={[styles.summaryValue, total && styles.totalValue]}>{value}</Text></View>;
+  const { width, fontScale } = useWindowDimensions();
+  const stacked = width < 360 || fontScale > 1.15;
+  return <View style={[styles.summaryRow, total && styles.totalRow, stacked && styles.summaryStacked]}>
+    <Text style={[styles.summaryLabel, total && styles.totalLabel, stacked && styles.summaryStackedLabel]}>{label}</Text>
+    <Text style={[styles.summaryValue, total && styles.totalValue, stacked && styles.summaryStackedValue]}>{value}</Text>
+  </View>;
 }
 
 function ReviewSummary({ draft, onClose }: { draft: CheckoutDraft; onClose: () => void }) {
@@ -52,6 +57,9 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
   const compact = width < 360 || fontScale > 1.25;
+  const stackPrice = width < 420 || fontScale > 1.15;
+  const stackAddress = width < 400 || fontScale > 1.15;
+  const stepDiameter = Math.max(28, Math.ceil(18 * fontScale + 10));
   const scroll = useRef<ScrollView>(null);
   const [form, setForm] = useState<CheckoutForm>(() => (item && service.getForm(item.id)) || emptyCheckoutForm(receiverName, receiverPhone));
   const [attempted, setAttempted] = useState(false);
@@ -90,21 +98,28 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
       <ScrollView ref={scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
         <View accessibilityLabel={`Checkout step ${review ? '2, Review' : '1, Details'} of 3`} style={styles.steps}>
           {['Details', 'Review', 'Placed'].map((label, index) => <View key={label} style={styles.stepSegment}>
-            {index > 0 && <View style={styles.stepLine} />}
-            <View style={[styles.step, compact && styles.column]}><View style={[styles.stepNumber, index === (review ? 1 : 0) && styles.stepActive]}><Text style={[styles.stepNumberText, index === (review ? 1 : 0) && styles.stepActiveText]}>{index + 1}</Text></View><Text style={[styles.stepLabel, index === (review ? 1 : 0) && styles.stepActiveLabel]}>{label}</Text></View>
+            <View style={styles.stepMarker}>
+              <View style={[styles.stepLine, index === 0 && styles.stepLineHidden]} />
+              <View style={[styles.stepNumber, { width: stepDiameter, height: stepDiameter }, index === (review ? 1 : 0) && styles.stepActive]}><Text style={[styles.stepNumberText, index === (review ? 1 : 0) && styles.stepActiveText]}>{index + 1}</Text></View>
+              <View style={[styles.stepLine, index === 2 && styles.stepLineHidden]} />
+            </View>
+            <Text style={[styles.stepLabel, index === (review ? 1 : 0) && styles.stepActiveLabel]}>{label}</Text>
           </View>)}
         </View>
         {Object.keys(errors).length > 0 && <View style={styles.errorBanner}><Text accessibilityRole="alert" style={styles.errorText}>Please complete the required details below.</Text><FieldError message={errors.listing} /></View>}
         <View style={[styles.card, styles.product]}>
           <LinearGradient colors={['#d8f3dc', '#95d5b2']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.thumbnail}>{image && <Image source={image} contentFit="cover" accessibilityLabel={item.title} style={StyleSheet.absoluteFill} />}</LinearGradient>
-          <View style={styles.productCopy}><Text style={styles.productTitle}>{item.title}</Text><Text style={styles.productMeta}>{item.weight} • {item.health}</Text><Text style={styles.productMeta}>Seller: {item.seller}</Text>{compact && <Text style={styles.productPrice}>{money(item.price)}{item.priceUnit === 'per kg' ? ' / kg' : ''}</Text>}</View>
-          {!compact && <View style={styles.priceBlock}><Text style={styles.productPrice}>{money(item.price)}</Text>{item.priceUnit && <Text style={styles.priceUnit}>{item.priceUnit}</Text>}</View>}
+          <View style={styles.productCopy}>
+            <Text style={styles.productTitle}>{item.title}</Text><Text style={styles.productMeta}>{item.weight} • {item.health}</Text><Text style={styles.productMeta}>Seller: {item.seller}</Text>
+            {stackPrice && <View style={styles.inlinePrice}><Text style={styles.productPrice}>{money(item.price)}</Text>{item.priceUnit && <Text style={styles.priceUnit}>{item.priceUnit}</Text>}</View>}
+          </View>
+          {!stackPrice && <View style={styles.priceBlock}><Text style={styles.productPrice}>{money(item.price)}</Text>{item.priceUnit && <Text style={styles.priceUnit}>{item.priceUnit}</Text>}</View>}
         </View>
 
         <View style={styles.card}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>How will you receive the livestock?</Text>
           <View style={[styles.choices, compact && styles.column]}>
-            {([{ value: 'pickup', title: 'Pickup', icon: icons.pin, description: 'Meet the seller at the listed farm or agreed pickup point.' }, { value: 'delivery', title: 'Delivery', icon: icons.truck, description: 'Arrange livestock transport and provide a destination address.' }] as const).map((option) => <Pressable key={option.value} accessibilityRole="radio" accessibilityLabel={`${option.title}. ${option.description}`} accessibilityState={{ checked: form.fulfillment === option.value }} onPress={() => changeMode(option.value)} style={[styles.choice, form.fulfillment === option.value && styles.choiceSelected]}>
+            {([{ value: 'pickup', title: 'Pickup', icon: icons.pin, description: 'Meet the seller at the listed farm or agreed pickup point.' }, { value: 'delivery', title: 'Delivery', icon: icons.truck, description: 'Arrange livestock transport and provide a destination address.' }] as const).map((option) => <Pressable key={option.value} accessibilityRole="radio" accessibilityLabel={`${option.title}. ${option.description}`} accessibilityState={{ checked: form.fulfillment === option.value }} onPress={() => changeMode(option.value)} style={[styles.choice, compact && styles.stackedCell, form.fulfillment === option.value && styles.choiceSelected]}>
               <View style={styles.choiceTop}><SymbolView name={option.icon} size={26} tintColor={color.green} /><View style={[styles.radio, form.fulfillment === option.value && styles.radioSelected]}>{form.fulfillment === option.value && <View style={styles.radioDot} />}</View></View>
               <Text style={styles.choiceTitle}>{option.title}</Text><Text style={styles.choiceDescription}>{option.description}</Text>
             </Pressable>)}
@@ -112,7 +127,7 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
           <Notice>Delivery is optional. The buyer and seller must confirm animal readiness, vehicle suitability, permits, fees, and the final schedule before transport.</Notice>
           {delivery ? <>
             <View style={styles.transportCard}>
-              <View style={styles.transportTop}><Text style={styles.transportTitle}>Davao Livestock Transport Cooperative</Text><Text style={styles.estimateBadge}>Estimate</Text></View>
+              <View style={[styles.transportTop, compact && styles.column]}><Text style={[styles.transportTitle, compact && styles.stackedCell]}>Davao Livestock Transport Cooperative</Text><Text style={styles.estimateBadge}>Estimate</Text></View>
               <Text style={styles.transportCopy}>Livestock-ready truck • Ventilated partitions • Driver contact shared after seller confirmation</Text>
               <SummaryRow label="Estimated transport fee" value="₱2,500–₱3,500" total />
             </View>
@@ -120,21 +135,21 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
             <CheckoutField label="Receiver name" required value={form.receiver} onChangeText={(value) => update('receiver', value)} placeholder="Full name" autoComplete="name" error={errors.receiver} />
             <CheckoutField label="Receiver phone" required value={form.phone} onChangeText={(value) => update('phone', value)} placeholder="09XX XXX XXXX" keyboardType="phone-pad" autoComplete="tel" maxLength={20} error={errors.phone} />
             <Text style={styles.addressHeading}>Delivery address</Text>
-            <View style={[styles.addressRow, compact && styles.column]}>
-              <View style={styles.addressCell}><CheckoutField label="Purok/Street" required value={form.street} onChangeText={(value) => update('street', value)} placeholder="Purok 2" error={errors.street} /></View>
-              <View style={styles.addressCell}><CheckoutField label="Barangay" required value={form.barangay} onChangeText={(value) => update('barangay', value)} placeholder="Barangay name" error={errors.barangay} /></View>
+            <View style={[styles.addressRow, stackAddress && styles.addressColumn]}>
+              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Purok/Street" required value={form.street} onChangeText={(value) => update('street', value)} placeholder="Purok 2" error={errors.street} /></View>
+              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Barangay" required value={form.barangay} onChangeText={(value) => update('barangay', value)} placeholder="Barangay name" error={errors.barangay} /></View>
             </View>
-            <View style={[styles.addressRow, compact && styles.column]}>
-              <View style={styles.addressCell}><CheckoutField label="Municipality/City" required value={form.city} onChangeText={(value) => update('city', value)} placeholder="Tagum City" error={errors.city} /></View>
-              <View style={styles.addressCell}><CheckoutSelect label="Province" required value={form.province} onSelect={(value) => update('province', value)} options={DELIVERY_PROVINCES.map((province) => ({ label: province, value: province }))} placeholder="Select province" error={errors.province} /></View>
+            <View style={[styles.addressRow, stackAddress && styles.addressColumn]}>
+              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Municipality/City" required value={form.city} onChangeText={(value) => update('city', value)} placeholder="Tagum City" error={errors.city} /></View>
+              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutSelect label="Province" required value={form.province} onSelect={(value) => update('province', value)} options={DELIVERY_PROVINCES.map((province) => ({ label: province, value: province }))} placeholder="Select province" error={errors.province} /></View>
             </View>
-            <View style={[styles.addressRow, compact && styles.column]}>
-              <View style={styles.addressCell}><CheckoutField label="Postal code" required value={form.postal} onChangeText={(value) => update('postal', value.replace(/\D/g, ''))} placeholder="8100" keyboardType="number-pad" maxLength={4} error={errors.postal} /></View>
-              <View style={styles.addressCell}><CheckoutField label="Landmark" value={form.landmark} onChangeText={(value) => update('landmark', value)} placeholder="Optional" /></View>
+            <View style={[styles.addressRow, stackAddress && styles.addressColumn]}>
+              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Postal code" required value={form.postal} onChangeText={(value) => update('postal', value.replace(/\D/g, ''))} placeholder="8100" keyboardType="number-pad" maxLength={4} error={errors.postal} /></View>
+              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Landmark" value={form.landmark} onChangeText={(value) => update('landmark', value)} placeholder="Optional" /></View>
             </View>
             <CheckoutField label="Transport instructions" value={form.notes} onChangeText={(value) => update('notes', value)} placeholder="Gate access, unloading area, handling notes" multiline maxLength={1000} />
             <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: form.accessibleDestination }} accessibilityLabel="I confirm that a livestock transport vehicle can safely access the destination and that an adult receiver will be present" onPress={() => update('accessibleDestination', !form.accessibleDestination)} style={styles.checkRow}>
-              <View style={[styles.checkbox, form.accessibleDestination && styles.checked]}>{form.accessibleDestination && <Text style={styles.checkmark}>✓</Text>}</View><Text style={styles.checkCopy}>I confirm that a livestock transport vehicle can safely access the destination and that an adult receiver will be present.</Text>
+              <View style={[styles.checkbox, form.accessibleDestination && styles.checked]}>{form.accessibleDestination && <Text allowFontScaling={false} style={styles.checkmark}>✓</Text>}</View><Text style={styles.checkCopy}>I confirm that a livestock transport vehicle can safely access the destination and that an adult receiver will be present.</Text>
             </Pressable><FieldError message={errors.accessibleDestination} />
           </> : <>
             <View style={styles.pickupBox}>
@@ -170,15 +185,83 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1, backgroundColor: '#eef3ef' }, screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
-  header: { minHeight: 58, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: color.line }, back: { width: 42, minHeight: 58, alignItems: 'center', justifyContent: 'center' }, headerTitle: { flex: 1, textAlign: 'center', fontSize: 18, lineHeight: 24, fontWeight: '700', color: color.green }, content: { paddingTop: 18, paddingHorizontal: 16, paddingBottom: 8 },
-  steps: { marginHorizontal: 4, flexDirection: 'row', marginBottom: 20 }, stepSegment: { flexGrow: 1, flexDirection: 'row', alignItems: 'center' }, stepLine: { flex: 1, minWidth: 8, height: 2, backgroundColor: '#dde6e0', marginHorizontal: 8 }, step: { flexDirection: 'row', alignItems: 'center', gap: 7 }, stepNumber: { width: 24, minHeight: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#dde6e0' }, stepNumberText: { fontSize: 11, fontWeight: '700', color: '#64726a' }, stepLabel: { color: color.muted, fontSize: 11, lineHeight: 16 }, stepActive: { backgroundColor: color.green }, stepActiveText: { color: '#fff' }, stepActiveLabel: { color: color.green, fontWeight: '800' },
-  card: { borderWidth: 1, borderColor: color.line, borderRadius: 16, padding: 14, marginBottom: 14, backgroundColor: '#fff' }, product: { flexDirection: 'row', alignItems: 'center', gap: 11 }, thumbnail: { width: 68, height: 68, borderRadius: 13, overflow: 'hidden' }, productCopy: { flex: 1, minWidth: 0 }, productTitle: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: color.text, marginBottom: 3 }, productMeta: { fontSize: 11, lineHeight: 16, color: color.muted, marginTop: 2 }, priceBlock: { alignItems: 'flex-end', maxWidth: 88 }, productPrice: { fontSize: 14, lineHeight: 19, fontWeight: '800', color: color.green }, priceUnit: { fontSize: 10, lineHeight: 14, color: color.muted },
-  sectionTitle: { fontSize: 15, lineHeight: 21, fontWeight: '700', color: color.green, marginBottom: 12 }, choices: { flexDirection: 'row', gap: 10 }, column: { flexDirection: 'column' }, choice: { flex: 1, minWidth: 0, minHeight: 128, borderWidth: 1.5, borderColor: color.line, borderRadius: 14, padding: 12 }, choiceSelected: { borderColor: color.green, backgroundColor: color.mint }, choiceTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, choiceTitle: { fontSize: 14, lineHeight: 19, fontWeight: '700', color: color.green, marginTop: 7, marginBottom: 3 }, choiceDescription: { fontSize: 11, lineHeight: 15, color: color.muted }, radio: { width: 16, height: 16, borderWidth: 1, borderColor: '#cbd7cf', borderRadius: 8, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }, radioSelected: { borderColor: color.green }, radioDot: { width: 8, height: 8, backgroundColor: color.green, borderRadius: 4 },
-  notice: { borderWidth: 1, borderColor: color.warnLine, backgroundColor: color.warn, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12, marginTop: 11 }, noticeText: { color: '#684500', fontSize: 11, lineHeight: 16 },
-  pickupBox: { marginTop: 13, borderWidth: 1, borderColor: '#cfe1d4', backgroundColor: '#f3faf5', borderRadius: 13, padding: 12 }, pickupTitle: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: color.green }, pickupCopy: { fontSize: 11, lineHeight: 16, color: color.muted, marginTop: 5 }, bold: { fontWeight: '700' }, mapIllustration: { height: 92, borderRadius: 10, marginTop: 9, overflow: 'hidden' }, mapRoad: { position: 'absolute', width: '140%', height: 44, backgroundColor: '#fff', borderWidth: 1, borderColor: color.line, transform: [{ rotate: '16deg' }], left: '-20%', top: 50 }, mapPin: { position: 'absolute', top: 22, left: '50%', marginLeft: -15, width: 30, height: 30, backgroundColor: '#fff', borderRadius: 15 },
-  transportCard: { marginTop: 13, borderWidth: 1, borderColor: '#cfe1d4', backgroundColor: '#f3faf5', borderRadius: 13, padding: 12 }, transportTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 }, transportTitle: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '700', color: color.green }, transportCopy: { fontSize: 11, lineHeight: 16, color: color.muted, marginTop: 4 }, estimateBadge: { paddingVertical: 4, paddingHorizontal: 7, borderRadius: 99, backgroundColor: '#d8f3dc', fontSize: 9, fontWeight: '800', color: color.green, overflow: 'hidden' },
-  addressHeading: { fontSize: 12, lineHeight: 17, fontWeight: '700', color: color.text, marginTop: 12 }, addressRow: { flexDirection: 'row', gap: 9, alignItems: 'stretch' }, addressCell: { flex: 1, minWidth: 0 }, checkRow: { minHeight: 44, flexDirection: 'row', alignItems: 'flex-start', gap: 9, marginTop: 12, paddingVertical: 5 }, checkbox: { width: 18, height: 18, marginTop: 2, borderWidth: 1, borderColor: '#a7b9ad', borderRadius: 4, alignItems: 'center', justifyContent: 'center' }, checked: { borderColor: color.green, backgroundColor: color.green }, checkmark: { color: '#fff', fontSize: 13, fontWeight: '800' }, checkCopy: { flex: 1, fontSize: 11, lineHeight: 16, color: color.muted },
-  summaryRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginVertical: 9 }, summaryLabel: { flex: 1, color: color.muted, fontSize: 12, lineHeight: 17 }, summaryValue: { color: color.muted, fontSize: 12, lineHeight: 17, fontWeight: '600', textAlign: 'right', flexShrink: 1 }, totalRow: { borderTopWidth: 1, borderTopColor: color.line, paddingTop: 11 }, totalLabel: { color: color.text, fontSize: 15, lineHeight: 21, fontWeight: '800' }, totalValue: { color: color.green, fontSize: 15, lineHeight: 21, fontWeight: '800' }, helper: { color: color.muted, fontSize: 10, lineHeight: 15, marginTop: 7 }, dock: { paddingTop: 12, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: color.line, backgroundColor: '#fff' },
-  errorBanner: { backgroundColor: '#fff1ef', borderWidth: 1, borderColor: '#f4c4bd', padding: 12, borderRadius: 12, marginBottom: 14 }, errorText: { color: color.danger, fontSize: 12, lineHeight: 18, fontWeight: '600' }, missing: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, backgroundColor: '#fff' }, reviewTitle: { fontSize: 17, lineHeight: 23, fontWeight: '700', color: color.green }, reviewCopy: { color: color.muted, fontSize: 13, lineHeight: 19 }, reviewGroup: { borderTopWidth: 1, borderTopColor: color.line, paddingTop: 12, gap: 5 },
+  background: { flex: 1, backgroundColor: '#eef3ef' },
+  screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
+  header: { minHeight: 58, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: color.line },
+  back: { width: 44, minHeight: 58, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, minWidth: 0, paddingVertical: 12, textAlign: 'center', fontSize: 24, lineHeight: 30, fontWeight: '700', color: color.green },
+  content: { paddingTop: 18, paddingHorizontal: 16, paddingBottom: 8 },
+  steps: { flexDirection: 'row', marginBottom: 20 },
+  stepSegment: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
+  stepMarker: { width: '100%', flexDirection: 'row', alignItems: 'center' },
+  stepLine: { flex: 1, height: 2, backgroundColor: '#dde6e0' },
+  stepLineHidden: { backgroundColor: 'transparent' },
+  stepNumber: { flexShrink: 0, borderRadius: 99, alignItems: 'center', justifyContent: 'center', backgroundColor: '#dde6e0' },
+  stepNumberText: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: color.muted },
+  stepLabel: { alignSelf: 'stretch', paddingHorizontal: 4, textAlign: 'center', color: color.muted, fontSize: 13, lineHeight: 18 },
+  stepActive: { backgroundColor: color.green },
+  stepActiveText: { color: '#fff' },
+  stepActiveLabel: { color: color.green, fontWeight: '800' },
+  card: { borderWidth: 1, borderColor: color.line, borderRadius: 16, padding: 14, marginBottom: 14, backgroundColor: '#fff' },
+  product: { flexDirection: 'row', alignItems: 'flex-start', gap: 11 },
+  thumbnail: { width: 68, height: 68, flexShrink: 0, borderRadius: 13, overflow: 'hidden' },
+  productCopy: { flex: 1, minWidth: 0 },
+  productTitle: { fontSize: 15, lineHeight: 19, fontWeight: '800', color: color.text, marginBottom: 3 },
+  productMeta: { fontSize: 13, lineHeight: 18, color: color.muted, marginTop: 2 },
+  priceBlock: { alignItems: 'flex-end', maxWidth: 112, flexShrink: 0 },
+  inlinePrice: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 6, marginTop: 6 },
+  productPrice: { fontSize: 16, lineHeight: 20, fontWeight: '800', color: color.green },
+  priceUnit: { fontSize: 13, lineHeight: 18, color: color.muted },
+  sectionTitle: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: color.green, marginBottom: 12 },
+  choices: { flexDirection: 'row', alignItems: 'stretch', gap: 10 },
+  column: { flexDirection: 'column' },
+  stackedCell: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  choice: { flex: 1, minWidth: 0, minHeight: 128, borderWidth: 1.5, borderColor: color.line, borderRadius: 14, padding: 12 },
+  choiceSelected: { borderColor: color.green, backgroundColor: color.mint },
+  choiceTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  choiceTitle: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: color.green, marginTop: 8, marginBottom: 4 },
+  choiceDescription: { fontSize: 13, lineHeight: 18, color: color.muted },
+  radio: { width: 20, height: 20, borderWidth: 1, borderColor: '#a7b9ad', borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  radioSelected: { borderColor: color.green },
+  radioDot: { width: 10, height: 10, backgroundColor: color.green, borderRadius: 5 },
+  notice: { borderWidth: 1, borderColor: color.warnLine, backgroundColor: color.warn, borderRadius: 12, padding: 12, marginTop: 12 },
+  noticeText: { color: '#684500', fontSize: 13, lineHeight: 18 },
+  pickupBox: { marginTop: 12, borderWidth: 1, borderColor: '#cfe1d4', backgroundColor: '#f3faf5', borderRadius: 13, padding: 12 },
+  pickupTitle: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: color.green },
+  pickupCopy: { fontSize: 13, lineHeight: 18, color: color.muted, marginTop: 6 },
+  bold: { fontWeight: '700' },
+  mapIllustration: { height: 92, borderRadius: 10, marginTop: 12, overflow: 'hidden' },
+  mapRoad: { position: 'absolute', width: '140%', height: 44, backgroundColor: '#fff', borderWidth: 1, borderColor: color.line, transform: [{ rotate: '16deg' }], left: '-20%', top: 50 },
+  mapPin: { position: 'absolute', top: 22, left: '50%', marginLeft: -15, width: 30, height: 30, backgroundColor: '#fff', borderRadius: 15 },
+  transportCard: { marginTop: 12, borderWidth: 1, borderColor: '#cfe1d4', backgroundColor: '#f3faf5', borderRadius: 13, padding: 12 },
+  transportTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  transportTitle: { flex: 1, minWidth: 0, fontSize: 15, lineHeight: 20, fontWeight: '700', color: color.green },
+  transportCopy: { fontSize: 13, lineHeight: 18, color: color.muted, marginTop: 6 },
+  estimateBadge: { flexShrink: 0, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, backgroundColor: '#d8f3dc', fontSize: 12, lineHeight: 16, fontWeight: '700', color: color.green },
+  addressHeading: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: color.text, marginTop: 16 },
+  addressRow: { flexDirection: 'row', gap: 12, alignItems: 'stretch' },
+  addressColumn: { flexDirection: 'column', gap: 0 },
+  addressCell: { flex: 1, minWidth: 0 },
+  checkRow: { minHeight: 48, flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 12, paddingVertical: 6 },
+  checkbox: { width: 22, height: 22, flexShrink: 0, borderWidth: 1, borderColor: '#a7b9ad', borderRadius: 5, alignItems: 'center', justifyContent: 'center' },
+  checked: { borderColor: color.green, backgroundColor: color.green },
+  checkmark: { color: '#fff', fontSize: 14, lineHeight: 18, fontWeight: '800' },
+  checkCopy: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18, color: color.muted },
+  summaryRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginVertical: 9 },
+  summaryLabel: { flex: 1, minWidth: 0, color: color.muted, fontSize: 13, lineHeight: 18 },
+  summaryValue: { color: color.muted, fontSize: 14, lineHeight: 20, fontWeight: '600', textAlign: 'right', flexShrink: 1 },
+  summaryStacked: { flexDirection: 'column', alignItems: 'stretch', gap: 4 },
+  summaryStackedLabel: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
+  summaryStackedValue: { textAlign: 'left', flexShrink: 0 },
+  totalRow: { borderTopWidth: 1, borderTopColor: color.line, paddingTop: 12 },
+  totalLabel: { color: color.text, fontSize: 15, lineHeight: 20, fontWeight: '800' },
+  totalValue: { color: color.green, fontSize: 16, lineHeight: 20, fontWeight: '800' },
+  helper: { color: color.muted, fontSize: 13, lineHeight: 18, marginTop: 8 },
+  dock: { paddingTop: 12, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: color.line, backgroundColor: '#fff' },
+  errorBanner: { backgroundColor: '#fff1ef', borderWidth: 1, borderColor: '#f4c4bd', padding: 12, borderRadius: 12, marginBottom: 14 },
+  errorText: { color: color.danger, fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  missing: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, backgroundColor: '#fff' },
+  reviewTitle: { fontSize: 15, lineHeight: 20, fontWeight: '800', color: color.green },
+  reviewCopy: { color: color.muted, fontSize: 13, lineHeight: 18 },
+  reviewGroup: { borderTopWidth: 1, borderTopColor: color.line, paddingTop: 12, gap: 6 },
 });
