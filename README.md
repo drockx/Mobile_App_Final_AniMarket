@@ -23,6 +23,8 @@ Dependencies point inward: presentation uses application operations, application
 
 Routes are small adapters. `/` opens the interactive splash screen; `/login` and `/register` display the auth forms; `/home`, `/search_filter`, and `/listings/id?id=simmental-cow` display marketplace screens. `src/app/search_filter/index.tsx` and `src/app/listings/id.tsx` use ordinary filenames. `src/app/_layout.tsx` configures the root Stack and hides its headers.
 
+The order flow opens `/order_checkout?id=<listing-id>`, then `/order_review?id=<listing-id>` after validation, and `/order_status?orderId=<order-id>` when the request is saved. Review uses the saved pickup or delivery details, payment arrangement, listing records, and estimated totals. Edit actions return to checkout with the form preserved. Opening `/order_review` or `/order_status` directly shows a labeled example. Status displays the original request, the pickup or delivery timeline, document readiness, seller contact controls, and a cancellation confirmation. Requests and cancellation history remain available in the running session even when checkout is edited; seller notifications, server persistence, and payment processing are not connected. Local requests are labeled as saved locally. The review agreement is required, outdated details must be corrected, and repeated saves return the same request.
+
 App-owned source files, folders, and image basenames use snake_case. Expo Router's required `_layout.tsx` convention, platform and image scale suffixes such as `.web.tsx` and `@2x`, Expo's generated `expo-env.d.ts`, and tool-defined files such as `package.json` keep their required names.
 
 ## Run and check
@@ -33,6 +35,7 @@ npx expo start
 npx expo lint
 npx tsc --noEmit
 npm run check:architecture
+npm run check:orders
 ```
 
 The catalog is sample data. Login currently validates required fields and opens the marketplace; registration validates locally. Neither form is connected to an authentication service yet.

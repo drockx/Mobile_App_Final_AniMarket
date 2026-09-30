@@ -12,10 +12,16 @@ export const checkoutIcons = {
   calendar: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' },
   pin: { ios: 'mappin.and.ellipse', android: 'location_on', web: 'location_on' },
   truck: { ios: 'truck.box', android: 'local_shipping', web: 'local_shipping' },
+  check: { ios: 'checkmark', android: 'check', web: 'check' },
+  info: { ios: 'info.circle', android: 'info', web: 'info' },
+  payment: { ios: 'creditcard', android: 'credit_card', web: 'credit_card' },
+  close: { ios: 'xmark', android: 'close', web: 'close' },
+  phone: { ios: 'phone', android: 'call', web: 'call' },
+  chat: { ios: 'bubble.left', android: 'chat_bubble_outline', web: 'chat_bubble_outline' },
 } as const;
 
-export function CheckoutButton({ label, onPress, secondary = false }: { label: string; onPress: () => void; secondary?: boolean }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [controlStyles.button, secondary && controlStyles.secondary, pressed && { opacity: 0.75 }]}><Text style={[controlStyles.buttonText, secondary && { color: checkoutColors.green }]}>{label}</Text></Pressable>;
+export function CheckoutButton({ label, onPress, secondary = false, disabled = false }: { label: string; onPress: () => void; secondary?: boolean; disabled?: boolean }) {
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [controlStyles.button, secondary && controlStyles.secondary, disabled && controlStyles.buttonDisabled, pressed && { opacity: 0.75 }]}><Text style={[controlStyles.buttonText, secondary && { color: checkoutColors.green }]}>{label}</Text></Pressable>;
 }
 
 export function CheckoutSheet({ title, visible, onClose, children }: { title: string; visible: boolean; onClose: () => void; children: ReactNode }) {
@@ -137,6 +143,7 @@ const controlStyles = StyleSheet.create({
   error: { color: checkoutColors.danger, fontSize: 13, lineHeight: 18, marginTop: 6 },
   button: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 12, backgroundColor: checkoutColors.green, alignItems: 'center', justifyContent: 'center' },
   buttonText: { color: '#fff', fontSize: 15, lineHeight: 20, fontWeight: '800', textAlign: 'center' },
+  buttonDisabled: { backgroundColor: '#687a70' },
   secondary: { backgroundColor: '#fff', borderWidth: 1, borderColor: checkoutColors.line },
   backdrop: { flex: 1, backgroundColor: '#12372a70', padding: 16, justifyContent: 'center', alignItems: 'center' },
   sheet: { width: '100%', maxWidth: 390, maxHeight: '85%', backgroundColor: '#fff', borderRadius: 18 },

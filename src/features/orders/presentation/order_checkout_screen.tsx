@@ -9,61 +9,22 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getListingImage } from '@/features/marketplace/presentation/listing_images';
 
 import type { CheckoutService } from '../application/checkout_service';
-import { checkoutTotals, DELIVERY_PROVINCES, emptyCheckoutForm, parseDate, PICKUP_TIMES, validateCheckout, type CheckoutDraft, type CheckoutForm, type CheckoutItem } from '../domain/checkout';
-import { CheckoutButton, checkoutColors as color, CheckoutDate, CheckoutField, checkoutIcons as icons, CheckoutSelect, CheckoutSheet, FieldError } from './checkout_controls';
+import { checkoutTotals, DELIVERY_PROVINCES, emptyCheckoutForm, PICKUP_TIMES, validateCheckout, type CheckoutForm, type CheckoutItem } from '../domain/checkout';
+import { CheckoutButton, checkoutColors as color, CheckoutDate, CheckoutField, checkoutIcons as icons, CheckoutSelect, FieldError } from './checkout_controls';
+import { amountRange, money, OrderNotice as Notice, OrderSteps, OrderSummaryRow as SummaryRow } from './order_components';
 
 const paymentOptions = [{ value: 'cod', label: 'Pay upon meetup / delivery' }, { value: 'seller', label: 'Coordinate payment with seller' }] as const;
-const money = (value: number) => `₱${value.toLocaleString('en-PH', { maximumFractionDigits: 2 })}`;
-const amountRange = (min: number, max: number) => min === max ? money(min) : `${money(min)}–${money(max)}`;
-const readableDate = (value: string) => parseDate(value)?.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' }) ?? value;
-
-function Notice({ children }: { children: string }) {
-  return <View style={styles.notice}><Text style={styles.noticeText}>{children}</Text></View>;
-}
-
-function SummaryRow({ label, value, total = false }: { label: string; value: string; total?: boolean }) {
-  const { width, fontScale } = useWindowDimensions();
-  const stacked = width < 360 || fontScale > 1.15;
-  return <View style={[styles.summaryRow, total && styles.totalRow, stacked && styles.summaryStacked]}>
-    <Text style={[styles.summaryLabel, total && styles.totalLabel, stacked && styles.summaryStackedLabel]}>{label}</Text>
-    <Text style={[styles.summaryValue, total && styles.totalValue, stacked && styles.summaryStackedValue]}>{value}</Text>
-  </View>;
-}
-
-function ReviewSummary({ draft, onClose }: { draft: CheckoutDraft; onClose: () => void }) {
-  const delivery = draft.delivery;
-  return <>
-    <Text style={styles.reviewTitle}>{draft.item.title}</Text>
-    <Text style={styles.reviewCopy}>Seller: {draft.item.seller}</Text>
-    <View style={styles.reviewGroup}>
-      <Text style={styles.sectionTitle}>{delivery ? 'Delivery details' : 'Pickup details'}</Text>
-      {delivery ? <>
-        <Text style={styles.reviewCopy}>{readableDate(delivery.date)}{'\n'}{delivery.receiver} • {delivery.phone}</Text>
-        <Text style={styles.reviewCopy}>{[delivery.street, delivery.barangay, delivery.city, delivery.province, delivery.postal].join(', ')}</Text>
-        {!!delivery.landmark && <Text style={styles.reviewCopy}>Landmark: {delivery.landmark}</Text>}
-        {!!delivery.notes && <Text style={styles.reviewCopy}>Transport instructions: {delivery.notes}</Text>}
-      </> : <Text style={styles.reviewCopy}>{readableDate(draft.pickup!.date)}{'\n'}{draft.pickup!.time}{'\n'}{draft.item.sellerAddress}</Text>}
-    </View>
-    <View style={styles.reviewGroup}><Text style={styles.sectionTitle}>Payment arrangement</Text><Text style={styles.reviewCopy}>{paymentOptions.find((option) => option.value === draft.payment)?.label}</Text></View>
-    <SummaryRow label="Estimated total" value={amountRange(draft.totalMin, draft.totalMax)} total />
-    <Notice>Confirm livestock availability, payment terms, and the final schedule with the seller. Reviewing these details does not send payment or place an order.</Notice>
-    <CheckoutButton secondary label="Edit Details" onPress={onClose} />
-  </>;
-}
-
-export function OrderCheckoutScreen({ item, service, receiverName = '', receiverPhone = '', onBack }: {
-  item?: CheckoutItem; service: CheckoutService; receiverName?: string; receiverPhone?: string; onBack: () => void;
+export function OrderCheckoutScreen({ item, service, receiverName = '', receiverPhone = '', onBack, onReview }: {
+  item?: CheckoutItem; service: CheckoutService; receiverName?: string; receiverPhone?: string; onBack: () => void; onReview: (id: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
   const compact = width < 360 || fontScale > 1.25;
   const stackPrice = width < 420 || fontScale > 1.15;
   const stackAddress = width < 400 || fontScale > 1.15;
-  const stepDiameter = Math.max(28, Math.ceil(18 * fontScale + 10));
   const scroll = useRef<ScrollView>(null);
   const [form, setForm] = useState<CheckoutForm>(() => (item && service.getForm(item.id)) || emptyCheckoutForm(receiverName, receiverPhone));
   const [attempted, setAttempted] = useState(false);
-  const [review, setReview] = useState<CheckoutDraft | null>(null);
   const errors = attempted && item ? validateCheckout(form, item) : {};
   const delivery = form.fulfillment === 'delivery';
   const totals = item ? checkoutTotals(item, form.fulfillment) : null;
@@ -79,7 +40,7 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
     Keyboard.dismiss();
     const result = service.review(item, form);
     setAttempted(true);
-    if (result.draft) { setReview(result.draft); return; }
+    if (result.draft) { onReview(item.id); return; }
     scroll.current?.scrollTo({ y: 0, animated: true });
   }
 
@@ -96,16 +57,7 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
         <Text accessibilityRole="header" style={styles.headerTitle}>Order Checkout</Text><View style={styles.back} />
       </View>
       <ScrollView ref={scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
-        <View accessibilityLabel={`Checkout step ${review ? '2, Review' : '1, Details'} of 3`} style={styles.steps}>
-          {['Details', 'Review', 'Placed'].map((label, index) => <View key={label} style={styles.stepSegment}>
-            <View style={styles.stepMarker}>
-              <View style={[styles.stepLine, index === 0 && styles.stepLineHidden]} />
-              <View style={[styles.stepNumber, { width: stepDiameter, height: stepDiameter }, index === (review ? 1 : 0) && styles.stepActive]}><Text style={[styles.stepNumberText, index === (review ? 1 : 0) && styles.stepActiveText]}>{index + 1}</Text></View>
-              <View style={[styles.stepLine, index === 2 && styles.stepLineHidden]} />
-            </View>
-            <Text style={[styles.stepLabel, index === (review ? 1 : 0) && styles.stepActiveLabel]}>{label}</Text>
-          </View>)}
-        </View>
+        <OrderSteps current={0} />
         {Object.keys(errors).length > 0 && <View style={styles.errorBanner}><Text accessibilityRole="alert" style={styles.errorText}>Please complete the required details below.</Text><FieldError message={errors.listing} /></View>}
         <View style={[styles.card, styles.product]}>
           <LinearGradient colors={['#d8f3dc', '#95d5b2']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.thumbnail}>{image && <Image source={image} contentFit="cover" accessibilityLabel={item.title} style={StyleSheet.absoluteFill} />}</LinearGradient>
@@ -179,7 +131,6 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
         </View>
       </ScrollView>
       <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 20) }]}><CheckoutButton label="Review Order" onPress={reviewOrder} /></View>
-      <CheckoutSheet title="Review Order" visible={review !== null} onClose={() => setReview(null)}>{review && <ReviewSummary draft={review} onClose={() => setReview(null)} />}</CheckoutSheet>
     </KeyboardAvoidingView>
   </View>;
 }
@@ -191,17 +142,6 @@ const styles = StyleSheet.create({
   back: { width: 44, minHeight: 58, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, minWidth: 0, paddingVertical: 12, textAlign: 'center', fontSize: 24, lineHeight: 30, fontWeight: '700', color: color.green },
   content: { paddingTop: 18, paddingHorizontal: 16, paddingBottom: 8 },
-  steps: { flexDirection: 'row', marginBottom: 20 },
-  stepSegment: { flex: 1, minWidth: 0, alignItems: 'center', gap: 6 },
-  stepMarker: { width: '100%', flexDirection: 'row', alignItems: 'center' },
-  stepLine: { flex: 1, height: 2, backgroundColor: '#dde6e0' },
-  stepLineHidden: { backgroundColor: 'transparent' },
-  stepNumber: { flexShrink: 0, borderRadius: 99, alignItems: 'center', justifyContent: 'center', backgroundColor: '#dde6e0' },
-  stepNumberText: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: color.muted },
-  stepLabel: { alignSelf: 'stretch', paddingHorizontal: 4, textAlign: 'center', color: color.muted, fontSize: 13, lineHeight: 18 },
-  stepActive: { backgroundColor: color.green },
-  stepActiveText: { color: '#fff' },
-  stepActiveLabel: { color: color.green, fontWeight: '800' },
   card: { borderWidth: 1, borderColor: color.line, borderRadius: 16, padding: 14, marginBottom: 14, backgroundColor: '#fff' },
   product: { flexDirection: 'row', alignItems: 'flex-start', gap: 11 },
   thumbnail: { width: 68, height: 68, flexShrink: 0, borderRadius: 13, overflow: 'hidden' },
@@ -224,8 +164,6 @@ const styles = StyleSheet.create({
   radio: { width: 20, height: 20, borderWidth: 1, borderColor: '#a7b9ad', borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   radioSelected: { borderColor: color.green },
   radioDot: { width: 10, height: 10, backgroundColor: color.green, borderRadius: 5 },
-  notice: { borderWidth: 1, borderColor: color.warnLine, backgroundColor: color.warn, borderRadius: 12, padding: 12, marginTop: 12 },
-  noticeText: { color: '#684500', fontSize: 13, lineHeight: 18 },
   pickupBox: { marginTop: 12, borderWidth: 1, borderColor: '#cfe1d4', backgroundColor: '#f3faf5', borderRadius: 13, padding: 12 },
   pickupTitle: { fontSize: 15, lineHeight: 20, fontWeight: '700', color: color.green },
   pickupCopy: { fontSize: 13, lineHeight: 18, color: color.muted, marginTop: 6 },
@@ -247,15 +185,6 @@ const styles = StyleSheet.create({
   checked: { borderColor: color.green, backgroundColor: color.green },
   checkmark: { color: '#fff', fontSize: 14, lineHeight: 18, fontWeight: '800' },
   checkCopy: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18, color: color.muted },
-  summaryRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginVertical: 9 },
-  summaryLabel: { flex: 1, minWidth: 0, color: color.muted, fontSize: 13, lineHeight: 18 },
-  summaryValue: { color: color.muted, fontSize: 14, lineHeight: 20, fontWeight: '600', textAlign: 'right', flexShrink: 1 },
-  summaryStacked: { flexDirection: 'column', alignItems: 'stretch', gap: 4 },
-  summaryStackedLabel: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
-  summaryStackedValue: { textAlign: 'left', flexShrink: 0 },
-  totalRow: { borderTopWidth: 1, borderTopColor: color.line, paddingTop: 12 },
-  totalLabel: { color: color.text, fontSize: 15, lineHeight: 20, fontWeight: '800' },
-  totalValue: { color: color.green, fontSize: 16, lineHeight: 20, fontWeight: '800' },
   helper: { color: color.muted, fontSize: 13, lineHeight: 18, marginTop: 8 },
   dock: { paddingTop: 12, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: color.line, backgroundColor: '#fff' },
   errorBanner: { backgroundColor: '#fff1ef', borderWidth: 1, borderColor: '#f4c4bd', padding: 12, borderRadius: 12, marginBottom: 14 },
@@ -263,5 +192,4 @@ const styles = StyleSheet.create({
   missing: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24, backgroundColor: '#fff' },
   reviewTitle: { fontSize: 15, lineHeight: 20, fontWeight: '800', color: color.green },
   reviewCopy: { color: color.muted, fontSize: 13, lineHeight: 18 },
-  reviewGroup: { borderTopWidth: 1, borderTopColor: color.line, paddingTop: 12, gap: 6 },
 });

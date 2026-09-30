@@ -1,14 +1,49 @@
-import { checkoutTotals, TRANSPORT_ESTIMATE, validateCheckout, type CheckoutDraft, type CheckoutForm, type CheckoutItem } from '../domain/checkout';
+import { checkoutTotals, TRANSPORT_ESTIMATE, validateCheckout, type CheckoutDraft, type CheckoutForm, type CheckoutItem, type OrderRequest, type SaveOrderResult } from '../domain/checkout';
 
 export function createCheckoutService() {
-  // Matches the app's session-based demo stores. No order or payment is submitted here.
-  const drafts = new Map<string, { form: CheckoutForm; draft: CheckoutDraft }>();
+  // Matches the app's session-based demo stores. Requests stay local; no seller is notified.
+  const drafts = new Map<string, { form: CheckoutForm; draft: CheckoutDraft; request?: OrderRequest }>();
+  const requests = new Map<string, OrderRequest>();
+  let requestNumber = 0;
   return {
     getForm: (listingId: string): CheckoutForm | undefined => {
       const form = drafts.get(listingId)?.form;
       return form ? { ...form } : undefined;
     },
     getDraft: (listingId: string) => drafts.get(listingId)?.draft,
+    getRequest: (listingId: string) => drafts.get(listingId)?.request,
+    getOrder: (orderId: string) => requests.get(orderId),
+    cancelRequest(orderId: string, now = new Date()): SaveOrderResult {
+      const original = requests.get(orderId);
+      if (!original) return { request: null, error: 'This order request is no longer available in this session.' };
+      if (original.status === 'cancelled') return { request: original, error: null };
+      const request: OrderRequest = { ...original, status: 'cancelled', cancelledAt: now.toISOString() };
+      requests.set(orderId, request);
+      const entry = drafts.get(request.draft.item.id);
+      if (entry?.request?.id === orderId) entry.request = request;
+      return { request, error: null };
+    },
+    saveRequest(item: CheckoutItem | undefined, reviewed: boolean, now = new Date()): SaveOrderResult {
+      if (!reviewed) return { request: null, error: 'Confirm that you reviewed the order before continuing.' };
+      if (!item) return { request: null, error: 'This listing is no longer available. Return to the marketplace.' };
+      const entry = drafts.get(item.id);
+      if (!entry) return { request: null, error: 'Complete checkout before saving an order request.' };
+      if (entry.request && entry.request.status !== 'cancelled') return { request: entry.request, error: null };
+      if (Object.keys(validateCheckout(entry.form, item, now)).length) {
+        return { request: null, error: 'Your checkout details need updating. Edit the order to check the date and required fields.' };
+      }
+      const original = entry.draft.item;
+      if (original.price !== item.price || original.priceUnit !== item.priceUnit || original.weight !== item.weight) {
+        return { request: null, error: 'The listing price or weight changed. Edit the order and review the updated total.' };
+      }
+      const request: OrderRequest = {
+        id: `ANM-${now.getFullYear()}-${String(++requestNumber).padStart(6, '0')}`,
+        createdAt: now.toISOString(), status: 'saved-locally', draft: entry.draft,
+      };
+      entry.request = request;
+      requests.set(request.id, request);
+      return { request, error: null };
+    },
     review(item: CheckoutItem, form: CheckoutForm, now = new Date()) {
       const errors = validateCheckout(form, item, now);
       const total = checkoutTotals(item, form.fulfillment);

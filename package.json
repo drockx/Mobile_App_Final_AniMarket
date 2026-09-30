@@ -45,7 +45,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "check:architecture": "node ./scripts/check_architecture.js"
+    "check:architecture": "node ./scripts/check_architecture.js",
+    "check:orders": "node ./scripts/check_orders.js"
   },
   "private": true
 }

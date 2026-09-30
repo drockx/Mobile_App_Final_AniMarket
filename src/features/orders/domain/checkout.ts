@@ -1,4 +1,4 @@
-import type { ListingPriceUnit } from '@/features/marketplace/domain/listing';
+import type { ListingPriceUnit, LivestockCategory } from '@/features/marketplace/domain/listing';
 
 export const PICKUP_TIMES = ['8:00 AM–10:00 AM', '10:00 AM–12:00 PM', '1:00 PM–3:00 PM', '3:00 PM–4:00 PM'] as const;
 export const DELIVERY_PROVINCES = ['Davao del Norte', 'Davao de Oro', 'Davao Oriental', 'Davao Occidental', 'Davao del Sur', 'Davao City'] as const;
@@ -15,6 +15,11 @@ export type CheckoutItem = {
   imageUri?: string;
   availability?: string;
   unavailablePickupDays?: readonly number[];
+  category?: LivestockCategory;
+  listingReference?: string;
+  verified?: boolean;
+  vaccinationProofName?: string;
+  healthVerified?: boolean;
 };
 export type CheckoutForm = {
   fulfillment: 'pickup' | 'delivery';
@@ -43,6 +48,14 @@ export type CheckoutDraft = {
   totalMin: number;
   totalMax: number;
 };
+export type OrderRequest = {
+  id: string;
+  createdAt: string;
+  status: 'saved-locally' | 'awaiting-seller' | 'cancelled';
+  cancelledAt?: string;
+  draft: CheckoutDraft;
+};
+export type SaveOrderResult = { request: OrderRequest | null; error: string | null };
 
 export function dateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

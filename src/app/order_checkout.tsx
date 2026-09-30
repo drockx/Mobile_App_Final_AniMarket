@@ -11,6 +11,7 @@ export default function OrderCheckoutRoute() {
   return <OrderCheckoutScreen
     key={item?.id ?? 'missing'} item={item} service={checkoutService}
     receiverName={account.personal.fullName} receiverPhone={account.personal.phone}
+    onReview={(listingId) => router.push({ pathname: '/order_review', params: { id: listingId } })}
     onBack={() => { if (router.canGoBack()) router.back(); else router.replace('/home'); }}
   />;
 }
