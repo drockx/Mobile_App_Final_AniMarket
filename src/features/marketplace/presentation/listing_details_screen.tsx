@@ -36,17 +36,19 @@ function Spec({ label, value }: { label: string; value: string }) {
 }
 
 function unavailable(action: string) {
-  Alert.alert(`${action} unavailable`, 'Seller contact and checkout are not connected yet.');
+  Alert.alert(`${action} unavailable`, 'Seller contact is not connected yet.');
 }
 
 export function ListingDetailsScreen({
   listingId,
   marketplace,
   onBack,
+  onOrder,
 }: {
   listingId?: string;
   marketplace: MarketplaceService;
   onBack: () => void;
+  onOrder: (id: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const [selectedPhoto, setSelectedPhoto] = useState(0);
@@ -165,7 +167,7 @@ export function ListingDetailsScreen({
           <Icon name={icons.chat} color="#fff" size={18} />
           <Text style={styles.chatText}>Chat Seller</Text>
         </Pressable>
-        <Pressable onPress={() => unavailable('Ordering')} accessibilityRole="button" style={styles.orderButton}>
+        <Pressable onPress={() => onOrder(listing.id)} accessibilityRole="button" style={styles.orderButton}>
           <Icon name={icons.cart} size={18} />
           <Text style={styles.orderText}>Order</Text>
         </Pressable>

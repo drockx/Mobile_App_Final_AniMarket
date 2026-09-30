@@ -9,6 +9,7 @@ export default function ListingDetailsRoute() {
     <ListingDetailsScreen
       listingId={id}
       marketplace={marketplaceService}
+      onOrder={(listingId) => router.push({ pathname: '/order_checkout', params: { id: listingId } })}
       onBack={() => {
         if (router.canGoBack()) router.back();
         else router.replace('/home');
