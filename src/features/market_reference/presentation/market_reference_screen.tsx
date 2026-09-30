@@ -5,6 +5,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
+import { animalIcons } from '@/constants/animal_icons';
 
 import type { LocalMarket, MarketCategory, MarketPrice } from '../domain/market_reference';
 
@@ -31,7 +32,6 @@ const icons = {
   down: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
 } as const;
-const animalIcons: Record<MarketCategory, string> = { cow: '🐄', goat: '🐐', pig: '🐖', poultry: '🐓' };
 
 function peso(value: number) {
   return `₱${value.toLocaleString('en-PH')}`;
