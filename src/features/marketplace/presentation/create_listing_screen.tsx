@@ -17,7 +17,7 @@ import {
 import { marketReferenceData } from '@/features/market_reference/market_reference_dependencies';
 
 import type { MarketplaceService } from '../application/marketplace_service';
-import type { LivestockCategory, PickupPin } from '../domain/listing';
+import type { ListingPriceUnit, LivestockCategory, PickupPin } from '../domain/listing';
 import { PickupLocationMap } from './pickup_location_map';
 
 const colors = {
@@ -117,18 +117,20 @@ function validDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value && date.getTime() <= Date.now();
 }
 
-export function CreateListingScreen({ marketplace, initialPrice = '', initialCategory = 'Cow', initialWeight = '', onClose, onPublished, onMarketReference }: {
+export function CreateListingScreen({ marketplace, initialPrice = '', initialCategory = 'Cow', initialWeight = '', initialTitle = '', initialPriceUnit = 'per head', onClose, onPublished, onMarketReference }: {
   marketplace: MarketplaceService;
   initialPrice?: string;
   initialCategory?: LivestockCategory;
   initialWeight?: string;
+  initialTitle?: string;
+  initialPriceUnit?: ListingPriceUnit;
   onClose: () => void;
   onPublished: (id: string) => void;
   onMarketReference: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [photos, setPhotos] = useState<string[]>([]);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(initialTitle);
   const [category, setCategory] = useState<LivestockCategory>(initialCategory);
   const [age, setAge] = useState('');
   const [weight, setWeight] = useState(initialWeight);
@@ -144,6 +146,7 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
   const [locating, setLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState('');
   const [price, setPrice] = useState(initialPrice);
+  const [priceUnit, setPriceUnit] = useState<ListingPriceUnit>(initialPriceUnit);
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
 
@@ -225,7 +228,7 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
 
     const listing = marketplace.publishListing({
       title: title.trim(), category, details: `${age.trim() || 'Age not specified'} · ${weight.trim()} kg`,
-      price: Number(price), verified: false, location: davaoDelNorteLocation(city),
+      price: Number(price), priceUnit, verified: false, location: davaoDelNorteLocation(city),
       streetPurok: streetPurok.trim(), barangay: barangay.trim(),
       weight: `${weight.trim()} kg`, age: age.trim() || 'Not specified',
       health: vaccination === 'vaccinated' ? 'Vaccinated' : vaccination === 'not-vaccinated' ? 'Not vaccinated' : 'Unknown',
@@ -360,7 +363,7 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
             <View style={styles.referenceStat}><Text style={styles.statLabel}>ESTIMATED VALUE</Text><Text style={styles.statValue}>{reference.suggested !== null && reference.rate ? `${peso(reference.kg * reference.rate.min)}–${peso(reference.kg * reference.rate.max)}` : reference.perKg ? 'Enter live weight' : 'Set manually'}</Text></View>
           </View>
           <View style={styles.priceActions}>
-            <Pressable accessibilityRole="button" accessibilityState={{ disabled: reference.suggested === null }} disabled={reference.suggested === null} onPress={() => setPrice(String(reference.suggested))} style={[styles.suggestionButton, reference.suggested === null && styles.suggestionDisabled]}>
+            <Pressable accessibilityRole="button" accessibilityState={{ disabled: reference.suggested === null }} disabled={reference.suggested === null} onPress={() => { setPrice(String(reference.suggested)); setPriceUnit('per head'); }} style={[styles.suggestionButton, reference.suggested === null && styles.suggestionDisabled]}>
               <Text style={styles.suggestionText}>{reference.suggested === null ? 'No suggestion' : `Use ${peso(reference.suggested)}`}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={onMarketReference} style={styles.marketButton}><Text style={styles.marketButtonText}>View market prices</Text></Pressable>
@@ -370,7 +373,8 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
         </View>
 
         <View style={styles.field}>
-          <Field label="Listing Price (₱)" required value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="Enter your selling price" />
+          <SelectField label="Price basis" value={priceUnit} options={[{ label: 'Per head', value: 'per head' }, { label: 'Per kilogram', value: 'per kg' }, { label: 'Total', value: 'total' }]} onSelect={(value) => setPriceUnit(value as ListingPriceUnit)} />
+          <Field label="Listing Price (₱)" required value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="Enter your selling price" />
           <Text style={styles.fieldHelp}>You control the final price. Use the suggestion or enter your own amount.</Text>
         </View>
         <Field label="Description" value={description} onChangeText={setDescription} multiline placeholder="Describe breed, diet, health, and temperament..." />

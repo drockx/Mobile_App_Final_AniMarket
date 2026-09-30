@@ -1,6 +1,7 @@
 import { isDavaoDelNorteLocation } from '@/constants/davao_del_norte';
 
 export type LivestockCategory = 'Pig' | 'Cow' | 'Chicken' | 'Goat';
+export type ListingPriceUnit = 'per head' | 'per kg' | 'total';
 
 export type HealthVerification =
   | { status: 'verified'; note: string }
@@ -12,6 +13,7 @@ export type Listing = {
   category: LivestockCategory;
   details: string;
   price: number;
+  priceUnit?: ListingPriceUnit;
   verified: boolean;
   location: string;
   streetPurok?: string;

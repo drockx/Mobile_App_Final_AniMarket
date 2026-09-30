@@ -57,7 +57,7 @@ function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => vo
         <Text numberOfLines={2} style={styles.cardTitle}>{listing.title}</Text>
         <Text numberOfLines={2} style={styles.cardDetails}>{listing.details}</Text>
         <Text numberOfLines={2} style={styles.cardAddress}>{formatListingAddress(listing)}</Text>
-        <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
+        <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}{listing.priceUnit ? ` ${listing.priceUnit}` : ''}</Text>
       </View>
     </Pressable>
   );

@@ -8,6 +8,7 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={account.signedIn}>
         <Stack.Screen name="profile" />
+        <Stack.Screen name="my_listings" />
         <Stack.Screen name="personal_information" />
         <Stack.Screen name="account_security" />
       </Stack.Protected>

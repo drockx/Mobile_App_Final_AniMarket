@@ -62,13 +62,14 @@ function ConversationCard({
 }
 
 type MessagesScreenProps = {
+  initialSide?: ConversationSide;
   service: MessageService;
   onOpenConversation: (conversation: Conversation) => void;
 };
 
-export function MessagesScreen({ service, onOpenConversation }: MessagesScreenProps) {
+export function MessagesScreen({ service, onOpenConversation, initialSide = 'buying' }: MessagesScreenProps) {
   const insets = useSafeAreaInsets();
-  const [side, setSide] = useState<ConversationSide>('buying');
+  const [side, setSide] = useState<ConversationSide>(initialSide);
   const [query, setQuery] = useState('');
   const conversations = useMemo(() => service.list(side, query), [service, side, query]);
 

@@ -91,6 +91,8 @@ function MenuItem({
 }
 
 type ProfileScreenProps = {
+  activeListingCount: number;
+  onMyListings: () => void;
   onMessages: () => void;
   onMarketReference: () => void;
   onPriceCalculator: () => void;
@@ -99,7 +101,7 @@ type ProfileScreenProps = {
   onLogOut: () => void;
 };
 
-export function ProfileScreen({ onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onLogOut }: ProfileScreenProps) {
+export function ProfileScreen({ activeListingCount, onMyListings, onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onLogOut }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const compact = width < 360;
@@ -178,7 +180,7 @@ export function ProfileScreen({ onMessages, onMarketReference, onPriceCalculator
             </View>
 
             <View style={styles.stats}>
-              {[['4.8', 'RATING'], ['8', 'ACTIVE LISTINGS'], ['12', 'ORDERS']].map(([value, label], index) => (
+              {[['4.8', 'RATING'], [String(activeListingCount), 'ACTIVE LISTINGS'], ['12', 'ORDERS']].map(([value, label], index) => (
                 <View key={label} style={[styles.stat, index < 2 && styles.statDivider]}>
                   <Text style={styles.statValue}>{value}</Text>
                   <Text style={styles.statLabel}>{label}</Text>
@@ -191,7 +193,7 @@ export function ProfileScreen({ onMessages, onMarketReference, onPriceCalculator
             <QuickAction
               title="My Listings"
               symbol={icon.listings}
-              onPress={() => showUnavailable('My Listings')}
+              onPress={onMyListings}
             />
             <QuickAction
               title="My Orders"

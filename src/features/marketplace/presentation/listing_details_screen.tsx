@@ -104,7 +104,7 @@ export function ListingDetailsScreen({
             <View style={styles.titleBlock}>
               <Text style={styles.title}>{listing.title}{listing.subtitle ? `\n${listing.subtitle}` : ''}</Text>
             </View>
-            <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}</Text>
+            <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}{listing.priceUnit ? ` ${listing.priceUnit}` : ''}</Text>
           </View>
 
           <View style={styles.locationRow}>
