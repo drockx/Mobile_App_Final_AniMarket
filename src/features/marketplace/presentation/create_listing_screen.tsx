@@ -117,8 +117,11 @@ function validDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value && date.getTime() <= Date.now();
 }
 
-export function CreateListingScreen({ marketplace, onClose, onPublished, onMarketReference }: {
+export function CreateListingScreen({ marketplace, initialPrice = '', initialCategory = 'Cow', initialWeight = '', onClose, onPublished, onMarketReference }: {
   marketplace: MarketplaceService;
+  initialPrice?: string;
+  initialCategory?: LivestockCategory;
+  initialWeight?: string;
   onClose: () => void;
   onPublished: (id: string) => void;
   onMarketReference: () => void;
@@ -126,9 +129,9 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
   const insets = useSafeAreaInsets();
   const [photos, setPhotos] = useState<string[]>([]);
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState<LivestockCategory>('Cow');
+  const [category, setCategory] = useState<LivestockCategory>(initialCategory);
   const [age, setAge] = useState('');
-  const [weight, setWeight] = useState('');
+  const [weight, setWeight] = useState(initialWeight);
   const [vaccination, setVaccination] = useState<VaccinationStatus>('vaccinated');
   const [vaccinationDate, setVaccinationDate] = useState('');
   const [vaccineName, setVaccineName] = useState('');
@@ -140,7 +143,7 @@ export function CreateListingScreen({ marketplace, onClose, onPublished, onMarke
   const [mapCenter, setMapCenter] = useState<PickupPin | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState('');
-  const [price, setPrice] = useState('');
+  const [price, setPrice] = useState(initialPrice);
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
 

@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
 
+import { useAccount } from '../profile_store';
+
 const color = {
   forest: '#12372a',
   green: '#2d6a4f',
@@ -91,13 +93,18 @@ function MenuItem({
 type ProfileScreenProps = {
   onMessages: () => void;
   onMarketReference: () => void;
+  onPriceCalculator: () => void;
+  onPersonalInformation: () => void;
+  onAccountSecurity: () => void;
   onLogOut: () => void;
 };
 
-export function ProfileScreen({ onMessages, onMarketReference, onLogOut }: ProfileScreenProps) {
+export function ProfileScreen({ onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onLogOut }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const compact = width < 360;
+  const account = useAccount();
+  const initials = account.personal.fullName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'AM';
 
   const showUnavailable = (title: string) => {
     if (Platform.OS === 'web') window.alert(`${title} is coming soon.`);
@@ -126,7 +133,7 @@ export function ProfileScreen({ onMessages, onMarketReference, onLogOut }: Profi
             accessibilityRole="button"
             accessibilityLabel="Settings"
             hitSlop={3}
-            onPress={() => showUnavailable('Settings')}
+            onPress={onAccountSecurity}
             style={styles.settingsButton}
           >
             <Icon name={icon.settings} />
@@ -137,26 +144,26 @@ export function ProfileScreen({ onMessages, onMarketReference, onLogOut }: Profi
           <View style={styles.profileCard}>
             <View style={styles.identity}>
               <View style={[styles.avatar, compact && styles.avatarCompact]}>
-                <Text style={styles.avatarText}>JD</Text>
+                <Text style={styles.avatarText}>{initials}</Text>
                 <View style={styles.onlineDot} />
               </View>
               <View style={styles.identityCopy}>
                 <View style={styles.identityTopRow}>
-                  <Text numberOfLines={2} style={styles.personName}>Juan Dela Cruz</Text>
+                  <Text numberOfLines={2} style={styles.personName}>{account.personal.fullName || 'AniMarket Member'}</Text>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Edit Profile"
                     hitSlop={6}
-                    onPress={() => showUnavailable('Edit Profile')}
+                    onPress={onPersonalInformation}
                     style={styles.editButton}
                   >
                     <Text style={styles.editText}>Edit Profile</Text>
                   </Pressable>
                 </View>
-                <Text style={styles.location}>Tagum City, Davao del Norte</Text>
+                <Text style={styles.location}>{account.personal.city}, Davao del Norte</Text>
                 <View style={styles.verifiedRow}>
                   <View style={styles.verifiedIcon}><Icon name={icon.check} size={14} tintColor={color.green} /></View>
-                  <Text style={styles.verifiedText}>Verified AniMarket member</Text>
+                  <Text style={styles.verifiedText}>AniMarket demo member</Text>
                 </View>
               </View>
             </View>
@@ -198,15 +205,15 @@ export function ProfileScreen({ onMessages, onMarketReference, onLogOut }: Profi
           </View>
           <View style={styles.menu}>
             <MenuItem title="Messages" symbol={icon.messages} badge="3 unread" onPress={onMessages} />
-            <MenuItem title="Price Calculator" symbol={icon.calculator} onPress={() => showUnavailable('Price Calculator')} />
+            <MenuItem title="Price Calculator" symbol={icon.calculator} onPress={onPriceCalculator} />
             <MenuItem title="Davao del Norte Market Reference" symbol={icon.chart} onPress={onMarketReference} last />
           </View>
 
           <View style={styles.accountGroup}>
             <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>ACCOUNT</Text></View>
             <View style={styles.menu}>
-              <MenuItem title="Personal Information" symbol={icon.person} onPress={() => showUnavailable('Personal Information')} />
-              <MenuItem title="Account & Security" symbol={icon.lock} onPress={() => showUnavailable('Account & Security')} />
+              <MenuItem title="Personal Information" symbol={icon.person} onPress={onPersonalInformation} />
+              <MenuItem title="Account & Security" symbol={icon.lock} onPress={onAccountSecurity} />
               <MenuItem title="Log Out" symbol={icon.logout} destructive onPress={confirmLogOut} last />
             </View>
           </View>

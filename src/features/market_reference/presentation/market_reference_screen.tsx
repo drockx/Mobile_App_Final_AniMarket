@@ -25,7 +25,7 @@ const sortOptions = [
   { label: 'Largest change', shortLabel: 'Big change', value: 'change' },
 ] as const;
 type SortValue = typeof sortOptions[number]['value'];
-type ModalKind = 'history' | 'calculator' | null;
+type ModalKind = 'history' | null;
 
 const icons = {
   down: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
@@ -40,7 +40,7 @@ function peso(value: number) {
 function PriceCard({ item, onHistory, onCalculator }: {
   item: MarketPrice;
   onHistory: () => void;
-  onCalculator: () => void;
+  onCalculator?: () => void;
 }) {
   const trend = item.change > 0
     ? `↑ ${item.change.toFixed(1)}% vs 7-day avg`
@@ -68,9 +68,11 @@ function PriceCard({ item, onHistory, onCalculator }: {
         <Text style={styles.observations}>{item.observations} observations</Text>
       </View>
       <View style={styles.cardActions}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Use ${item.name} in calculator`} onPress={onCalculator} style={[styles.cardButton, styles.calculatorButton]}>
-          <Text style={styles.calculatorText}>Use in Calculator</Text>
-        </Pressable>
+        {onCalculator && (
+          <Pressable accessibilityRole="button" accessibilityLabel={`Use ${item.name} in calculator`} onPress={onCalculator} style={[styles.cardButton, styles.calculatorButton]}>
+            <Text style={styles.calculatorText}>Use in Calculator</Text>
+          </Pressable>
+        )}
         <Pressable accessibilityRole="button" accessibilityLabel={`View ${item.name} price history`} onPress={onHistory} style={[styles.cardButton, styles.historyButton]}>
           <Text style={styles.historyText}>View History</Text>
         </Pressable>
@@ -79,7 +81,7 @@ function PriceCard({ item, onHistory, onCalculator }: {
   );
 }
 
-export function MarketReferenceScreen({ markets }: { markets: readonly LocalMarket[] }) {
+export function MarketReferenceScreen({ markets, onOpenCalculator }: { markets: readonly LocalMarket[]; onOpenCalculator?: (category: MarketCategory) => void }) {
   const insets = useSafeAreaInsets();
   const [marketId, setMarketId] = useState('tagum');
   const [marketOpen, setMarketOpen] = useState(false);
@@ -89,7 +91,6 @@ export function MarketReferenceScreen({ markets }: { markets: readonly LocalMark
   const [sortOpen, setSortOpen] = useState(false);
   const [modal, setModal] = useState<ModalKind>(null);
   const [selectedPrice, setSelectedPrice] = useState<MarketPrice | null>(null);
-  const [quantity, setQuantity] = useState('');
   const market = markets.find((entry) => entry.id === marketId) ?? markets[0];
 
   const prices = useMemo(() => {
@@ -105,16 +106,9 @@ export function MarketReferenceScreen({ markets }: { markets: readonly LocalMark
     });
   }, [market, category, query, sort]);
 
-  const isPerHead = selectedPrice?.unit.toLowerCase().includes('per head') ?? false;
-  const enteredQuantity = Number(quantity);
-  const estimate = selectedPrice && Number.isFinite(enteredQuantity) && enteredQuantity > 0
-    ? { min: selectedPrice.min * enteredQuantity, median: selectedPrice.median * enteredQuantity, max: selectedPrice.max * enteredQuantity }
-    : null;
-
-  function openPriceModal(kind: 'history' | 'calculator', item: MarketPrice) {
+  function openPriceModal(item: MarketPrice) {
     setSelectedPrice(item);
-    setQuantity('');
-    setModal(kind);
+    setModal('history');
   }
 
   return (
@@ -193,7 +187,7 @@ export function MarketReferenceScreen({ markets }: { markets: readonly LocalMark
           <Text style={[styles.summaryText, styles.summaryHint]}>Range • Median • 7-day change</Text>
         </View>
         {prices.length ? prices.map((item) => (
-          <PriceCard key={item.id} item={item} onCalculator={() => openPriceModal('calculator', item)} onHistory={() => openPriceModal('history', item)} />
+          <PriceCard key={item.id} item={item} onCalculator={onOpenCalculator ? () => onOpenCalculator(item.category) : undefined} onHistory={() => openPriceModal(item)} />
         )) : <Text style={styles.emptyState}>No market references match this search and category.</Text>}
 
       </ScrollView>
@@ -204,10 +198,10 @@ export function MarketReferenceScreen({ markets }: { markets: readonly LocalMark
         <View style={styles.modalRoot}>
           <Pressable accessibilityRole="button" accessibilityLabel="Close dialog" onPress={() => setModal(null)} style={StyleSheet.absoluteFill} />
           <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>{modal === 'history' ? `${selectedPrice?.name ?? ''} Price History` : 'Reference Calculator'}</Text>
+            <Text style={styles.modalTitle}>{selectedPrice?.name ?? ''} Price History</Text>
             <Text style={styles.modalSubtitle}>{market.name} • {selectedPrice?.unit ?? ''}</Text>
             <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              {modal === 'history' && selectedPrice && (
+              {selectedPrice && (
                 <View style={styles.chart}>
                   {selectedPrice.history.map((value, index) => {
                     const low = Math.min(...selectedPrice.history);
@@ -221,20 +215,6 @@ export function MarketReferenceScreen({ markets }: { markets: readonly LocalMark
                       </View>
                     );
                   })}
-                </View>
-              )}
-              {modal === 'calculator' && selectedPrice && (
-                <View style={styles.calculatorContent}>
-                  <Text style={styles.calculatorHelp}>Enter {isPerHead ? 'number of heads' : 'live weight in kg'} to estimate a price from this sample range.</Text>
-                  <TextInput accessibilityLabel={isPerHead ? 'Number of heads' : 'Live weight in kilograms'} keyboardType="decimal-pad" value={quantity} onChangeText={setQuantity} placeholder={isPerHead ? 'Number of heads' : 'Live weight (kg)'} placeholderTextColor={muted} style={styles.quantityInput} />
-                  {estimate && (
-                    <View style={styles.estimateBox}>
-                      <Text style={styles.estimateLabel}>Estimated range</Text>
-                      <Text style={styles.estimateValue}>{peso(estimate.min)}–{peso(estimate.max)}</Text>
-                      <Text style={styles.estimateMedian}>At median: {peso(estimate.median)}</Text>
-                    </View>
-                  )}
-                  <Text style={styles.calculatorNote}>Estimate only. Final selling prices may differ.</Text>
                 </View>
               )}
             </ScrollView>
@@ -315,14 +295,6 @@ const styles = StyleSheet.create({
   chartTrack: { height: 108, width: '100%', justifyContent: 'flex-end', paddingHorizontal: 2 },
   chartBar: { width: '100%', borderTopLeftRadius: 5, borderTopRightRadius: 5, backgroundColor: '#4b8b69' },
   chartDay: { color: muted, fontSize: 12, lineHeight: 16, marginTop: 3 },
-  calculatorContent: { gap: 11, paddingVertical: 4 },
-  calculatorHelp: { color: ink, fontSize: 14, lineHeight: 20 },
-  quantityInput: { minHeight: 48, paddingHorizontal: 12, borderWidth: 1, borderColor: '#cbd5d0', borderRadius: 10, color: ink, fontSize: 16 },
-  estimateBox: { padding: 12, borderRadius: 10, backgroundColor: '#e6f3e9' },
-  estimateLabel: { color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  estimateValue: { color: forest, fontSize: 20, lineHeight: 27, fontWeight: '800', marginTop: 2 },
-  estimateMedian: { color: '#2d6a4f', fontSize: 14, lineHeight: 20 },
-  calculatorNote: { color: muted, fontSize: 13, lineHeight: 19 },
   closeButton: { minHeight: 44, marginTop: 13, borderRadius: 10, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
   closeText: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700' },
 });

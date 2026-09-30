@@ -8,7 +8,7 @@ import { AuthScreenLayout } from './components/auth_screen_layout';
 
 type LoginScreenProps = {
   onSignup: () => void;
-  onLogin: () => void;
+  onLogin: (username: string, password: string) => string | null;
 };
 
 export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
@@ -21,8 +21,7 @@ export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
       setMessage(error);
       return;
     }
-    setMessage(null);
-    onLogin();
+    setMessage(onLogin(values.username, values.password));
   }
 
   return (
@@ -49,6 +48,7 @@ export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
 
       {message && <Text accessibilityRole="alert" style={styles.message}>{message}</Text>}
       <AuthButton label="Log in" onPress={submit} />
+      <Text style={styles.demoNote}>Demo sign-in: your first login creates a temporary account for this app session.</Text>
 
       <View style={styles.switchRow}>
         <Text style={styles.switchText}>Don&apos;t have an account? </Text>
@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
   subtitle: { color: '#fff', fontSize: 15, lineHeight: 23, marginTop: 6, marginBottom: 26 },
   fields: { gap: 16, marginBottom: 24 },
   message: { color: '#fff', backgroundColor: 'rgba(20,31,24,0.5)', borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 13 },
+  demoNote: { color: '#fff', fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 10 },
   switchRow: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 15 },
   switchText: { color: '#fff', fontSize: 15 },
   switchLink: { color: '#fff', fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },
