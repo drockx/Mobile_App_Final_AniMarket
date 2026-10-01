@@ -1,10 +1,10 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import type { ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { checkoutColors as color, checkoutIcons as icons } from './checkout_controls';
+import { checkoutColors as color } from './checkout_controls';
 
 export function OrderPage({ title, onBack, children }: { title: string; onBack: () => void; children: ReactNode }) {
   const insets = useSafeAreaInsets();
@@ -13,7 +13,7 @@ export function OrderPage({ title, onBack, children }: { title: string; onBack: 
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}>
-          <SymbolView name={icons.back} size={20} tintColor={color.green} />
+          <NavigationIcon name="back" />
         </Pressable>
         <Text accessibilityRole="header" style={styles.title}>{title}</Text><View style={styles.back} />
       </View>

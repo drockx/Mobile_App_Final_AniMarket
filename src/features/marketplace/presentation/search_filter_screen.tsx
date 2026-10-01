@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -28,9 +29,9 @@ const ink = '#253242';
 
 const categories: { label: string; value: LivestockCategory }[] = [
   { label: 'Cow', value: 'Cow' },
-  { label: 'Goats', value: 'Goat' },
   { label: 'Pig', value: 'Pig' },
-  { label: 'Poultry', value: 'Chicken' },
+  { label: 'Goat', value: 'Goat' },
+  { label: 'Chicken', value: 'Chicken' },
 ];
 
 const locations = [
@@ -108,7 +109,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
       <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top, height: insets.top + 56 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backIcon}>‹</Text>
+          <NavigationIcon name="back" />
         </Pressable>
         <Text style={styles.headerTitle}>Search &amp; Filter</Text>
         <Pressable accessibilityRole="button" onPress={() => { setFilters(emptyFilters); setOpenMenu(null); }} style={styles.resetButton}>
@@ -131,10 +132,10 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
             value={filters.query}
           />
           {filters.query ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => update('query', '')} hitSlop={12}>
-              <Text style={styles.clearIcon}>×</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => update('query', '')} hitSlop={6} style={styles.clearButton}>
+              <NavigationIcon name="close" size={20} />
             </Pressable>
-          ) : <Text style={styles.clearIcon}>×</Text>}
+          ) : <View style={styles.clearButton}><NavigationIcon name="close" size={20} /></View>}
         </View>
 
         <Text style={styles.label}>Category</Text>
@@ -164,7 +165,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
           style={styles.selectField}
         >
           <Text numberOfLines={1} style={styles.selectText}>{locations.find((item) => item.value === filters.location)?.label ?? locations[0].label}</Text>
-          <Text style={styles.chevron}>⌄</Text>
+          <NavigationIcon name={openMenu === 'location' ? 'up' : 'down'} />
         </Pressable>
         {openMenu === 'location' && (
           <View style={styles.menu}>
@@ -211,7 +212,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
           style={styles.selectField}
         >
           <Text style={styles.selectText}>{sortOptions.find((item) => item.value === filters.sort)?.label}</Text>
-          <Text style={styles.chevron}>⌄</Text>
+          <NavigationIcon name={openMenu === 'sort' ? 'up' : 'down'} />
         </Pressable>
         {openMenu === 'sort' && (
           <View style={styles.menu}>
@@ -250,24 +251,22 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#fff' },
   header: { borderBottomWidth: 1, borderBottomColor: '#e5ebf1', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 28 },
-  backButton: { width: 32, height: 36, justifyContent: 'center' },
-  backIcon: { color: green, fontSize: 30, lineHeight: 32, marginTop: -4 },
-  headerTitle: { color: green, fontSize: 16, fontWeight: '800' },
+  backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center', color: green, fontSize: 16, lineHeight: 22, fontWeight: '800' },
   resetButton: { minWidth: 42, height: 36, alignItems: 'flex-end', justifyContent: 'center' },
   resetText: { color: '#26664f', fontSize: 12, fontWeight: '700' },
   content: { paddingHorizontal: 28, paddingTop: 18, paddingBottom: 22 },
-  searchField: { height: 40, flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, borderColor: border, backgroundColor: '#fafcff', paddingHorizontal: 13 },
-  searchInput: { flex: 1, height: '100%', paddingVertical: 0, color: ink, fontSize: 14 },
-  clearIcon: { color: '#8ca0b8', fontSize: 19, fontWeight: '300', lineHeight: 22 },
+  clearButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  searchField: { minHeight: 48, flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, borderColor: border, backgroundColor: '#fafcff', paddingHorizontal: 13 },
+  searchInput: { flex: 1, minWidth: 0, paddingVertical: 10, color: ink, fontSize: 14 },
   label: { color: '#27313c', fontSize: 13, lineHeight: 18, fontWeight: '800', marginTop: 19, marginBottom: 10 },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   categoryChip: { minHeight: 32, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1, borderColor: border, backgroundColor: '#fafcff', alignItems: 'center', justifyContent: 'center' },
   categoryChipSelected: { backgroundColor: green, borderColor: green },
   categoryText: { color: '#344258', fontSize: 12, fontWeight: '500' },
   categoryTextSelected: { color: '#fff', fontWeight: '700' },
-  selectField: { height: 40, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#fafcff', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center' },
-  selectText: { flex: 1, color: '#354258', fontSize: 13 },
-  chevron: { color: '#61748f', fontSize: 20, lineHeight: 22, marginTop: -6 },
+  selectField: { minHeight: 48, paddingVertical: 10, gap: 8, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#fafcff', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center' },
+  selectText: { flex: 1, minWidth: 0, color: '#354258', fontSize: 13 },
   menu: { borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#fff', marginTop: 5, overflow: 'hidden' },
   menuItem: { minHeight: 39, paddingHorizontal: 13, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border },
   menuText: { color: ink, fontSize: 13 },

@@ -32,9 +32,9 @@ const palette = {
 const categoryOptions: { label: string; value: LivestockCategory | null }[] = [
   { label: 'All Livestock', value: null },
   { label: 'Cow', value: 'Cow' },
-  { label: 'Goats', value: 'Goat' },
-  { label: 'Poultry', value: 'Chicken' },
-  { label: 'Pigs', value: 'Pig' },
+  { label: 'Pig', value: 'Pig' },
+  { label: 'Goat', value: 'Goat' },
+  { label: 'Chicken', value: 'Chicken' },
 ];
 
 type IconName = React.ComponentProps<typeof SymbolView>['name'];

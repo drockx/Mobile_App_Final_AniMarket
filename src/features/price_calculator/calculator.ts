@@ -1,8 +1,8 @@
 export const categories = [
-  { value: 'cattle', label: 'Cattle' },
+  { value: 'cattle', label: 'Cow' },
+  { value: 'swine', label: 'Pig' },
   { value: 'goat', label: 'Goat' },
-  { value: 'swine', label: 'Swine' },
-  { value: 'poultry', label: 'Poultry' },
+  { value: 'poultry', label: 'Chicken' },
 ] as const;
 
 export type Category = typeof categories[number]['value'];

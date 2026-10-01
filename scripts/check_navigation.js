@@ -117,26 +117,14 @@ require.extensions['.ts'] = (module, filename) => {
   const { outputText } = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } });
   module._compile(outputText, filename);
 };
-const { createMessageService } = require('../src/features/messages/application/message_service.ts');
-const { mockConversations, mockTabBadges } = require('../src/features/messages/data/mock_conversations.ts');
+const { loginDestination } = require('../src/navigation/login_destination.ts');
 
-test('seller chat reuses matching conversations and starts empty conversations for other listings', () => {
-  const service = createMessageService(mockConversations, mockTabBadges);
-  const original = service.getSnapshot();
-  let updates = 0;
-  const unsubscribe = service.subscribe(() => { updates++; });
-  assert.equal(service.openBuyerConversation({ id: 'brahman', title: 'Brahman Bull (Pure Breed)', seller: 'Juan Dela Cruz' }).id, 'juan-brahman');
-  assert.equal(service.getSnapshot(), original);
-  const item = { id: 'simmental-cow', title: 'Simmental Cow', seller: 'Juan Dela Cruz', verified: true };
-  const newConversation = service.openBuyerConversation(item);
-  assert.equal(newConversation.empty, true);
-  assert.equal(newConversation.unreadCount, 0);
-  assert.equal(newConversation.listingId, item.id);
-  assert.equal(service.get(newConversation.id), newConversation);
-  assert.equal(service.list('buying', 'Simmental')[0], newConversation);
-  assert.equal(service.openBuyerConversation(item), newConversation);
-  assert.equal(updates, 1);
-  unsubscribe();
-  service.openBuyerConversation({ ...item, id: 'other-cow', title: 'Other Cow' });
-  assert.equal(updates, 1);
+test('login resumes message routes and rejects external or unexpected destinations', () => {
+  assert.equal(loginDestination('/messages'), '/messages');
+  assert.equal(loginDestination('/messages/abcd-1234'), '/messages/abcd-1234');
+  assert.equal(loginDestination('/listings/create'), '/listings/create');
+  assert.equal(loginDestination('https://other.example'), '/home');
+  assert.equal(loginDestination('//other.example'), '/home');
+  assert.equal(loginDestination('/messages/../../profile'), '/home');
+  assert.equal(loginDestination(), '/home');
 });

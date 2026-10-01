@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useRef, useState } from 'react';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -58,7 +59,7 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
     <StatusBar style="dark" />
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}><SymbolView name={icons.back} size={20} tintColor={color.green} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}><NavigationIcon name="back" /></Pressable>
         <Text accessibilityRole="header" style={styles.headerTitle}>Order Checkout</Text><View style={styles.back} />
       </View>
       <ScrollView ref={scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>

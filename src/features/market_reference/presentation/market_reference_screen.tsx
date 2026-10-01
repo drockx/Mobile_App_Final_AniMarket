@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useMemo, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -16,9 +17,9 @@ const border = '#dfe8e2';
 const categories: { label: string; value: MarketCategory | 'all' }[] = [
   { label: 'All', value: 'all' },
   { label: 'Cow', value: 'cow' },
-  { label: 'Goat', value: 'goat' },
   { label: 'Pig', value: 'pig' },
-  { label: 'Poultry', value: 'poultry' },
+  { label: 'Goat', value: 'goat' },
+  { label: 'Chicken', value: 'poultry' },
 ];
 const sortOptions = [
   { label: 'Sort: Name', shortLabel: 'Sort: Name', value: 'name' },
@@ -29,7 +30,6 @@ type SortValue = typeof sortOptions[number]['value'];
 type ModalKind = 'history' | null;
 
 const icons = {
-  down: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
 } as const;
 
@@ -129,7 +129,7 @@ export function MarketReferenceScreen({ markets, onOpenCalculator }: { markets: 
             style={styles.marketSelect}
           >
             <Text style={styles.marketSelectText}>{market.name}</Text>
-            <SymbolView name={icons.down} size={17} tintColor={forest} />
+            <NavigationIcon name={marketOpen ? 'up' : 'down'} />
           </Pressable>
           {marketOpen && (
             <View style={styles.marketMenu}>
@@ -161,7 +161,7 @@ export function MarketReferenceScreen({ markets, onOpenCalculator }: { markets: 
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel={`Sort references, ${sortOptions.find((option) => option.value === sort)?.label}`} accessibilityState={{ expanded: sortOpen }} onPress={() => { setSortOpen(!sortOpen); setMarketOpen(false); }} style={styles.sortButton}>
             <Text numberOfLines={1} style={styles.sortText}>{sortOptions.find((option) => option.value === sort)?.shortLabel}</Text>
-            <SymbolView name={icons.down} size={15} tintColor={forest} />
+            <NavigationIcon name={sortOpen ? 'up' : 'down'} />
           </Pressable>
         </View>
         {sortOpen && (
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   regionCard: { padding: 14, borderWidth: 1, borderColor: border, borderRadius: 15, backgroundColor: '#fff' },
   eyebrow: { color: muted, fontSize: 12, lineHeight: 16, fontWeight: '800', letterSpacing: 0.35, marginBottom: 7 },
   marketSelect: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#cbd5d0', borderRadius: 10, backgroundColor: '#f8faf9', flexDirection: 'row', alignItems: 'center', gap: 8 },
-  marketSelectText: { flex: 1, color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  marketSelectText: { flex: 1, minWidth: 0, color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   marketMenu: { marginTop: 4, borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#fff', overflow: 'hidden' },
   marketOption: { minHeight: 52, paddingHorizontal: 12, paddingVertical: 7, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border, flexDirection: 'row', alignItems: 'center', gap: 8 },
   marketOptionSelected: { backgroundColor: '#eaf5ed' },
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   searchField: { flex: 1, minWidth: 0, minHeight: 44, paddingHorizontal: 11, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
   searchInput: { flex: 1, minHeight: 42, marginLeft: 7, paddingVertical: 0, color: ink, fontSize: 14 },
   sortButton: { width: 116, minHeight: 44, paddingHorizontal: 9, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#fff' },
-  sortText: { flex: 1, color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  sortText: { flex: 1, minWidth: 0, color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   sortMenu: { alignSelf: 'flex-end', width: 175, marginTop: 4, borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#fff', overflow: 'hidden' },
   sortOption: { minHeight: 42, paddingHorizontal: 12, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border },
   sortOptionText: { color: ink, fontSize: 13, lineHeight: 18 },

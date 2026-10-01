@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import type { ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -26,7 +27,7 @@ export function AccountScreenLayout({ title, subtitle, onBack, children }: {
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 9 }]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Back to profile" onPress={onBack} hitSlop={8} style={styles.backButton}>
-            <Text style={styles.backArrow}>←</Text>
+            <NavigationIcon name="back" />
           </Pressable>
           <Text style={styles.title}>{title}</Text>
           <View style={styles.backButton} />
@@ -44,9 +45,8 @@ const styles = StyleSheet.create({
   background: { flex: 1, backgroundColor: accountColors.surface },
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: accountColors.surface },
   header: { paddingHorizontal: 15, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: accountColors.line },
-  backButton: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  backArrow: { color: accountColors.forest, fontSize: 26, lineHeight: 31 },
-  title: { color: accountColors.forest, fontSize: 18, lineHeight: 24, fontWeight: '800' },
+  backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  title: { flex: 1, minWidth: 0, textAlign: 'center', color: accountColors.forest, fontSize: 18, lineHeight: 24, fontWeight: '800' },
   content: { paddingHorizontal: 15, paddingTop: 18, gap: 14 },
   subtitle: { color: accountColors.muted, fontSize: 13, lineHeight: 19 },
 });

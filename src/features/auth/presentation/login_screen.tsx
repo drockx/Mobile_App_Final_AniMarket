@@ -8,20 +8,25 @@ import { AuthScreenLayout } from './components/auth_screen_layout';
 
 type LoginScreenProps = {
   onSignup: () => void;
-  onLogin: (username: string, password: string) => string | null;
+  onLogin: (username: string, password: string) => Promise<string | null>;
 };
 
 export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
   const [values, setValues] = useState<LoginValues>({ username: '', password: '' });
   const [message, setMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function submit() {
+  async function submit() {
+    if (busy) return;
     const error = validateLogin(values);
     if (error) {
       setMessage(error);
       return;
     }
-    setMessage(onLogin(values.username, values.password));
+    setBusy(true);
+    try { setMessage(await onLogin(values.username, values.password)); }
+    catch { setMessage('Unable to sign in. Please try again.'); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -31,8 +36,9 @@ export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
 
       <View style={styles.fields}>
         <AuthField
-          label="Username"
-          autoComplete="username"
+          label="Email Address"
+          autoComplete="email"
+          keyboardType="email-address"
           autoCapitalize="none"
           value={values.username}
           onChangeText={(username) => setValues((current) => ({ ...current, username }))}
@@ -47,8 +53,7 @@ export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
       </View>
 
       {message && <Text accessibilityRole="alert" style={styles.message}>{message}</Text>}
-      <AuthButton label="Log in" onPress={submit} />
-      <Text style={styles.demoNote}>Demo sign-in: your first login creates a temporary account for this app session.</Text>
+      <AuthButton label={busy ? 'Signing in…' : 'Log in'} onPress={submit} disabled={busy} />
 
       <View style={styles.switchRow}>
         <Text style={styles.switchText}>Don&apos;t have an account? </Text>
@@ -66,7 +71,6 @@ const styles = StyleSheet.create({
   subtitle: { color: '#fff', fontSize: 15, lineHeight: 23, marginTop: 6, marginBottom: 26 },
   fields: { gap: 16, marginBottom: 24 },
   message: { color: '#fff', backgroundColor: 'rgba(20,31,24,0.5)', borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 13 },
-  demoNote: { color: '#fff', fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 10 },
   switchRow: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 15 },
   switchText: { color: '#fff', fontSize: 15 },
   switchLink: { color: '#fff', fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },

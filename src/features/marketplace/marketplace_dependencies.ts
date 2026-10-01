@@ -3,6 +3,7 @@ import { mockListingRepository } from './data/mock_listing_repository';
 import { createSellerListingsService } from './application/seller_listings_service';
 import { mockSellerListings } from './data/mock_seller_listings';
 import { filterListings, type Listing, type ListingCriteria } from './domain/listing';
+import { getAccountSnapshot } from '../profile/profile_store';
 
 /** The app's current catalog wiring. Replace the repository when a real API is available. */
 export const sellerListingsService = createSellerListingsService(mockSellerListings);
@@ -24,7 +25,9 @@ export const marketplaceService = {
   findListings: (criteria: ListingCriteria) => filterListings(visibleCatalog(), criteria),
   getListing: (id: string) => id.startsWith('seller-') ? visibleCatalog().find((item) => item.id === id) : catalogService.getListing(id),
   publishListing: (...args: Parameters<typeof catalogService.publishListing>) => {
-    const listing = catalogService.publishListing(...args);
+    const account = getAccountSnapshot();
+    if (!account.signedIn) throw new Error('Sign in to publish your listing.');
+    const listing = catalogService.publishListing({ ...args[0], seller: { id: account.userId, name: account.personal.fullName, memberSince: '2026' } }, args[1]);
     sellerListingsService.addPublished(listing);
     return listing;
   },

@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
@@ -61,7 +62,7 @@ export function OrderReviewScreen({ draft, example = false, buyerName = '', buye
     <StatusBar style="dark" />
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}><SymbolView name={icons.back} size={20} tintColor={color.green} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}><NavigationIcon name="back" /></Pressable>
         <Text accessibilityRole="header" style={styles.headerTitle}>Review Order</Text><View style={styles.back} />
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) }]}>

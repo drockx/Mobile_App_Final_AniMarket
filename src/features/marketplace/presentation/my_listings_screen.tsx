@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
@@ -14,9 +15,7 @@ const listingAnimalIcons: Record<SellerListing['category'], string> = {
   Cow: animalIcons.cow, Goat: animalIcons.goat, Pig: animalIcons.pig, Chicken: animalIcons.poultry,
 };
 const icons = {
-  back: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
-  down: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
   more: { ios: 'ellipsis', android: 'more_horiz', web: 'more_horiz' },
   list: { ios: 'list.bullet.rectangle', android: 'list_alt', web: 'list_alt' },
 } as const;
@@ -106,7 +105,7 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
         <TextInput accessibilityLabel="Search livestock or listing ID" value={query} onChangeText={setQuery} placeholder="Search livestock or ID" placeholderTextColor={color.muted} autoCapitalize="none" autoCorrect={false} returnKeyType="search" style={styles.searchInput} />
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel={`Sort listings: ${sorts.find((x) => x.value === sort)?.label}`} onPress={() => setDialog({ kind: 'sort' })} style={[styles.sort, stackSearch && styles.sortCompact]}>
-        <Text style={styles.sortText}>{sorts.find((x) => x.value === sort)?.label}</Text><SymbolView name={icons.down} size={14} tintColor={color.text} />
+        <Text style={styles.sortText}>{sorts.find((x) => x.value === sort)?.label}</Text><NavigationIcon name={dialog?.kind === 'sort' ? 'up' : 'down'} />
       </Pressable>
     </View>
     <View style={styles.tabs}>
@@ -114,7 +113,7 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
         <Text style={[styles.tabText, status === filter && styles.tabSelectedText]}>{capitalize(status)} ({counts[status]})</Text>
       </Pressable>)}
     </View>
-    {!!feedback && <View style={styles.feedback}><Text accessibilityLiveRegion="polite" style={styles.feedbackText}>{feedback}</Text><Pressable accessibilityRole="button" accessibilityLabel="Dismiss confirmation" onPress={() => setFeedback('')} style={styles.dismiss}><Text style={styles.dismissText}>×</Text></Pressable></View>}
+    {!!feedback && <View style={styles.feedback}><Text accessibilityLiveRegion="polite" style={styles.feedbackText}>{feedback}</Text><Pressable accessibilityRole="button" accessibilityLabel="Dismiss confirmation" onPress={() => setFeedback('')} style={styles.dismiss}><NavigationIcon name="close" /></Pressable></View>}
     <View style={styles.listHeading}><Text accessibilityRole="header" style={styles.listTitle}>{capitalize(filter)} Listings</Text><Text style={styles.resultCount}>{items.length} result{items.length === 1 ? '' : 's'}</Text></View>
   </View>;
 
@@ -123,7 +122,7 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
     <View style={styles.screen}>
       <View style={[styles.header, compact && styles.headerStacked, { paddingTop: insets.top + 9 }]}>
         <View style={[styles.headerMain, compact && styles.headerMainStacked]}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back to Profile" onPress={onBack} style={styles.back}><SymbolView name={icons.back} size={21} tintColor={color.forest} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Back to Profile" onPress={onBack} style={styles.back}><NavigationIcon name="back" /></Pressable>
           <View style={styles.headerCopy}><Text accessibilityRole="header" style={styles.title}>My Listings</Text></View>
         </View>
         <Pressable accessibilityRole="button" onPress={() => onCreate()} style={({ pressed }) => [styles.newButton, compact && styles.newButtonStacked, pressed && styles.pressed]}><Text style={styles.newText}>+ New Listing</Text></Pressable>
@@ -184,7 +183,7 @@ const styles = StyleSheet.create({
   headerStacked: { flexDirection: 'column', alignItems: 'stretch' },
   headerMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerMainStacked: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
-  back: { width: 38, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
+  back: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
   headerCopy: { flex: 1, minWidth: 0 }, title: { fontSize: 24, lineHeight: 30, fontWeight: '700', color: color.forest },
   newButton: { minHeight: 44, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 10, backgroundColor: color.forest, alignItems: 'center', justifyContent: 'center' }, newButtonStacked: { alignSelf: 'flex-end', maxWidth: '100%' }, newText: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: '#fff', textAlign: 'center' },
   content: { paddingHorizontal: 15, paddingTop: 13 }, summary: { flexDirection: 'row', gap: 8, marginBottom: 12 },
@@ -203,6 +202,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 7 }, actionsCompact: { flexWrap: 'wrap' }, more: { width: 42, minHeight: 44, borderWidth: 1, borderColor: color.line, borderRadius: 10, alignItems: 'center', justifyContent: 'center' }, secondaryAction: { flex: 1 }, primaryAction: { flex: 1.25 }, primaryActionCompact: { flexBasis: '100%' },
   button: { minHeight: 44, borderRadius: 10, backgroundColor: color.forest, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, paddingHorizontal: 8 }, secondaryButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: color.forest }, buttonText: { color: '#fff', fontSize: 13, lineHeight: 18, fontWeight: '700', textAlign: 'center' }, secondaryText: { color: color.forest }, pressed: { opacity: 0.75 }, destructiveButton: { backgroundColor: '#fff1ef', borderWidth: 1, borderColor: '#efc5bf' }, destructiveText: { color: '#a33b34' },
   empty: { alignItems: 'center', borderWidth: 1, borderStyle: 'dashed', borderColor: '#cbd7cf', borderRadius: 15, padding: 24, gap: 10 }, emptyTitle: { color: color.forest, fontWeight: '700', fontSize: 15, lineHeight: 20 }, emptyCopy: { color: color.muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
-  feedback: { flexDirection: 'row', alignItems: 'center', paddingLeft: 10, marginBottom: 10, backgroundColor: color.mint, borderRadius: 9 }, feedbackText: { flex: 1, color: color.green, fontSize: 13, lineHeight: 18 }, dismiss: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, dismissText: { color: color.green, fontSize: 20, lineHeight: 26 },
+  feedback: { flexDirection: 'row', alignItems: 'center', paddingLeft: 10, marginBottom: 10, backgroundColor: color.mint, borderRadius: 9 }, feedbackText: { flex: 1, color: color.green, fontSize: 13, lineHeight: 18 }, dismiss: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   modalBackdrop: { flex: 1, backgroundColor: '#12372a70', justifyContent: 'center', alignItems: 'center', padding: 20 }, dialog: { width: '100%', maxWidth: 360, maxHeight: '85%', borderRadius: 17, backgroundColor: '#fff' }, dialogContent: { padding: 18, gap: 10 }, dialogTitle: { fontSize: 18, lineHeight: 24, fontWeight: '700', color: color.forest }, dialogCopy: { fontSize: 13, lineHeight: 18, color: color.muted }, dialogActions: { flexDirection: 'row', gap: 8, marginTop: 4 }, flex: { flex: 1 }, inputLabel: { color: color.text, fontSize: 13, lineHeight: 18, fontWeight: '700' }, priceInput: { minHeight: 44, borderWidth: 1, borderColor: color.line, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 10, color: color.text, fontSize: 16 }, error: { fontSize: 13, lineHeight: 18, color: '#a33b34' }, option: { minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: color.line }, optionText: { fontSize: 14, lineHeight: 19, color: color.text }, selectedOption: { fontWeight: '700', color: color.green },
 });

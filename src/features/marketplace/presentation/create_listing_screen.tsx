@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { NavigationIcon } from '@/components/navigation_icon';
+import { useMemo, useRef, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import {
-  Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -25,16 +26,14 @@ const colors = {
   input: '#f8fafc', mint: '#e8f4eb', red: '#c53030',
 };
 const categories: { label: string; value: LivestockCategory }[] = [
-  { label: 'Cattle', value: 'Cow' }, { label: 'Goats', value: 'Goat' },
-  { label: 'Swine', value: 'Pig' }, { label: 'Poultry', value: 'Chicken' },
+  { label: 'Cow', value: 'Cow' }, { label: 'Pig', value: 'Pig' },
+  { label: 'Goat', value: 'Goat' }, { label: 'Chicken', value: 'Chicken' },
 ];
 type VaccinationStatus = 'vaccinated' | 'not-vaccinated' | 'unknown';
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
 const icons = {
-  close: { ios: 'xmark', android: 'close', web: 'close' },
   camera: { ios: 'camera', android: 'photo_camera', web: 'photo_camera' },
   photo: { ios: 'photo', android: 'image', web: 'image' },
-  chevron: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
   calendar: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' },
 } as const;
 
@@ -86,7 +85,7 @@ function SelectField({ label, value, options, onSelect }: {
       <Label required>{label}</Label>
       <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${selected}`} onPress={() => setOpen(true)} style={[styles.input, styles.select]}>
         <Text numberOfLines={1} style={styles.inputText}>{selected}</Text>
-        <Icon name={icons.chevron} size={16} color="#718096" />
+        <NavigationIcon name={open ? 'up' : 'down'} />
       </Pressable>
       <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
@@ -145,6 +144,9 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
   const [price, setPrice] = useState(initialPrice);
   const [priceUnit, setPriceUnit] = useState<ListingPriceUnit>(initialPriceUnit);
   const [description, setDescription] = useState('');
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
+  const [descriptionHeight, setDescriptionHeight] = useState(120);
+  const scroll = useRef<ScrollView>(null);
   const [error, setError] = useState('');
 
   const reference = useMemo(() => {
@@ -220,23 +222,25 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
       healthVerification: { status: 'unverified' },
       description: description.trim() || 'No description provided.',
       imageUri: photos[0], imageUris: photos, vaccinationProof: proof ?? undefined,
-      seller: { name: 'Juan Dela Cruz', memberSince: '2026' },
     }, pickupPin);
     onPublished(listing.id);
   }
 
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView enabled={descriptionFocused} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
       <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close create listing" hitSlop={8} onPress={onClose} style={styles.closeButton}>
-          <Icon name={icons.close} size={21} />
+          <NavigationIcon name="close" />
         </Pressable>
         <Text style={styles.headerTitle}>Create Listing</Text>
         <View style={styles.closeButton} />
       </View>
 
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}
+        onLayout={() => { if (descriptionFocused) scroll.current?.scrollToEnd({ animated: false }); }}
+        onContentSizeChange={() => { if (descriptionFocused) scroll.current?.scrollToEnd({ animated: false }); }}
+      >
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         <View style={styles.field}>
           <Label required>Photos</Label>
@@ -250,8 +254,8 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
             {photos.map((uri, index) => (
               <View key={`${uri}-${index}`} style={styles.photoThumb}>
                 <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} />
-                <Pressable accessibilityRole="button" accessibilityLabel={`Remove photo ${index + 1}`} onPress={() => setPhotos((current) => current.filter((_, photoIndex) => photoIndex !== index))} style={styles.removePhoto}>
-                  <Icon name={icons.close} size={11} color="#fff" />
+                <Pressable accessibilityRole="button" accessibilityLabel={`Remove photo ${index + 1}`} hitSlop={10} onPress={() => setPhotos((current) => current.filter((_, photoIndex) => photoIndex !== index))} style={styles.removePhoto}>
+                  <NavigationIcon name="close" size={16} color="#fff" />
                 </Pressable>
               </View>
             ))}
@@ -350,11 +354,27 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
         </View>
 
         <View style={styles.field}>
-          <SelectField label="Price basis" value={priceUnit} options={[{ label: 'Per head', value: 'per head' }, { label: 'Per kilogram', value: 'per kg' }, { label: 'Total', value: 'total' }]} onSelect={(value) => setPriceUnit(value as ListingPriceUnit)} />
           <Field label="Listing Price (₱)" required value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="Enter your selling price" />
           <Text style={styles.fieldHelp}>You control the final price. Use the suggestion or enter your own amount.</Text>
         </View>
-        <Field label="Description" value={description} onChangeText={setDescription} multiline placeholder="Describe breed, diet, health, and temperament..." />
+        <View style={styles.field}>
+          <Label>Description</Label>
+          <TextInput
+            accessibilityLabel="Description"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Describe breed, diet, health, and temperament..."
+            placeholderTextColor="#8290a4"
+            multiline
+            textAlignVertical="top"
+            scrollEnabled
+            selectionColor={colors.forest}
+            onFocus={() => { setDescriptionFocused(true); scroll.current?.scrollToEnd({ animated: true }); }}
+            onBlur={() => setDescriptionFocused(false)}
+            onContentSizeChange={({ nativeEvent }) => setDescriptionHeight(Math.min(180, Math.max(120, Math.ceil(nativeEvent.contentSize.height))))}
+            style={[styles.input, styles.textArea, { height: descriptionHeight }]}
+          />
+        </View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
@@ -362,7 +382,7 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
           <Text style={styles.publishText}>Publish Listing</Text>
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -376,12 +396,12 @@ const styles = StyleSheet.create({
   label: { color: colors.ink, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   required: { color: colors.red },
   input: { minHeight: 46, width: '100%', paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 11, backgroundColor: colors.input, color: '#2d3748', fontSize: 14, lineHeight: 20 },
-  inputText: { flex: 1, color: '#2d3748', fontSize: 14, lineHeight: 20 },
+  inputText: { flex: 1, minWidth: 0, color: '#2d3748', fontSize: 14, lineHeight: 20 },
   select: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 7 },
   fixedField: { justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   rowItem: { flex: 1, minWidth: 0 },
-  textArea: { minHeight: 100, paddingTop: 12 },
+  textArea: { minHeight: 120, paddingTop: 12, color: colors.ink },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   addPhoto: { width: 72, height: 72, borderRadius: 11, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#bccfc2', backgroundColor: '#f7faf7', alignItems: 'center', justifyContent: 'center' },
   addPhotoText: { color: '#4a5568', fontSize: 11, lineHeight: 15, fontWeight: '700', marginTop: 3 },

@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -60,13 +61,13 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
     <StatusBar style="dark" />
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}><SymbolView name={icons.back} size={20} tintColor={color.green} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}><NavigationIcon name="back" /></Pressable>
         <Text accessibilityRole="header" style={styles.headerTitle}>Order Status</Text><View style={styles.back} />
       </View>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) }]}>
         {example && <View style={styles.exampleBanner}><Text style={styles.exampleTitle}>Example active order</Text><Text style={styles.body}>This sample appears when Order Status is opened directly. A saved checkout request opens its own status page.</Text></View>}
         <LinearGradient colors={cancelled ? ['#73352f', '#a13a32'] : ['#12372a', '#2d6a4f']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-          <View style={[styles.heroTop, compact && styles.column]}><View style={styles.heroMark}><SymbolView name={cancelled ? icons.close : icons.check} size={24} tintColor="#fff" /></View><Text style={styles.statusPill}>{copy.pill}</Text></View>
+          <View style={[styles.heroTop, compact && styles.column]}><View style={styles.heroMark}>{cancelled ? <NavigationIcon name="close" size={24} color="#fff" /> : <SymbolView name={icons.check} size={24} tintColor="#fff" />}</View><Text style={styles.statusPill}>{copy.pill}</Text></View>
           <Text accessibilityRole="header" style={styles.heroTitle}>{copy.title}</Text><Text style={styles.heroCopy}>{copy.description}</Text>
           <View style={[styles.heroMeta, compact && styles.column]}>
             <View style={[styles.heroMetaCell, compact && styles.noFlex]}><Text style={styles.heroMetaValue}>{request.id}</Text><Text style={styles.heroMetaLabel}>Order number</Text></View>

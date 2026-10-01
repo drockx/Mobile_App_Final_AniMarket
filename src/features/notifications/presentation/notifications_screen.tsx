@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState, useSyncExternalStore } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -31,7 +32,6 @@ const filters: { label: string; value: NotificationCategory | 'all' }[] = [
 ];
 
 const icons = {
-  back: { ios: 'chevron.left', android: 'arrow_back_ios_new', web: 'arrow_back_ios_new' },
   message: { ios: 'message', android: 'chat_bubble_outline', web: 'chat_bubble_outline' },
   order: { ios: 'bag', android: 'shopping_bag', web: 'shopping_bag' },
   listing: { ios: 'list.bullet.rectangle', android: 'receipt_long', web: 'receipt_long' },
@@ -94,7 +94,7 @@ export function NotificationsScreen({ onBack, onOpenNotification }: Props) {
       <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={8} style={styles.backButton}>
-          <SymbolView name={icons.back} size={18} tintColor={colors.forest} />
+          <NavigationIcon name="back" />
         </Pressable>
         <View style={styles.heading}>
           <Text style={styles.title}>Notifications</Text>
@@ -152,7 +152,7 @@ export function NotificationsScreen({ onBack, onOpenNotification }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 13, borderBottomWidth: 1, borderBottomColor: colors.line },
-  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   heading: { flex: 1, minWidth: 0 },
   title: { fontSize: 19, fontWeight: '700', color: colors.forest },
   subtitle: { marginTop: 2, fontSize: 11, color: colors.muted },

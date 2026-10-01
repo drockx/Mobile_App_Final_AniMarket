@@ -21,6 +21,7 @@ export function getCheckoutItem(id?: string): CheckoutItem | undefined {
   return {
     id: listing.id, title: listing.title, weight: listing.weight, health: listing.health,
     seller: listing.seller?.name ?? 'Seller to confirm', sellerAddress: formatListingAddress(listing),
+    sellerId: listing.seller?.id,
     price: listing.price, priceUnit: listing.priceUnit, imageUri: listing.imageUri,
     category: listing.category, verified: listing.verified,
     vaccinationProofName: listing.vaccinationProof?.name,

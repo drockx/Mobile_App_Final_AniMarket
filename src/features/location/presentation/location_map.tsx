@@ -1,57 +1,61 @@
-import { useEffect, useRef, useState } from 'react';
-import { SymbolView } from 'expo-symbols';
-import { StyleSheet, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, StyleSheet, View } from 'react-native';
+import { WebView } from 'react-native-webview';
 
-import type { Coordinate } from '../domain/location';
+import { isInsideDavaoDelNorte } from '../domain/davao_del_norte_geofence';
+import { DEFAULT_MAP_CENTER, type Coordinate } from '../domain/location';
+import { createMapDocument } from './map_document';
+import { decodeMapEvent, type LocationMapProps } from './map_types';
 
-export type LocationMapProps = {
-  center: Coordinate; selected: Coordinate | null; height?: number;
-  onChange?: (coordinate: Coordinate) => void; onMovingChange?: (moving: boolean) => void; onError?: () => void;
-  onInteractionChange?: (interacting: boolean) => void;
-};
-
-export function LocationMap({ center, selected, height = 300, onChange, onMovingChange, onInteractionChange, onError }: LocationMapProps) {
-  const map = useRef<MapView>(null);
+export function LocationMap(props: LocationMapProps) {
+  const { center, selected, height = 300 } = props;
+  const webview = useRef<WebView>(null);
   const ready = useRef(false);
-  const moved = useRef(false);
-  const touched = useRef(false);
-  const latestError = useRef(onError);
-  useEffect(() => { latestError.current = onError; }, [onError]);
+  const latest = useRef(props);
+  const lastValid = useRef<Coordinate>(isInsideDavaoDelNorte(center) ? center : DEFAULT_MAP_CENTER);
+  const [html] = useState(() => createMapDocument(center, selected, !!props.onChange));
+  const source = useMemo(() => ({ html }), [html]);
+  useEffect(() => { latest.current = props; }, [props]);
   useEffect(() => {
-    const timeout = setTimeout(() => { if (!ready.current) latestError.current?.(); }, 20000);
-    return () => clearTimeout(timeout);
-  }, []);
-  const [initialRegion] = useState(() => ({ ...center, latitudeDelta: 0.012, longitudeDelta: 0.012 }));
-  useEffect(() => {
-    if (ready.current) map.current?.animateToRegion({ ...center, latitudeDelta: 0.009, longitudeDelta: 0.009 }, 300);
+    const point = isInsideDavaoDelNorte(center) ? center : DEFAULT_MAP_CENTER;
+    lastValid.current = point;
+    if (ready.current) webview.current?.injectJavaScript('window.AniMarketMap.focus(' + JSON.stringify(point) + ',' + JSON.stringify(latest.current.selected) + ');true;');
   }, [center]);
+  useEffect(() => {
+    if (ready.current && !latest.current.onChange) webview.current?.injectJavaScript('window.AniMarketMap.setMarker(' + JSON.stringify(selected) + ');true;');
+  }, [selected]);
+  useEffect(() => {
+    const timer = setTimeout(() => { if (!ready.current) latest.current.onError?.(); }, 20000);
+    return () => clearTimeout(timer);
+  }, []);
 
-  return <View style={{ width: '100%', height }} onTouchStart={() => { touched.current = true; onInteractionChange?.(true); }} onTouchEnd={() => { touched.current = false; onInteractionChange?.(false); }} onTouchCancel={() => { touched.current = false; onInteractionChange?.(false); }}>
-    <MapView ref={map} style={StyleSheet.absoluteFill} initialRegion={initialRegion}
-      accessibilityLabel={onChange ? 'Move or tap the map to choose your pinned location' : 'Map of the confirmed location'}
-      rotateEnabled={false} pitchEnabled={false} showsMyLocationButton={false} showsCompass={false}
-      onMapReady={() => { ready.current = true; map.current?.animateToRegion({ ...center, latitudeDelta: 0.009, longitudeDelta: 0.009 }, 0); }}
-      onPanDrag={() => { if (onChange) { moved.current = true; onMovingChange?.(true); } }}
-      onRegionChangeStart={(_, details) => {
-        if (onChange && (details?.isGesture || (details?.isGesture === undefined && touched.current))) { moved.current = true; onMovingChange?.(true); }
-      }}
-      onRegionChangeComplete={(region, details) => {
-        if (onChange && (moved.current || details?.isGesture)) onChange({ latitude: region.latitude, longitude: region.longitude });
-        moved.current = false; onMovingChange?.(false);
-      }}
-      onPress={onChange ? (event) => {
-        const point = event.nativeEvent.coordinate;
-        onChange(point); map.current?.animateToRegion({ ...point, latitudeDelta: 0.009, longitudeDelta: 0.009 }, 250);
-      } : undefined}
-    >
-      {!onChange && selected && <Marker coordinate={selected} pinColor="#12372a" title="Confirmed location" />}
-    </MapView>
-    {onChange && <View pointerEvents="none" style={StyleSheet.absoluteFill}><View style={styles.pin}><SymbolView name={{ ios: 'mappin', android: 'location_on', web: 'location_on' }} size={40} tintColor="#12372a" /></View><View style={styles.target} /></View>}
+  function receive(raw: string) {
+    const message = decodeMapEvent(raw);
+    if (!message) return;
+    const current = latest.current;
+    if (message.type === 'ready') {
+      ready.current = true;
+      webview.current?.injectJavaScript('window.AniMarketMap.focus(' + JSON.stringify(lastValid.current) + ',' + JSON.stringify(current.selected) + ');true;');
+    } else if (message.type === 'loaded') current.onLoaded?.();
+    else if (message.type === 'error') current.onError?.();
+    else if (message.type === 'moving') current.onMovingChange?.(message.active);
+    else if (message.type === 'interaction') current.onInteractionChange?.(message.active);
+    else if (message.type === 'link') Linking.openURL(message.url).catch(() => {});
+    else if (message.type === 'select' && current.onChange) {
+      if (isInsideDavaoDelNorte(message.coordinate)) { lastValid.current = message.coordinate; current.onChange(message.coordinate); }
+      else {
+        current.onOutside?.();
+        webview.current?.injectJavaScript('window.AniMarketMap.focus(' + JSON.stringify(lastValid.current) + ',null);true;');
+      }
+    }
+  }
+  return <View style={[styles.container, { height }]} onTouchStart={() => props.onInteractionChange?.(true)} onTouchEnd={() => props.onInteractionChange?.(false)} onTouchCancel={() => props.onInteractionChange?.(false)}>
+    <WebView ref={webview} source={source} originWhitelist={['*']} javaScriptEnabled cacheEnabled forceDarkOn={false} applicationNameForUserAgent="AniMarket/1.0" geolocationEnabled={false} scrollEnabled={false} nestedScrollEnabled overScrollMode="never" style={styles.webview}
+      accessibilityLabel="Davao del Norte street map"
+      onMessage={(event) => receive(event.nativeEvent.data)}
+      onError={() => props.onError?.()} onHttpError={() => props.onError?.()}
+      onShouldStartLoadWithRequest={(request) => !request.url || request.url === 'about:blank'}
+    />
   </View>;
 }
-
-const styles = StyleSheet.create({
-  pin: { position: 'absolute', left: '50%', top: '50%', marginLeft: -20, marginTop: -40, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  target: { position: 'absolute', left: '50%', top: '50%', marginLeft: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#12372a44' },
-});
+const styles = StyleSheet.create({ container: { width: '100%', backgroundColor: '#eaf5ed' }, webview: { flex: 1, backgroundColor: '#eaf5ed' } });

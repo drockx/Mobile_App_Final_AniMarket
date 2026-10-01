@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useEffect, useRef, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -13,7 +14,6 @@ const colors = { forest: '#12372a', text: '#17221d', muted: '#52647a', line: '#d
 const icons = {
   pin: { ios: 'mappin', android: 'location_on', web: 'location_on' },
   current: { ios: 'location', android: 'my_location', web: 'my_location' },
-  back: { ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' },
 } as const;
 
 function Button({ label, onPress, disabled = false, secondary = false }: { label: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) {
@@ -127,7 +127,7 @@ export function LocationPicker({ label, value, onSelect, addressQuery = '', allo
     {open && <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={close}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackground}>
         <View style={styles.screen}>
-          <View style={[styles.header, { paddingTop: insets.top }]}><Pressable accessibilityRole="button" accessibilityLabel="Cancel location selection" onPress={close} style={styles.back}><SymbolView name={icons.back} size={20} tintColor={colors.forest} /></Pressable><Text accessibilityRole="header" style={styles.title}>{label}</Text><View style={styles.back} /></View>
+          <View style={[styles.header, { paddingTop: insets.top }]}><Pressable accessibilityRole="button" accessibilityLabel="Cancel location selection" onPress={close} style={styles.back}><NavigationIcon name="back" /></Pressable><Text accessibilityRole="header" style={styles.title}>{label}</Text><View style={styles.back} /></View>
           <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} scrollEnabled={!moving && !interacting}>
             <Text style={styles.body}>Choose a location in Davao del Norte. Search your address, use your current location, or move the map to your entrance or pickup point.</Text>
             <TextInput accessibilityLabel="Search street, barangay, city, or landmark" value={query} onChangeText={(text) => { action.current++; searchAbort.current?.abort(); setBusy(null); setQuery(text); setResults([]); setMessage(''); }} placeholder="Street, barangay, city, or landmark" placeholderTextColor={colors.muted} returnKeyType="search" onSubmitEditing={search} autoCorrect={false} style={styles.input} />

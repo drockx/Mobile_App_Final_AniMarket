@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState, useSyncExternalStore } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -8,6 +9,7 @@ import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
 
 import type { MessageService } from '../application/message_service';
 import { filterConversations, type Conversation, type ConversationSide } from '../domain/conversation';
+import { NewMessageDialog } from './new_message_dialog';
 
 const forest = '#12372a';
 const muted = '#75847b';
@@ -15,7 +17,6 @@ const border = '#dce8e1';
 
 const icons = {
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
-  chevron: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
 } as const;
 
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
@@ -54,7 +55,7 @@ function ConversationCard({
             <Text style={styles.unreadText}>{conversation.unreadCount} unread</Text>
           </View>
         ) : (
-          <View style={styles.chevronBadge}><Icon name={icons.chevron} size={14} color={forest} /></View>
+          <View style={styles.chevronBadge}><NavigationIcon name="next" /></View>
         )}
       </View>
     </Pressable>
@@ -65,14 +66,16 @@ type MessagesScreenProps = {
   initialSide?: ConversationSide;
   service: MessageService;
   onOpenConversation: (conversation: Conversation) => void;
+  notice?: string;
 };
 
-export function MessagesScreen({ service, onOpenConversation, initialSide = 'buying' }: MessagesScreenProps) {
+export function MessagesScreen({ service, onOpenConversation, initialSide = 'buying', notice }: MessagesScreenProps) {
   const insets = useSafeAreaInsets();
   const [side, setSide] = useState<ConversationSide>(initialSide);
   const [query, setQuery] = useState('');
+  const [newMessageOpen, setNewMessageOpen] = useState(false);
   const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
-  const conversations = filterConversations(snapshot, side, query);
+  const conversations = filterConversations(snapshot.conversations, side, query);
 
   return (
     <View style={styles.background}>
@@ -80,6 +83,7 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 9 }]}>
           <Text style={styles.title}>Messages</Text>
+          <Pressable accessibilityRole="button" onPress={() => setNewMessageOpen(true)} style={styles.newButton}><Text style={styles.newButtonText}>New message</Text></Pressable>
         </View>
 
         <ScrollView
@@ -87,6 +91,12 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {!!notice && <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text>}
+          <View style={styles.connectionRow}>
+            <Text style={styles.connectionText}>{snapshot.status === 'live' ? 'Live messaging' : snapshot.status === 'connecting' ? 'Connecting…' : 'Reconnecting…'}</Text>
+            {snapshot.status === 'offline' && <Pressable accessibilityRole="button" onPress={() => service.reconnect()} style={styles.retry}><Text style={styles.retryText}>Retry</Text></Pressable>}
+          </View>
+          {!!snapshot.error && <Text accessibilityLiveRegion="polite" style={styles.notice}>{snapshot.error}</Text>}
           <View style={styles.segmentedControl}>
             {(['buying', 'selling'] as const).map((option) => {
               const selected = side === option;
@@ -139,12 +149,13 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
               onPress={() => onOpenConversation(conversation)}
             />
           )) : (
-            <Text style={styles.emptyState}>No conversations match your search.</Text>
+            <Text style={styles.emptyState}>{query ? 'No conversations match your search.' : 'No conversations yet. Tap New message to contact another user.'}</Text>
           )}
 
         </ScrollView>
 
         <MarketplaceBottomBar activeTab="messages" bottomInset={insets.bottom} />
+        {newMessageOpen && <NewMessageDialog service={service} visible onClose={() => setNewMessageOpen(false)} onOpen={onOpenConversation} />}
       </View>
     </View>
   );
@@ -153,8 +164,15 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
 const styles = StyleSheet.create({
   background: { flex: 1, backgroundColor: '#fff' },
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
-  header: { paddingHorizontal: 15, paddingBottom: 18, borderBottomWidth: 1, borderBottomColor: '#e7eeea', backgroundColor: '#fff' },
-  title: { color: forest, fontSize: 24, lineHeight: 30, fontWeight: '700' },
+  header: { paddingHorizontal: 15, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#e7eeea', backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  title: { flex: 1, color: forest, fontSize: 24, lineHeight: 30, fontWeight: '700' },
+  newButton: { minHeight: 44, paddingHorizontal: 12, borderRadius: 12, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
+  newButtonText: { color: '#fff', fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  connectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  connectionText: { color: '#52675a', fontSize: 12, lineHeight: 18 },
+  retry: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
+  retryText: { color: forest, fontSize: 14, fontWeight: '700' },
+  notice: { color: '#795715', backgroundColor: '#fff7e4', padding: 12, borderRadius: 12, fontSize: 13, lineHeight: 19, marginBottom: 12 },
   content: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 24 },
   segmentedControl: { minHeight: 46, borderRadius: 13, padding: 4, flexDirection: 'row', backgroundColor: '#eef7f3' },
   segment: { flex: 1, borderRadius: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },

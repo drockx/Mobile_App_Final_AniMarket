@@ -12,6 +12,11 @@ export type Conversation = {
   verifiedSeller: boolean;
   listingId?: string;
   empty?: boolean;
+  participantId?: string;
+  updatedAt?: string;
+  lastMessageSeq?: number;
+  readSeq?: number;
+  otherReadSeq?: number;
 };
 
 export function filterConversations(

@@ -27,7 +27,7 @@ export type Listing = {
   imageUri?: string;
   imageUris?: string[];
   vaccinationProof?: { name: string; uri: string };
-  seller?: { name: string; memberSince: string };
+  seller?: { id?: string; name: string; memberSince: string };
 };
 
 export type PickupPin = { latitude: number; longitude: number };

@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
@@ -13,7 +14,6 @@ const green = '#12372a';
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
 
 const icons = {
-  back: { ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' },
   share: { ios: 'square.and.arrow.up', android: 'share', web: 'share' },
   location: { ios: 'mappin', android: 'location_on', web: 'location_on' },
   shield: { ios: 'shield', android: 'shield', web: 'shield' },
@@ -94,7 +94,7 @@ export function ListingDetailsScreen({
             <Image source={imageSource} contentFit="cover" style={StyleSheet.absoluteFill} />
             <View style={styles.heroActions}>
               <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} style={styles.heroButton}>
-                <Icon name={icons.back} color="#fff" size={20} />
+                <NavigationIcon name="back" color="#fff" />
               </Pressable>
               <Pressable onPress={share} accessibilityRole="button" accessibilityLabel="Share listing" hitSlop={8} style={styles.heroButton}>
                 <Icon name={icons.share} color="#fff" size={18} />
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingBottom: 20 },
   hero: { width: '100%', aspectRatio: 192 / 118, backgroundColor: '#263028' },
   heroActions: { position: 'absolute', top: 12, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between' },
-  heroButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#26382f', alignItems: 'center', justifyContent: 'center' },
+  heroButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#26382f', alignItems: 'center', justifyContent: 'center' },
   details: { marginTop: -20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#fff' },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
   titleBlock: { flex: 1 },

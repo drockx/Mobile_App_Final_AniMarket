@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const test = require('node:test');
 const ts = require('typescript');
 const Module = require('node:module');
+const vm = require('node:vm');
 
 require.extensions['.ts'] = (module, filename) => {
   const { outputText } = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
@@ -14,6 +15,9 @@ require.extensions['.ts'] = (module, filename) => {
 const { isCoordinate, locationIssue, copyLocation, sameCity } = require('../src/features/location/domain/location.ts');
 const { parsePhotonResults, createPhotonGeocoder } = require('../src/features/location/data/photon_geocoder.ts');
 const { createLocationService } = require('../src/features/location/application/location_service.ts');
+const { isInsideDavaoDelNorte, DAVAO_DEL_NORTE_BOUNDS } = require('../src/features/location/domain/davao_del_norte_geofence.ts');
+const { createMapDocument } = require('../src/features/location/presentation/map_document.ts');
+const { decodeMapEvent } = require('../src/features/location/presentation/map_types.ts');
 const point = { latitude: 7.4482, longitude: 125.807 };
 const feature = (properties = {}, coordinates = [point.longitude, point.latitude]) => ({
   type: 'Feature', geometry: { type: 'Point', coordinates },
@@ -71,26 +75,115 @@ test('browser GPS works without a Permissions API and does not reuse an old posi
   } finally { if (original) Object.defineProperty(globalThis, 'navigator', original); else delete globalThis.navigator; }
 });
 
-test('map configuration preserves existing plugins and requires a key for EAS Android builds', () => {
-  const configure = require('../app.config.ts').default;
-  const originalKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY;
-  const originalPlatform = process.env.EAS_BUILD_PLATFORM;
-  const config = { name: 'Test', slug: 'test', plugins: ['expo-router', ['expo-location', { locationWhenInUsePermission: 'Test permission' }]], web: { output: 'static' } };
-  try {
-    delete process.env.GOOGLE_MAPS_ANDROID_API_KEY;
-    delete process.env.EAS_BUILD_PLATFORM;
-    assert.equal(configure({ config }).plugins.length, 3);
-    process.env.EAS_BUILD_PLATFORM = 'android';
-    assert.throws(() => configure({ config }), /GOOGLE_MAPS_ANDROID_API_KEY/);
-    process.env.GOOGLE_MAPS_ANDROID_API_KEY = 'test_key';
-    const result = configure({ config });
-    assert.equal(result.plugins[2][1].androidGoogleMapsApiKey, 'test_key');
-    assert.deepEqual(result.web, config.web);
-    assert.deepEqual(result.plugins.slice(0, 2), config.plugins);
-  } finally {
-    if (originalKey === undefined) delete process.env.GOOGLE_MAPS_ANDROID_API_KEY; else process.env.GOOGLE_MAPS_ANDROID_API_KEY = originalKey;
-    if (originalPlatform === undefined) delete process.env.EAS_BUILD_PLATFORM; else process.env.EAS_BUILD_PLATFORM = originalPlatform;
+test('province geofence includes mainland and Samal while excluding Davao City, nearby provinces and sea', () => {
+  for (const coordinate of [point, { latitude: 7.3078, longitude: 125.6841 }, { latitude: 7.076, longitude: 125.708 }, { latitude: 7.6, longitude: 125.6 }]) assert.ok(isInsideDavaoDelNorte(coordinate), JSON.stringify(coordinate));
+  for (const coordinate of [{ latitude: 7.0731, longitude: 125.6128 }, { latitude: 7.36, longitude: 125.8551 }, { latitude: 6.96, longitude: 125.61 }, { latitude: 14.5995, longitude: 120.9842 }]) {
+    assert.equal(isInsideDavaoDelNorte(coordinate), false, JSON.stringify(coordinate));
+    assert.ok(locationIssue({ coordinate, address: null, source: 'map' }));
   }
+});
+
+test('GPS outside the province and out-of-province search results are rejected without an address lookup', async () => {
+  const outside = { latitude: 7.0731, longitude: 125.6128 };
+  const service = createLocationService({ current: async () => ({ coordinate: outside }) }, {
+    search: async () => [{ id: 'inside', ...selected() }, { id: 'outside', ...selected(), coordinate: outside }],
+    reverse: async () => { throw new Error('Should not request an outside address'); },
+  });
+  await assert.rejects(service.current(), /outside Davao del Norte/);
+  await assert.rejects(service.reverse(outside), /inside Davao del Norte/);
+  assert.deepEqual((await service.search('Davao')).map((result) => result.id), ['inside']);
+});
+
+test('street maps use the bundled light renderer, real tile URL and province boundary without a Google key', () => {
+  const html = createMapDocument(point, point, true);
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
+  assert.equal(scripts.length, 2);
+  scripts.forEach((script) => { new vm.Script(script); });
+  assert.match(html, /color-scheme:light/);
+  assert.match(html, /https:\/\/tile\.openstreetmap\.org\/\{z\}\/\{x\}\/\{y\}\.png/);
+  assert.match(html, /Davao del Norte only/);
+  assert.doesNotMatch(html, /maps\.googleapis|GOOGLE_MAPS_ANDROID_API_KEY|unpkg\.com/);
+  const outside = createMapDocument({ latitude: 7.0731, longitude: 125.6128 }, { latitude: 7.0731, longitude: 125.6128 }, false);
+  assert.match(outside, /"selected":null/);
+});
+
+function mapHarness(editable = true) {
+  const emitted = [], mapEvents = {}, tileEvents = {}, windowEvents = {}, domEvents = {};
+  const status = { hidden: false, textContent: 'Loading street map…' };
+  const map = {
+    center: { lat: point.latitude, lng: point.longitude }, zoom: 15,
+    on: (name, listener) => { mapEvents[name] = listener; },
+    getCenter: () => map.center, getZoom: () => map.zoom, getMinZoom: () => 9, getMaxZoom: () => 19,
+    setView: (value, zoom) => { mapEvents.movestart?.(); map.center = { lat: value[0], lng: value[1] }; map.zoom = zoom; mapEvents.moveend?.(); },
+    panTo: (value) => { mapEvents.movestart?.(); map.center = value; mapEvents.moveend?.(); },
+    invalidateSize: () => {}, attributionControl: { setPrefix: () => {} },
+  };
+  const layer = { addTo: () => layer, on: (name, listener) => { tileEvents[name] = listener; }, remove: () => {} };
+  const parent = { postMessage: (raw) => emitted.push(JSON.parse(raw)) };
+  const window = { parent, addEventListener: (name, listener) => { windowEvents[name] = listener; } };
+  const document = {
+    getElementById: (id) => id === 'status' ? status : { addEventListener: (name, listener) => { domEvents[name] = listener; } },
+    addEventListener: () => {},
+  };
+  const L = { map: () => map, latLngBounds: () => ({ pad: () => ({}) }), control: { zoom: () => layer }, tileLayer: () => layer, geoJSON: () => layer, marker: () => layer, divIcon: () => ({}) };
+  const script = [...createMapDocument(point, point, editable).matchAll(/<script>([\s\S]*?)<\/script>/g)][1][1];
+  vm.runInNewContext(script, { L, window, document, setTimeout: () => 1, clearTimeout: () => {} });
+  return { map, emitted, status, mapEvents, tileEvents, domEvents, windowEvents, window, parent };
+}
+
+test('map gestures select the new pin while camera updates and readonly maps never select a location', () => {
+  const h = mapHarness();
+  assert.equal(h.emitted[0].type, 'ready');
+  h.window.AniMarketMap.focus(point, point);
+  assert.equal(h.emitted.filter((event) => event.type === 'select').length, 0);
+  assert.equal(h.emitted.filter((event) => event.type === 'moving' && event.active).length, 0);
+
+  h.domEvents.pointerdown(); h.mapEvents.movestart(); h.mapEvents.dragstart();
+  h.map.center = { lat: 7.45, lng: 125.81 }; h.mapEvents.moveend();
+  assert.ok(h.emitted.some((event) => event.type === 'moving' && event.active));
+  assert.deepEqual(h.emitted.find((event) => event.type === 'select').coordinate, { latitude: 7.45, longitude: 125.81 });
+
+  h.mapEvents.click({ latlng: { lat: 7.46, lng: 125.82 } });
+  assert.deepEqual(h.emitted.filter((event) => event.type === 'select').at(-1).coordinate, { latitude: 7.46, longitude: 125.82 });
+  assert.deepEqual(h.map.center, { lat: 7.46, lng: 125.82 });
+  h.map.zoom = 9;
+  h.window.AniMarketMap.focus({ latitude: 7.076, longitude: 125.708 }, point);
+  assert.equal(h.map.zoom, 15, 'A province-wide view zooms in so a coastal address stays under the pin');
+  assert.deepEqual(h.map.center, { lat: 7.076, lng: 125.708 });
+  for (const gesture of [() => h.domEvents.wheel({ deltaY: 1 }), () => h.domEvents.keydown({ key: 'ArrowUp' })]) {
+    const previous = h.emitted.filter((event) => event.type === 'select').length;
+    gesture(); h.mapEvents.movestart(); h.map.center = { lat: 7.47, lng: 125.83 }; h.mapEvents.moveend();
+    assert.equal(h.emitted.filter((event) => event.type === 'select').length, previous + 1);
+    assert.deepEqual(h.emitted.filter((event) => event.type === 'select').at(-1).coordinate, { latitude: 7.47, longitude: 125.83 });
+  }
+  const preview = mapHarness(false);
+  preview.domEvents.pointerdown(); preview.mapEvents.movestart(); preview.mapEvents.dragstart(); preview.mapEvents.moveend();
+  preview.mapEvents.click({ latlng: { lat: 7.45, lng: 125.81 } });
+  assert.equal(preview.emitted.filter((event) => event.type === 'select').length, 0);
+});
+
+test('failed map tiles show a connection message, recover when a tile loads, and the web bridge can request readiness', () => {
+  const h = mapHarness();
+  h.tileEvents.loading(); h.tileEvents.tileerror(); h.tileEvents.load();
+  assert.equal(h.status.hidden, false);
+  assert.match(h.status.textContent, /could not load/);
+  assert.equal(h.emitted.at(-1).type, 'error');
+  h.tileEvents.tileload();
+  assert.equal(h.status.hidden, true);
+  assert.equal(h.emitted.at(-1).type, 'loaded');
+  const count = h.emitted.length;
+  h.windowEvents.message({ source: {}, data: { channel: 'animarket-map-control', type: 'ping' } });
+  assert.equal(h.emitted.length, count);
+  h.windowEvents.message({ source: h.parent, data: { channel: 'animarket-map-control', type: 'ping' } });
+  assert.equal(h.emitted.at(-1).type, 'ready');
+});
+
+test('map messages accept coordinates and known attribution links, and reject malformed or unrelated messages', () => {
+  const message = (value) => JSON.stringify({ channel: 'animarket-map', ...value });
+  assert.deepEqual(decodeMapEvent(message({ type: 'select', coordinate: point })), { type: 'select', coordinate: point });
+  assert.equal(decodeMapEvent(message({ type: 'moving', active: true })).active, true);
+  for (const raw of ['bad json', '{}', message({ type: 'select', coordinate: { latitude: 99, longitude: 125 } }), message({ type: 'moving', active: 'true' }), message({ type: 'link', url: 'javascript:alert(1)' }), message({ type: 'link', url: 'https://untrusted.example/' })]) assert.equal(decodeMapEvent(raw), null);
+  assert.ok(decodeMapEvent(message({ type: 'link', url: 'https://www.openstreetmap.org/copyright' })));
 });
 
 test('coordinates reject invalid values and a required pin cannot silently use the default centre', () => {
@@ -160,6 +253,7 @@ test('search and reverse API calls encode text, bias the map and preserve the se
   const address = await geocoder.reverse(point);
   assert.equal(calls[0].url.searchParams.get('q'), 'Rizal & Purok 2');
   assert.equal(calls[0].url.searchParams.get('countrycode'), 'PH');
+  assert.equal(calls[0].url.searchParams.get('bbox'), [DAVAO_DEL_NORTE_BOUNDS.west, DAVAO_DEL_NORTE_BOUNDS.south, DAVAO_DEL_NORTE_BOUNDS.east, DAVAO_DEL_NORTE_BOUNDS.north].join(','));
   assert.equal(calls[0].url.searchParams.get('lat'), String(point.latitude));
   assert.equal(calls[0].url.searchParams.get('lon'), String(point.longitude));
   assert.equal(calls[1].url.pathname, '/reverse');
@@ -228,4 +322,19 @@ if (process.argv.includes('--live')) test('live configured geocoder returns Phil
   const address = await geocoder.reverse(point);
   assert.equal(address.countryCode, 'PH');
   assert.equal(address.province, 'Davao del Norte');
+});
+
+if (process.argv.includes('--live')) test('the street-map provider serves a real PNG tile for the Tagum viewport', async () => {
+  const zoom = 15, scale = 2 ** zoom, radians = point.latitude * Math.PI / 180;
+  const x = Math.floor((point.longitude + 180) / 360 * scale);
+  const y = Math.floor((1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2 * scale);
+  const response = await fetch(`https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`, {
+    signal: AbortSignal.timeout(15000), headers: { 'User-Agent': 'AniMarket/1.0 (map connectivity check)' },
+  });
+  assert.ok(response.ok, `Map tile HTTP ${response.status}`);
+  assert.match(response.headers.get('content-type'), /image\/png/);
+  assert.ok(response.headers.get('cache-control'), 'Tiles must allow the renderer to honor provider caching');
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  assert.deepEqual(Array.from(bytes.slice(0, 8)), [137, 80, 78, 71, 13, 10, 26, 10]);
+  assert.ok(bytes.length > 1000);
 });

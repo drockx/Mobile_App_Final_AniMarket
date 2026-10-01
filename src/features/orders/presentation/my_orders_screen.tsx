@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -6,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { OrderRequest } from '../domain/checkout';
 import { filterOrders, type OrderFilter } from '../domain/order_list';
 import { orderStatusCopy } from '../domain/order_status';
-import { CheckoutButton, checkoutColors as color, checkoutIcons as icons } from './checkout_controls';
+import { CheckoutButton, checkoutColors as color } from './checkout_controls';
 import { OrderBadge, OrderCard, OrderItem } from './order_cards';
 import { amountRange, OrderSummaryRow } from './order_components';
 import { OrderPage } from './order_page';
@@ -39,7 +40,7 @@ export function MyOrdersScreen({ orders, onBack, onOpenOrder, onMarketplace }: {
         <View style={styles.search}>
           <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={20} tintColor={color.muted} />
           <TextInput accessibilityLabel="Search orders by livestock, seller, or order number" placeholder="Search your orders" placeholderTextColor={color.muted} value={query} onChangeText={setQuery} returnKeyType="search" autoCorrect={false} style={styles.searchInput} />
-          {!!query && <Pressable accessibilityRole="button" accessibilityLabel="Clear order search" onPress={() => setQuery('')} style={styles.clear}><SymbolView name={icons.close} size={18} tintColor={color.muted} /></Pressable>}
+          {!!query && <Pressable accessibilityRole="button" accessibilityLabel="Clear order search" onPress={() => setQuery('')} style={styles.clear}><NavigationIcon name="close" /></Pressable>}
         </View>
         <View accessibilityRole="tablist" style={styles.filters}>
           {filters.map((option) => <Pressable key={option.value} accessibilityRole="tab" accessibilityLabel={`${option.label} orders, ${counts[option.value]}`} accessibilityState={{ selected: filter === option.value }} onPress={() => setFilter(option.value)} style={({ pressed }) => [styles.filter, filter === option.value && styles.selectedFilter, pressed && styles.pressed]}>

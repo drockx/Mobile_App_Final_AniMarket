@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Private messaging database, including SQLite journals
+/server/data/

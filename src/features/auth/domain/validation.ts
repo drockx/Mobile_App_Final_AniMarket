@@ -26,8 +26,9 @@ export type RegistrationFieldErrors = Partial<
 
 export function validateLogin(values: LoginValues): string | null {
   if (!values.username.trim() || !values.password) {
-    return 'Enter your username and password.';
+    return 'Enter your email address and password.';
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.username.trim())) return 'Enter a valid email address.';
   return null;
 }
 
@@ -40,6 +41,7 @@ export function validateRegistrationFields(
   if (!values.firstName.trim()) errors.firstName = 'First name is required.';
   if (!values.lastName.trim()) errors.lastName = 'Last name is required.';
   if (!values.phone.trim()) errors.phone = 'Phone number is required.';
+  else if (!/^[+\d\s()-]{7,20}$/.test(values.phone.trim())) errors.phone = 'Enter a valid phone number.';
   if (!values.email.trim()) {
     errors.email = 'Email address is required.';
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
@@ -60,6 +62,7 @@ export function validateRegistrationFields(
   }
 
   if (!values.password) errors.password = 'Password is required.';
+  else if (values.password.length < 8 || values.password.length > 128) errors.password = 'Use 8 to 128 characters.';
   if (!values.confirmPassword) {
     errors.confirmPassword = 'Confirm your password.';
   } else if (values.password !== values.confirmPassword) {

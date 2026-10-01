@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image, ImageBackground, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -49,13 +50,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
           >
             <Text style={styles.headline}>Your Trusted Livestock{'\n'}Marketplace</Text>
             <View style={styles.nextButton}>
-              <Text
-                style={styles.arrow}
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-              >
-                →
-              </Text>
+              <NavigationIcon name="next" size={24} />
             </View>
           </LinearGradient>
         </Pressable>
@@ -121,12 +116,5 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 5 },
     elevation: 4,
-  },
-  arrow: {
-    color: '#12372a',
-    fontSize: 27,
-    lineHeight: 29,
-    fontWeight: '500',
-    marginTop: -1,
   },
 });

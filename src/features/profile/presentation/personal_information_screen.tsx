@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -13,6 +14,7 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
   const [cityOpen, setCityOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   function update<K extends keyof typeof values>(key: K, value: typeof values[K]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -20,10 +22,13 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
     setSaved(false);
   }
 
-  function save() {
-    const error = savePersonalInformation(values);
+  async function save() {
+    if (busy) return;
+    setBusy(true);
+    const error = await savePersonalInformation(values);
+    setBusy(false);
     setSaved(!error);
-    setMessage(error ?? 'Personal information saved for this app session.');
+    setMessage(error ?? 'Personal information saved.');
   }
 
   return (
@@ -36,7 +41,7 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
           <Text style={styles.label}>Municipality / City <Text style={styles.required}>*</Text></Text>
           <Pressable accessibilityRole="button" accessibilityLabel={`Municipality or City, ${values.city}`} onPress={() => setCityOpen(true)} style={styles.select}>
             <Text style={styles.selectText}>{davaoDelNorteLocalityLabel(values.city)}</Text>
-            <Text style={styles.chevron}>⌄</Text>
+            <NavigationIcon name={cityOpen ? 'up' : 'down'} />
           </Pressable>
         </View>
         <View style={styles.field}>
@@ -46,8 +51,7 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
       </View>
 
       {message && <Text accessibilityRole="alert" style={[styles.message, saved ? styles.success : styles.error]}>{message}</Text>}
-      <Pressable accessibilityRole="button" onPress={save} style={styles.saveButton}><Text style={styles.saveText}>Save Changes</Text></Pressable>
-      <Text style={styles.note}>This prototype keeps edits only while the app is open. They are not sent to a server.</Text>
+      <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy }} disabled={busy} onPress={save} style={styles.saveButton}><Text style={styles.saveText}>{busy ? 'Saving…' : 'Save Changes'}</Text></Pressable>
 
       <Modal visible={cityOpen} transparent animationType="fade" onRequestClose={() => setCityOpen(false)}>
         <View style={styles.modalBackdrop}>
@@ -74,9 +78,8 @@ const styles = StyleSheet.create({
   field: { gap: 7 },
   label: { color: accountColors.text, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   required: { color: accountColors.red },
-  select: { minHeight: 48, paddingHorizontal: 13, borderWidth: 1, borderColor: accountColors.line, borderRadius: 11, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
-  selectText: { flex: 1, color: accountColors.text, fontSize: 14 },
-  chevron: { color: accountColors.muted, fontSize: 20, marginTop: -6 },
+  select: { minHeight: 48, gap: 8, paddingHorizontal: 13, borderWidth: 1, borderColor: accountColors.line, borderRadius: 11, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
+  selectText: { flex: 1, minWidth: 0, color: accountColors.text, fontSize: 14 },
   readonlyField: { minHeight: 48, paddingHorizontal: 13, borderWidth: 1, borderColor: accountColors.line, borderRadius: 11, justifyContent: 'center', backgroundColor: accountColors.surface },
   readonlyText: { color: accountColors.muted, fontSize: 14 },
   message: { padding: 11, borderRadius: 10, fontSize: 12, lineHeight: 17 },

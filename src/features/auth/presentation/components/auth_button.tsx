@@ -5,14 +5,17 @@ type AuthButtonProps = {
   label: string;
   onPress: () => void;
   compact?: boolean;
+  disabled?: boolean;
 };
 
-export function AuthButton({ label, onPress, compact = false }: AuthButtonProps) {
+export function AuthButton({ label, onPress, compact = false, disabled = false }: AuthButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.button, pressed && styles.pressed, disabled && { opacity: 0.65 }]}
     >
       <LinearGradient
         colors={['#d1d900', '#82cb1b', '#12b774']}

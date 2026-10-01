@@ -12,6 +12,7 @@ export function AccountSecurityScreen({ onBack }: { onBack: () => void }) {
   const [confirmation, setConfirmation] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   function update(setter: (value: string) => void, value: string) {
     setter(value);
@@ -19,10 +20,13 @@ export function AccountSecurityScreen({ onBack }: { onBack: () => void }) {
     setSaved(false);
   }
 
-  function save() {
-    const error = changePassword(current, next, confirmation);
+  async function save() {
+    if (busy) return;
+    setBusy(true);
+    const error = await changePassword(current, next, confirmation);
+    setBusy(false);
     setSaved(!error);
-    setMessage(error ?? 'Demo password changed for this app session.');
+    setMessage(error ?? 'Password updated. Other sessions have been signed out.');
     if (!error) {
       setCurrent('');
       setNext('');
@@ -31,22 +35,21 @@ export function AccountSecurityScreen({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <AccountScreenLayout title="Account & Security" subtitle="Review your sign-in and update your demo password." onBack={onBack}>
+    <AccountScreenLayout title="Account & Security" subtitle="Review your sign-in and update your password." onBack={onBack}>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Sign-in details</Text>
-        <Text style={styles.detailLabel}>Username</Text>
+        <Text style={styles.detailLabel}>Email address</Text>
         <Text style={styles.username}>{account.username || 'Not signed in'}</Text>
-        <Text style={styles.detailNote}>This app currently uses a local demo account. It is not connected to an authentication service.</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Change demo password</Text>
-        <Text style={styles.detailNote}>Your new password works for this account until the app closes.</Text>
+        <Text style={styles.cardTitle}>Change password</Text>
+        <Text style={styles.detailNote}>Use at least 8 characters.</Text>
         <AccountField label="Current Password" required autoComplete="current-password" secureTextEntry value={current} onChangeText={(value) => update(setCurrent, value)} />
         <AccountField label="New Password" required autoComplete="new-password" secureTextEntry value={next} onChangeText={(value) => update(setNext, value)} />
         <AccountField label="Confirm New Password" required autoComplete="new-password" secureTextEntry value={confirmation} onChangeText={(value) => update(setConfirmation, value)} />
         {message && <Text accessibilityRole="alert" style={[styles.message, saved ? styles.success : styles.error]}>{message}</Text>}
-        <Pressable accessibilityRole="button" onPress={save} style={styles.saveButton}><Text style={styles.saveText}>Update Password</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy }} disabled={busy} onPress={save} style={styles.saveButton}><Text style={styles.saveText}>{busy ? 'Updating…' : 'Update Password'}</Text></Pressable>
       </View>
     </AccountScreenLayout>
   );

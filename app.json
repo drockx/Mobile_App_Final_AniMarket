@@ -46,7 +46,8 @@
           "image": "./assets/images/branding/animarket_logo.png",
           "imageWidth": 250
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

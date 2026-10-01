@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -6,16 +7,12 @@ import { dateKey, parseDate, tomorrowKey } from '../domain/checkout';
 
 export const checkoutColors = { green: '#12372a', mid: '#2d6a4f', mint: '#eaf5ed', line: '#dfe8e2', text: '#17221d', muted: '#52647a', warn: '#fff8e7', warnLine: '#f2dfae', danger: '#b42318' };
 export const checkoutIcons = {
-  back: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
-  next: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
-  down: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
   calendar: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' },
   pin: { ios: 'mappin.and.ellipse', android: 'location_on', web: 'location_on' },
   truck: { ios: 'truck.box', android: 'local_shipping', web: 'local_shipping' },
   check: { ios: 'checkmark', android: 'check', web: 'check' },
   info: { ios: 'info.circle', android: 'info', web: 'info' },
   payment: { ios: 'creditcard', android: 'credit_card', web: 'credit_card' },
-  close: { ios: 'xmark', android: 'close', web: 'close' },
   phone: { ios: 'phone', android: 'call', web: 'call' },
   chat: { ios: 'bubble.left', android: 'chat_bubble_outline', web: 'chat_bubble_outline' },
 } as const;
@@ -70,7 +67,7 @@ export function CheckoutSelect({ label, value, options, onSelect, placeholder, r
   return <View style={!hideLabel && controlStyles.field}>
     {!hideLabel && <FieldLabel label={label} required={required} />}
     <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${selected ?? placeholder ?? 'Select'}${required ? ', required' : ''}`} onPress={() => setOpen(true)} style={[controlStyles.input, controlStyles.select, !!error && controlStyles.invalid]}>
-      <Text style={controlStyles.inputText}>{selected ?? placeholder ?? 'Select'}</Text><SymbolView name={checkoutIcons.down} size={16} tintColor={checkoutColors.green} />
+      <Text style={controlStyles.inputText}>{selected ?? placeholder ?? 'Select'}</Text><NavigationIcon name={open ? 'up' : 'down'} />
     </Pressable>
     <FieldError message={error} />
     <CheckoutSheet title={label} visible={open} onClose={() => setOpen(false)}>
@@ -108,9 +105,9 @@ export function CheckoutDate({ label, value, onSelect, error, excludedDays = [] 
     <FieldError message={error} />
     <CheckoutSheet title={label} visible={open} onClose={() => setOpen(false)}>
       <View style={controlStyles.monthRow}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Previous month" accessibilityState={{ disabled: !canGoBack }} disabled={!canGoBack} onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} style={[controlStyles.monthArrow, !canGoBack && { opacity: 0.3 }]}><SymbolView name={checkoutIcons.back} size={18} tintColor={checkoutColors.green} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Previous month" accessibilityState={{ disabled: !canGoBack }} disabled={!canGoBack} onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} style={[controlStyles.monthArrow, !canGoBack && { opacity: 0.3 }]}><NavigationIcon name="back" /></Pressable>
         <Text accessibilityLiveRegion="polite" style={controlStyles.monthName}>{month.toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} style={controlStyles.monthArrow}><SymbolView name={checkoutIcons.next} size={18} tintColor={checkoutColors.green} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Next month" onPress={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} style={controlStyles.monthArrow}><NavigationIcon name="next" size={24} /></Pressable>
       </View>
       <View style={listDates ? controlStyles.calendarList : controlStyles.calendar}>
         {!listDates && ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <Text key={day} style={controlStyles.weekday}>{day}</Text>)}

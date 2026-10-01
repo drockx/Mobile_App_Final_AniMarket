@@ -1,56 +1,50 @@
-import { useEffect, useRef } from 'react';
-import { SymbolView } from 'expo-symbols';
-import { StyleSheet, View } from 'react-native';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import { useEffect, useRef, useState } from 'react';
+import { Linking, View } from 'react-native';
 
-import type { LocationMapProps } from './location_map';
+import { isInsideDavaoDelNorte } from '../domain/davao_del_norte_geofence';
+import { DEFAULT_MAP_CENTER } from '../domain/location';
+import { createMapDocument } from './map_document';
+import { decodeMapEvent, type LocationMapProps } from './map_types';
 
-export function LocationMap({ center, selected, height = 300, onChange, onMovingChange, onInteractionChange, onError }: LocationMapProps) {
-  const container = useRef<HTMLDivElement>(null);
-  const instance = useRef<import('maplibre-gl').Map | null>(null);
-  const marker = useRef<import('maplibre-gl').Marker | null>(null);
-  const latest = useRef({ center, selected, onChange, onMovingChange, onInteractionChange, onError });
-  useEffect(() => { latest.current = { center, selected, onChange, onMovingChange, onInteractionChange, onError }; }, [center, selected, onChange, onMovingChange, onInteractionChange, onError]);
+export function LocationMap(props: LocationMapProps) {
+  const { center, selected, height = 300 } = props;
+  const frame = useRef<HTMLIFrameElement>(null);
+  const ready = useRef(false);
+  const latest = useRef(props);
+  const lastValid = useRef(isInsideDavaoDelNorte(center) ? center : DEFAULT_MAP_CENTER);
+  const [html] = useState(() => createMapDocument(center, selected, !!props.onChange));
+  useEffect(() => { latest.current = props; }, [props]);
   useEffect(() => {
-    let disposed = false;
-    let resize: ResizeObserver | undefined;
-    const release = () => latest.current.onInteractionChange?.(false);
-    window.addEventListener('pointerup', release);
-    window.addEventListener('pointercancel', release);
-    import('maplibre-gl').then(({ Map, Marker, NavigationControl }) => {
-      if (disposed || !container.current) return;
-      const start = latest.current.center;
-      const map = new Map({ container: container.current, style: 'https://tiles.openfreemap.org/styles/liberty', center: [start.longitude, start.latitude], zoom: 16, dragRotate: false, pitchWithRotate: false });
-      instance.current = map;
-      map.addControl(new NavigationControl({ showCompass: false }), 'top-right');
-      let moved = false;
-      map.on('movestart', (event) => { if (event.originalEvent && latest.current.onChange) { moved = true; latest.current.onMovingChange?.(true); } });
-      map.on('moveend', () => {
-        if (moved && latest.current.onChange) { const point = map.getCenter(); latest.current.onChange({ latitude: point.lat, longitude: point.lng }); }
-        moved = false; latest.current.onMovingChange?.(false); release();
-      });
-      map.on('click', (event) => {
-        if (!latest.current.onChange) return;
-        latest.current.onChange({ latitude: event.lngLat.lat, longitude: event.lngLat.lng });
-        map.easeTo({ center: event.lngLat, duration: 250 });
-      });
-      map.on('error', () => latest.current.onError?.());
-      if (!latest.current.onChange && latest.current.selected) {
-        const pin = latest.current.selected;
-        marker.current = new Marker({ color: '#12372a' }).setLngLat([pin.longitude, pin.latitude]).addTo(map);
+    const send = (type: string, coordinate = lastValid.current) => frame.current?.contentWindow?.postMessage(JSON.stringify({ channel: 'animarket-map-control', type, coordinate, selected: latest.current.selected }), '*');
+    const receive = (event: MessageEvent) => {
+      if (event.source !== frame.current?.contentWindow) return;
+      const message = decodeMapEvent(event.data);
+      if (!message) return;
+      const current = latest.current;
+      if (message.type === 'ready') { ready.current = true; send('focus'); }
+      else if (message.type === 'loaded') current.onLoaded?.();
+      else if (message.type === 'error') current.onError?.();
+      else if (message.type === 'moving') current.onMovingChange?.(message.active);
+      else if (message.type === 'interaction') current.onInteractionChange?.(message.active);
+      else if (message.type === 'link') Linking.openURL(message.url).catch(() => {});
+      else if (message.type === 'select' && current.onChange) {
+        if (isInsideDavaoDelNorte(message.coordinate)) { lastValid.current = message.coordinate; current.onChange(message.coordinate); }
+        else { current.onOutside?.(); send('focus'); }
       }
-      if (typeof ResizeObserver !== 'undefined') { resize = new ResizeObserver(() => map.resize()); resize.observe(container.current); }
-    }).catch(() => { if (!disposed) latest.current.onError?.(); });
-    return () => { disposed = true; window.removeEventListener('pointerup', release); window.removeEventListener('pointercancel', release); resize?.disconnect(); marker.current?.remove(); marker.current = null; instance.current?.remove(); instance.current = null; };
+    };
+    window.addEventListener('message', receive);
+    const timer = setTimeout(() => { if (!ready.current) latest.current.onError?.(); }, 20000);
+    return () => { window.removeEventListener('message', receive); clearTimeout(timer); };
   }, []);
-  useEffect(() => { instance.current?.easeTo({ center: [center.longitude, center.latitude], duration: 300 }); }, [center]);
-  useEffect(() => { if (selected) marker.current?.setLngLat([selected.longitude, selected.latitude]); }, [selected]);
-  return <View style={{ width: '100%', height }}>
-    <div ref={container} onPointerDownCapture={() => onInteractionChange?.(true)} onPointerUpCapture={() => onInteractionChange?.(false)} onPointerCancel={() => onInteractionChange?.(false)} aria-label={onChange ? 'Move or tap the map to choose your pinned location' : 'Map of the confirmed location'} style={{ width: '100%', height, touchAction: 'none' }} />
-    {onChange && <View pointerEvents="none" style={StyleSheet.absoluteFill}><View style={styles.pin}><SymbolView name={{ web: 'location_on', ios: 'mappin', android: 'location_on' }} size={40} tintColor="#12372a" /></View><View style={styles.target} /></View>}
+  useEffect(() => {
+    const point = isInsideDavaoDelNorte(center) ? center : DEFAULT_MAP_CENTER;
+    lastValid.current = point;
+    if (ready.current) frame.current?.contentWindow?.postMessage(JSON.stringify({ channel: 'animarket-map-control', type: 'focus', coordinate: point, selected: latest.current.selected }), '*');
+  }, [center]);
+  useEffect(() => {
+    if (ready.current && !latest.current.onChange) frame.current?.contentWindow?.postMessage(JSON.stringify({ channel: 'animarket-map-control', type: 'marker', selected }), '*');
+  }, [selected]);
+  return <View style={{ width: '100%', height, backgroundColor: '#eaf5ed' }}>
+    <iframe ref={frame} srcDoc={html} title="Davao del Norte street map" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin" onLoad={() => frame.current?.contentWindow?.postMessage(JSON.stringify({ channel: 'animarket-map-control', type: 'ping' }), '*')} style={{ display: 'block', width: '100%', height, border: 0, background: '#eaf5ed' }} />
   </View>;
 }
-const styles = StyleSheet.create({
-  pin: { position: 'absolute', left: '50%', top: '50%', marginLeft: -20, marginTop: -40, width: 40, height: 40 },
-  target: { position: 'absolute', left: '50%', top: '50%', marginLeft: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#12372a44' },
-});

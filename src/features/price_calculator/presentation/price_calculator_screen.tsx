@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useRef, useState, type ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -59,7 +60,7 @@ function SelectField({ label, value, options, onPress }: {
       <Label>{label}</Label>
       <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${options.find((option) => option.value === value)?.label ?? value}`} onPress={onPress} style={styles.selectField}>
         <Text numberOfLines={1} style={styles.inputText}>{options.find((option) => option.value === value)?.label ?? value}</Text>
-        <Text style={styles.chevron}>⌄</Text>
+        <NavigationIcon name="down" />
       </Pressable>
     </View>
   );
@@ -138,7 +139,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', onBack, onUs
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
       <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top, height: insets.top + 58 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={10} style={styles.backButton}><Text style={styles.backArrow}>←</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={10} style={styles.backButton}><NavigationIcon name="back" /></Pressable>
         <Text style={styles.headerTitle}>Price Calculator</Text>
         <View style={styles.backButton} />
       </View>
@@ -243,9 +244,8 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', onBack, onUs
 const styles = StyleSheet.create({
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
   header: { paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#edf2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backButton: { width: 38, height: 38, justifyContent: 'center', alignItems: 'center' },
-  backArrow: { color: forest, fontSize: 26, lineHeight: 30, fontWeight: '500' },
-  headerTitle: { color: forest, fontSize: 17, lineHeight: 23, fontWeight: '800' },
+  backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center', color: forest, fontSize: 17, lineHeight: 23, fontWeight: '800' },
   content: { paddingHorizontal: 20, paddingTop: 18 },
   intro: { color: '#5f6f66', fontSize: 11, lineHeight: 16, marginBottom: 14 },
   sectionTitle: { color: forest, fontSize: 14, lineHeight: 19, fontWeight: '800', marginBottom: 12 },
@@ -255,8 +255,7 @@ const styles = StyleSheet.create({
   required: { color: '#c53030' },
   input: { minHeight: 44, width: '100%', paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', color: '#2d3748', fontSize: 12, lineHeight: 18 },
   selectField: { minHeight: 44, paddingHorizontal: 13, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', flexDirection: 'row', alignItems: 'center', gap: 5 },
-  inputText: { flex: 1, color: '#2d3748', fontSize: 12, lineHeight: 18 },
-  chevron: { color: muted, fontSize: 20, lineHeight: 22, marginTop: -7 },
+  inputText: { flex: 1, minWidth: 0, color: '#2d3748', fontSize: 12, lineHeight: 18 },
   row: { flexDirection: 'row', gap: 10 },
   rowItem: { flex: 1, minWidth: 0 },
   conditionRow: { flexDirection: 'row', gap: 7 },

@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -29,7 +30,6 @@ const icon = {
   person: { ios: 'person', android: 'person_outline', web: 'person_outline' },
   lock: { ios: 'lock', android: 'lock_outline', web: 'lock_outline' },
   logout: { ios: 'rectangle.portrait.and.arrow.right', android: 'logout', web: 'logout' },
-  chevron: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
 } as const;
 
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
@@ -85,7 +85,7 @@ function MenuItem({
       <View style={styles.menuCopy}>
         <Text style={[styles.menuTitle, destructive && styles.logoutText]}>{title}</Text>
       </View>
-      {badge ? <Text style={styles.count}>{badge}</Text> : <Icon name={icon.chevron} size={15} tintColor="#8a968e" />}
+      {badge ? <Text style={styles.count}>{badge}</Text> : <NavigationIcon name="next" />}
     </Pressable>
   );
 }

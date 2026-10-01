@@ -1,3 +1,4 @@
+import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -15,6 +16,7 @@ import { AuthScreenLayout } from './components/auth_screen_layout';
 
 type RegisterScreenProps = {
   onBackToLogin: () => void;
+  onRegister: (values: RegistrationValues) => Promise<string | null>;
 };
 
 const initialValues: RegistrationValues = {
@@ -23,12 +25,13 @@ const initialValues: RegistrationValues = {
   password: '', confirmPassword: '',
 };
 
-export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
+export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProps) {
   const [values, setValues] = useState<RegistrationValues>(initialValues);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errors, setErrors] = useState<RegistrationFieldErrors>({});
   const [message, setMessage] = useState<string | null>(null);
   const [localityOpen, setLocalityOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   function updateField(field: keyof RegistrationValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -38,7 +41,8 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
     setMessage(null);
   }
 
-  function submit() {
+  async function submit() {
+    if (busy) return;
     const nextErrors = validateRegistrationFields(values, acceptedTerms);
     setErrors(nextErrors);
 
@@ -47,7 +51,10 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
       return;
     }
 
-    setMessage('Your details are valid. Account creation is not connected yet.');
+    setBusy(true);
+    try { setMessage(await onRegister(values)); }
+    catch { setMessage('Unable to create your account. Please try again.'); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -60,7 +67,7 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
           onPress={onBackToLogin}
           style={styles.backButton}
         >
-          <Text style={styles.backArrow}>←</Text>
+          <NavigationIcon name="back" color="#fff" />
         </Pressable>
         <Text style={styles.title}>Create Account</Text>
       </View>
@@ -87,7 +94,7 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
           <Text style={styles.addressLabel}>Municipality / City</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Choose city or municipality" accessibilityState={{ expanded: localityOpen }} onPress={() => setLocalityOpen(true)} style={[styles.addressSelect, !!errors.municipalityCity && styles.addressError]}>
             <Text style={styles.addressValue}>{values.municipalityCity || 'Choose a Davao del Norte locality'}</Text>
-            <Text style={styles.chevron}>⌄</Text>
+            <NavigationIcon name={localityOpen ? 'up' : 'down'} color="#fff" />
           </Pressable>
           {!!errors.municipalityCity && <Text accessibilityRole="alert" style={styles.addressErrorText}>{errors.municipalityCity}</Text>}
         </View>
@@ -120,7 +127,7 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
       </View>
 
       {message && <Text accessibilityRole="alert" style={styles.message}>{message}</Text>}
-      <AuthButton label="Register" onPress={submit} compact />
+      <AuthButton label={busy ? 'Creating account…' : 'Register'} onPress={submit} compact disabled={busy} />
 
       <View style={styles.switchRow}>
         <Text style={styles.switchText}>Already have an account? </Text>
@@ -151,7 +158,6 @@ export function RegisterScreen({ onBackToLogin }: RegisterScreenProps) {
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
   backButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.55)', backgroundColor: 'rgba(255,255,255,0.07)', alignItems: 'center', justifyContent: 'center' },
-  backArrow: { color: '#fff', fontSize: 27, lineHeight: 32 },
   title: { flexShrink: 1, color: '#fff', fontSize: 27, lineHeight: 33, letterSpacing: -0.6, fontWeight: '700' },
   subtitle: { color: '#fff', fontSize: 14, lineHeight: 21, marginBottom: 10 },
   sectionLabel: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.45, textTransform: 'uppercase', marginTop: 13, marginBottom: 8 },
@@ -159,7 +165,6 @@ const styles = StyleSheet.create({
   addressLabel: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', marginBottom: 5 },
   addressSelect: { minHeight: 52, borderRadius: 15, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.78)', backgroundColor: 'rgba(0,0,0,0.24)', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   addressValue: { color: '#fff', fontSize: 15, flexShrink: 1 },
-  chevron: { color: '#fff', fontSize: 22 },
   addressError: { borderColor: '#ffb4a8' },
   addressErrorText: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 5, paddingHorizontal: 2 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(10,28,20,0.65)', alignItems: 'center', justifyContent: 'center', padding: 22 },

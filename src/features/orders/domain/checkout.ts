@@ -10,6 +10,7 @@ export type CheckoutItem = {
   weight: string;
   health: string;
   seller: string;
+  sellerId?: string;
   sellerAddress: string;
   price: number;
   priceUnit?: ListingPriceUnit;
