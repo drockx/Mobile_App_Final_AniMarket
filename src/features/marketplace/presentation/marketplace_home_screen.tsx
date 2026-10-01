@@ -1,6 +1,7 @@
 import { useState, useSyncExternalStore } from 'react';
 import { DataFeedback } from '@/components/data_feedback';
 import { AnimalPlaceholder } from '@/components/animal_placeholder';
+import { NavigationIcon } from '@/components/navigation_icon';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -10,6 +11,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +21,7 @@ import { notificationStore } from '@/features/notifications/notification_store';
 
 import type { MarketplaceService } from '../application/marketplace_service';
 import { formatListingAddress, type Listing, type LivestockCategory } from '../domain/listing';
-import { toListingCriteria, type SearchFilters } from './search_filters';
+import { hasActiveFilterOptions, toListingCriteria, type SearchFilters } from './search_filters';
 import { getListingImage } from './listing_images';
 
 const palette = {
@@ -49,6 +51,7 @@ const icons = {
   location: { ios: 'mappin.circle', android: 'location_on', web: 'location_on' },
   notification: { ios: 'bell', android: 'notifications_none', web: 'notifications_none' },
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
+  filter: { ios: 'slider.horizontal.3', android: 'tune', web: 'tune' },
 } as const;
 
 function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => void }) {
@@ -74,6 +77,7 @@ type MarketplaceHomeScreenProps = {
   isFocused: boolean;
   onOpenListing: (id: string) => void;
   onOpenNotifications: () => void;
+  onSearch: (filters: SearchFilters) => void;
   onOpenFilters: (filters: SearchFilters) => void;
 };
 
@@ -84,31 +88,24 @@ export function MarketplaceHomeScreen({
   isFocused,
   onOpenListing,
   onOpenNotifications,
+  onSearch,
   onOpenFilters,
 }: MarketplaceHomeScreenProps) {
   const insets = useSafeAreaInsets();
   const data = useSyncExternalStore(marketplace.subscribe, marketplace.getState, marketplace.getState);
   const notifications = useSyncExternalStore(notificationStore.subscribe, notificationStore.getSnapshot, notificationStore.getSnapshot);
   const [categoryDraft, setCategoryDraft] = useState<{ routeKey: string; value: LivestockCategory | null } | null>(null);
-  const [verifiedDraft, setVerifiedDraft] = useState<{ routeKey: string; value: boolean } | null>(null);
+  const [queryDraft, setQueryDraft] = useState<{ routeKey: string; value: string } | null>(null);
   const category = categoryDraft?.routeKey === routeKey ? categoryDraft.value : routeFilters.category;
-  const query = routeFilters.query;
-  const verifiedOnly = verifiedDraft?.routeKey === routeKey ? verifiedDraft.value : routeFilters.verifiedOnly;
+  const query = queryDraft?.routeKey === routeKey ? queryDraft.value : routeFilters.query;
+  const filters = { ...routeFilters, category, query };
+  const filtersActive = hasActiveFilterOptions(filters);
 
   const visibleListings = isFocused
-    ? marketplace.findListings(toListingCriteria({
-      category,
-      query,
-      verifiedOnly,
-      location: routeFilters.location,
-      minPrice: routeFilters.minPrice,
-      maxPrice: routeFilters.maxPrice,
-      vaccinatedOnly: routeFilters.vaccinatedOnly,
-      sort: routeFilters.sort,
-    })) : [];
+    ? marketplace.findListings(toListingCriteria(filters)) : [];
 
   function openFilters() {
-    onOpenFilters({ ...routeFilters, category, query, verifiedOnly });
+    onOpenFilters(filters);
   }
 
   return (
@@ -136,17 +133,35 @@ export function MarketplaceHomeScreen({
           </Pressable>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Search livestock"
-          onPress={openFilters}
-          style={styles.searchBox}
-        >
+        <View style={styles.searchBox}>
           <Icon name={icons.search} size={18} color="#8ea0b8" />
-          <Text numberOfLines={1} style={[styles.searchInput, !query && styles.searchPlaceholder]}>
-            {query || 'Search cow, goats, feeds...'}
-          </Text>
-        </Pressable>
+          <TextInput
+            accessibilityLabel="Search livestock"
+            autoCapitalize="none"
+            autoCorrect={false}
+            onChangeText={(value) => setQueryDraft({ routeKey, value })}
+            onSubmitEditing={() => onSearch(filters)}
+            placeholder="Search livestock..."
+            placeholderTextColor="#52647a"
+            returnKeyType="search"
+            selectionColor={palette.green}
+            style={styles.searchInput}
+            value={query}
+          />
+          {!!query && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              onPress={() => {
+                setQueryDraft({ routeKey, value: '' });
+                onSearch({ ...filters, query: '' });
+              }}
+              style={styles.clearSearchButton}
+            >
+              <NavigationIcon name="close" size={20} />
+            </Pressable>
+          )}
+        </View>
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Categories</Text>
@@ -193,13 +208,12 @@ export function MarketplaceHomeScreen({
           <Text style={styles.sectionTitle}>Fresh Listings</Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Filter verified sellers"
-            accessibilityState={{ selected: verifiedOnly }}
-            hitSlop={10}
-            onPress={() => setVerifiedDraft({ routeKey, value: !verifiedOnly })}
-            style={[styles.filterButton, verifiedOnly && styles.filterButtonActive]}
+            accessibilityLabel={filtersActive ? 'Open filters, filters applied' : 'Open filters'}
+            onPress={openFilters}
+            style={[styles.filterButton, filtersActive && styles.filterButtonActive]}
           >
-            <Text style={[styles.filterText, verifiedOnly && styles.filterTextActive]}>Filter</Text>
+            <Icon name={icons.filter} size={18} />
+            <Text style={styles.filterText}>Filter</Text>
           </Pressable>
         </View>
 
@@ -275,7 +289,7 @@ const styles = StyleSheet.create({
   },
 
   searchBox: {
-    height: 42,
+    minHeight: 48,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#dce4ed',
@@ -291,21 +305,30 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    minWidth: 0,
     marginLeft: 9,
+    paddingVertical: 10,
     color: palette.ink,
     fontSize: 14,
+    lineHeight: 20,
   },
-  searchPlaceholder: {
-    color: '#44536a',
+  clearSearchButton: {
+    width: 44,
+    height: 44,
+    marginRight: -8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   sectionHeading: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
     marginTop: 18,
   },
   sectionTitle: {
+    flex: 1,
     color: palette.green,
     fontSize: 18,
     lineHeight: 23,
@@ -392,23 +415,26 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
   filterButton: {
-    minHeight: 32,
-    minWidth: 40,
-    alignItems: 'flex-end',
+    minHeight: 44,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: palette.border,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
     justifyContent: 'center',
   },
   filterButtonActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: palette.green,
+    borderColor: palette.green,
+    backgroundColor: '#e9f4ec',
   },
   filterText: {
-    color: '#39705a',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '600',
-  },
-  filterTextActive: {
     color: palette.green,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
   },
 
   grid: {

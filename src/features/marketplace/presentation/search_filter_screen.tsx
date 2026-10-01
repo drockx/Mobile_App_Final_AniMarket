@@ -17,15 +17,16 @@ import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel
 
 import type { LivestockCategory } from '../domain/listing';
 import {
-  emptyFilters,
+  resetFilterOptions,
   numericPrice,
   type SearchFilters,
   type SortOrder,
 } from './search_filters';
 
 const green = '#183d31';
-const border = '#dce5f2';
-const ink = '#253242';
+const border = '#dbe5de';
+const ink = '#25332c';
+const secondary = '#52645a';
 
 const categories: { label: string; value: LivestockCategory }[] = [
   { label: 'Cow', value: 'Cow' },
@@ -107,36 +108,28 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
       style={styles.screen}
     >
       <StatusBar style="dark" />
-      <View style={[styles.header, { paddingTop: insets.top, height: insets.top + 56 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, minHeight: insets.top + 64 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.backButton}>
           <NavigationIcon name="back" />
         </Pressable>
-        <Text style={styles.headerTitle}>Search &amp; Filter</Text>
-        <Pressable accessibilityRole="button" onPress={() => { setFilters(emptyFilters); setOpenMenu(null); }} style={styles.resetButton}>
+        <Text style={styles.headerTitle}>Filters</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Reset filters" onPress={() => { setFilters(resetFilterOptions(filters)); setOpenMenu(null); }} style={styles.resetButton}>
           <Text style={styles.resetText}>Reset</Text>
         </Pressable>
       </View>
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.searchField}>
-          <TextInput
-            accessibilityLabel="Search listings"
-            autoCapitalize="none"
-            onChangeText={(value) => update('query', value)}
-            returnKeyType="search"
-            style={styles.searchInput}
-            value={filters.query}
-          />
-          {filters.query ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => update('query', '')} hitSlop={6} style={styles.clearButton}>
-              <NavigationIcon name="close" size={20} />
-            </Pressable>
-          ) : <View style={styles.clearButton}><NavigationIcon name="close" size={20} /></View>}
-        </View>
+        {!!filters.query.trim() && (
+          <View style={styles.searchContext}>
+            <Text style={styles.searchContextLabel}>Filtering results for</Text>
+            <Text style={styles.searchContextQuery}>{filters.query}</Text>
+          </View>
+        )}
 
         <Text style={styles.label}>Category</Text>
         <View style={styles.categoryRow}>
@@ -164,7 +157,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
           onPress={() => setOpenMenu(openMenu === 'location' ? null : 'location')}
           style={styles.selectField}
         >
-          <Text numberOfLines={1} style={styles.selectText}>{locations.find((item) => item.value === filters.location)?.label ?? locations[0].label}</Text>
+          <Text style={styles.selectText}>{locations.find((item) => item.value === filters.location)?.label ?? locations[0].label}</Text>
           <NavigationIcon name={openMenu === 'location' ? 'up' : 'down'} />
         </Pressable>
         {openMenu === 'location' && (
@@ -179,24 +172,30 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
 
         <Text style={styles.label}>Price Range (₱)</Text>
         <View style={styles.priceRow}>
-          <TextInput
-            accessibilityLabel="Minimum price"
-            keyboardType="numeric"
-            onChangeText={(value) => update('minPrice', value.replace(/[^0-9]/g, ''))}
-            placeholder="Min"
-            placeholderTextColor="#8a99aa"
-            style={styles.priceInput}
-            value={filters.minPrice}
-          />
-          <TextInput
-            accessibilityLabel="Maximum price"
-            keyboardType="numeric"
-            onChangeText={(value) => update('maxPrice', value.replace(/[^0-9]/g, ''))}
-            placeholder="Max"
-            placeholderTextColor="#8a99aa"
-            style={styles.priceInput}
-            value={filters.maxPrice}
-          />
+          <View style={styles.priceField}>
+            <Text style={styles.priceLabel}>Minimum</Text>
+            <TextInput
+              accessibilityLabel="Minimum price"
+              keyboardType="numeric"
+              onChangeText={(value) => update('minPrice', value.replace(/[^0-9]/g, ''))}
+              placeholder="Any"
+              placeholderTextColor={secondary}
+              style={styles.priceInput}
+              value={filters.minPrice}
+            />
+          </View>
+          <View style={styles.priceField}>
+            <Text style={styles.priceLabel}>Maximum</Text>
+            <TextInput
+              accessibilityLabel="Maximum price"
+              keyboardType="numeric"
+              onChangeText={(value) => update('maxPrice', value.replace(/[^0-9]/g, ''))}
+              placeholder="Any"
+              placeholderTextColor={secondary}
+              style={styles.priceInput}
+              value={filters.maxPrice}
+            />
+          </View>
         </View>
         {numericPrice(filters.minPrice) !== undefined && numericPrice(filters.maxPrice) !== undefined
           && Number(filters.minPrice) > Number(filters.maxPrice) && (
@@ -241,7 +240,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
         <Pressable accessibilityRole="button" onPress={applyFilters} style={styles.applyButton}>
-          <Text style={styles.applyText}>Apply Filters &amp; Show Results</Text>
+          <Text style={styles.applyText}>Apply Filters</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -249,40 +248,43 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff' },
-  header: { borderBottomWidth: 1, borderBottomColor: '#e5ebf1', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 28 },
+  screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
+  header: { borderBottomWidth: 1, borderBottomColor: border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
   backButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center', color: green, fontSize: 16, lineHeight: 22, fontWeight: '800' },
-  resetButton: { minWidth: 42, height: 36, alignItems: 'flex-end', justifyContent: 'center' },
-  resetText: { color: '#26664f', fontSize: 12, fontWeight: '700' },
-  content: { paddingHorizontal: 28, paddingTop: 18, paddingBottom: 22 },
-  clearButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  searchField: { minHeight: 48, flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, borderColor: border, backgroundColor: '#fafcff', paddingHorizontal: 13 },
-  searchInput: { flex: 1, minWidth: 0, paddingVertical: 10, color: ink, fontSize: 14 },
-  label: { color: '#27313c', fontSize: 13, lineHeight: 18, fontWeight: '800', marginTop: 19, marginBottom: 10 },
+  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center', color: green, fontSize: 24, lineHeight: 30, fontWeight: '700' },
+  resetButton: { minWidth: 48, minHeight: 44, paddingVertical: 10, alignItems: 'flex-end', justifyContent: 'center' },
+  resetText: { color: green, fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 },
+  searchContext: { borderRadius: 12, backgroundColor: '#eef6f0', padding: 14, gap: 4 },
+  searchContextLabel: { color: secondary, fontSize: 14, lineHeight: 20 },
+  searchContextQuery: { color: green, fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  label: { color: ink, fontSize: 16, lineHeight: 22, fontWeight: '700', marginTop: 22, marginBottom: 10 },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  categoryChip: { minHeight: 32, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1, borderColor: border, backgroundColor: '#fafcff', alignItems: 'center', justifyContent: 'center' },
+  categoryChip: { minHeight: 44, maxWidth: '100%', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: border, backgroundColor: '#f8fbf9', alignItems: 'center', justifyContent: 'center' },
   categoryChipSelected: { backgroundColor: green, borderColor: green },
-  categoryText: { color: '#344258', fontSize: 12, fontWeight: '500' },
+  categoryText: { color: ink, fontSize: 15, lineHeight: 20, fontWeight: '600', textAlign: 'center' },
   categoryTextSelected: { color: '#fff', fontWeight: '700' },
-  selectField: { minHeight: 48, paddingVertical: 10, gap: 8, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#fafcff', paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center' },
-  selectText: { flex: 1, minWidth: 0, color: '#354258', fontSize: 13 },
+  selectField: { minHeight: 50, paddingVertical: 12, gap: 12, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fbf9', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },
+  selectText: { flex: 1, minWidth: 0, color: ink, fontSize: 16, lineHeight: 22 },
   menu: { borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#fff', marginTop: 5, overflow: 'hidden' },
-  menuItem: { minHeight: 39, paddingHorizontal: 13, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border },
-  menuText: { color: ink, fontSize: 13 },
+  menuItem: { minHeight: 48, paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border },
+  menuText: { color: ink, fontSize: 16, lineHeight: 22 },
   priceRow: { flexDirection: 'row', gap: 12 },
-  priceInput: { flex: 1, height: 40, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#fafcff', paddingHorizontal: 13, color: ink, fontSize: 13 },
+  priceField: { flex: 1, minWidth: 0 },
+  priceLabel: { color: secondary, fontSize: 14, lineHeight: 20, fontWeight: '600', marginBottom: 6 },
+  priceInput: { minHeight: 50, width: '100%', borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fbf9', paddingHorizontal: 12, paddingVertical: 12, color: ink, fontSize: 16, lineHeight: 22 },
   error: { color: '#b42318', fontSize: 14, lineHeight: 20, marginTop: 5 },
   preferencesLabel: { marginTop: 22, marginBottom: 8 },
-  preference: { minHeight: 51, borderBottomWidth: 1, borderBottomColor: '#edf1f5', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  preferenceCopy: { flex: 1 },
-  preferenceTitle: { color: '#27313c', fontSize: 14, lineHeight: 20, fontWeight: '800' },
-  preferenceDescription: { color: '#52647a', fontSize: 13, lineHeight: 18, marginTop: 2 },
-  switchTrack: { width: 40, height: 22, borderRadius: 12, backgroundColor: '#b8c4cf', padding: 2, justifyContent: 'center' },
+  preference: { minHeight: 76, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+  preferenceCopy: { flex: 1, minWidth: 0 },
+  preferenceTitle: { color: ink, fontSize: 16, lineHeight: 22, fontWeight: '700' },
+  preferenceDescription: { color: secondary, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  switchTrack: { width: 40, height: 22, flexShrink: 0, borderRadius: 12, backgroundColor: '#b8c4cf', padding: 2, justifyContent: 'center' },
   switchTrackOn: { backgroundColor: green },
   switchThumb: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff' },
   switchThumbOn: { alignSelf: 'flex-end' },
-  footer: { minHeight: 68, paddingTop: 10, paddingHorizontal: 28, backgroundColor: '#fff' },
-  applyButton: { minHeight: 44, alignSelf: 'flex-start', borderRadius: 10, paddingHorizontal: 16, backgroundColor: green, alignItems: 'center', justifyContent: 'center' },
-  applyText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  footer: { paddingTop: 12, paddingHorizontal: 20, borderTopWidth: 1, borderTopColor: border, backgroundColor: '#fff' },
+  applyButton: { minHeight: 52, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: green, alignItems: 'center', justifyContent: 'center' },
+  applyText: { color: '#fff', fontSize: 16, lineHeight: 22, textAlign: 'center', fontWeight: '700' },
 });

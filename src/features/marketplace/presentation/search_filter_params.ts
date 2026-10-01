@@ -1,6 +1,6 @@
 import { isDavaoDelNorteLocation } from '@/constants/davao_del_norte';
 
-import { featuredFilters, type SearchFilters } from './search_filters';
+import type { SearchFilters } from './search_filters';
 
 export type FilterParams = Partial<Record<keyof SearchFilters | 'applied', string | string[]>>;
 
@@ -26,14 +26,7 @@ export function parseSearchFilters(params: FilterParams): SearchFilters {
 }
 
 export function initialSearchFilters(params: FilterParams): SearchFilters {
-  const incoming = parseSearchFilters(params);
-  if (first(params.applied) === 'true') return incoming;
-  return {
-    ...featuredFilters,
-    query: incoming.query,
-    category: incoming.category ?? featuredFilters.category,
-    verifiedOnly: params.verifiedOnly === undefined ? featuredFilters.verifiedOnly : incoming.verifiedOnly,
-  };
+  return parseSearchFilters(params);
 }
 
 export function serializeSearchFilters(filters: SearchFilters): Record<string, string> {

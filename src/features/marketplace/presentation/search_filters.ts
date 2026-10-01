@@ -24,15 +24,15 @@ export const emptyFilters: SearchFilters = {
   vaccinatedOnly: false,
 };
 
-export const featuredFilters: SearchFilters = {
-  ...emptyFilters,
-  category: 'Cow',
-  location: '',
-  minPrice: '10000',
-  maxPrice: '60000',
-  verifiedOnly: true,
-  vaccinatedOnly: true,
-};
+export function resetFilterOptions(filters: SearchFilters): SearchFilters {
+  return { ...emptyFilters, query: filters.query };
+}
+
+export function hasActiveFilterOptions(filters: SearchFilters): boolean {
+  return filters.category !== null || !!filters.location || !!filters.minPrice.trim()
+    || !!filters.maxPrice.trim() || filters.sort !== 'newest'
+    || filters.verifiedOnly || filters.vaccinatedOnly;
+}
 
 export function numericPrice(value: string): number | undefined {
   if (!value.trim()) return undefined;

@@ -29,6 +29,8 @@ const { loginDestination } = require('../src/navigation/login_destination.ts');
 const { createLocalAppRepositories } = require('../src/data/app_repositories.ts');
 const { isMarketRecord } = require('../src/features/market_reference/domain/market_reference.ts');
 const { phoneUrl } = require('../src/utils/phone_url.ts');
+const { initialSearchFilters, parseSearchFilters, serializeSearchFilters } = require('../src/features/marketplace/presentation/search_filter_params.ts');
+const { emptyFilters, resetFilterOptions, toListingCriteria } = require('../src/features/marketplace/presentation/search_filters.ts');
 const now = new Date(2026, 9, 1, 12);
 const point = { latitude: 7.4482, longitude: 125.807 };
 const criteria = { category: null, query: '', verifiedOnly: false };
@@ -38,6 +40,33 @@ const listing = (id = 'arbitrary_document_123', owner = 'seller-A') => ({
   age: '24 months', health: 'Healthy', healthVerification: { status: 'unverified' }, description: 'Available for inspection.',
 });
 const item = () => ({ id: 'arbitrary_document_123', title: 'Cow', weight: '450 kg', health: 'Healthy', seller: 'Real Seller', sellerId: 'seller-A', sellerAddress: 'Tagum City, Davao del Norte', price: 45000 });
+
+test('opening filters starts with the current search and no hidden preset restrictions', () => {
+  assert.deepEqual(initialSearchFilters({ query: 'Goat' }), { ...emptyFilters, query: 'Goat' });
+  const filters = { ...emptyFilters, query: 'Breeding Goat', category: 'Goat', location: listing().location,
+    minPrice: '5000', maxPrice: '12000', sort: 'price-asc', verifiedOnly: true, vaccinatedOnly: true };
+  const params = serializeSearchFilters(filters);
+  assert.deepEqual(parseSearchFilters(params), filters);
+  delete params.applied;
+  assert.deepEqual(initialSearchFilters(params), filters);
+});
+
+test('search and filter controls combine independently and reset keeps the search text', () => {
+  const service = createMarketplaceService(createLocalListingRepository([
+    { ...listing('breeding-goat'), title: 'Breeding Goat', category: 'Goat', price: 10000, verified: true, health: 'Vaccinated' },
+    { ...listing('dairy-goat'), title: 'Dairy Goat', category: 'Goat', price: 8000, verified: true, health: 'Vaccinated' },
+    { ...listing('unverified-goat'), title: 'Breeding Goat', category: 'Goat', price: 12000 },
+    { ...listing('breeding-cow'), title: 'Breeding Cow', verified: true },
+  ]));
+  const filtered = { ...emptyFilters, query: 'Breeding', category: 'Goat', maxPrice: '10000',
+    sort: 'price-asc', verifiedOnly: true, vaccinatedOnly: true };
+  const ids = (filters) => service.findListings(toListingCriteria(filters)).map((record) => record.id);
+  assert.deepEqual(ids(parseSearchFilters(serializeSearchFilters(filtered))), ['breeding-goat']);
+  assert.deepEqual(ids({ ...filtered, query: '' }), ['dairy-goat', 'breeding-goat']);
+  const reset = resetFilterOptions(filtered);
+  assert.equal(reset.query, 'Breeding');
+  assert.deepEqual(ids(reset).sort(), ['breeding-cow', 'breeding-goat', 'unverified-goat']);
+});
 const form = () => ({ ...emptyCheckoutForm(), pickupDate: '2026-10-02', pickupTime: PICKUP_TIMES[0] });
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 

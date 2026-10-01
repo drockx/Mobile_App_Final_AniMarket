@@ -17,15 +17,10 @@ export default function HomeRoute() {
       isFocused={isFocused}
       onOpenListing={(id) => router.push({ pathname: '/listings/id', params: { id } })}
       onOpenNotifications={() => router.push('/notifications')}
+      onSearch={(filters) => router.setParams(serializeSearchFilters(filters))}
       onOpenFilters={(filters) => router.push({
         pathname: '/search_filter',
-        params: params.applied === 'true'
-          ? serializeSearchFilters(filters)
-          : {
-            category: filters.category ?? '',
-            query: filters.query,
-            verifiedOnly: String(filters.verifiedOnly),
-          },
+        params: serializeSearchFilters(filters),
       })}
     />
   );
