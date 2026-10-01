@@ -7,6 +7,7 @@ import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel
 import { savePersonalInformation, useAccount } from '../profile_store';
 import { AccountField } from './components/account_field';
 import { AccountScreenLayout, accountColors } from './components/account_screen_layout';
+import { ProfilePicture } from './components/profile_picture';
 
 export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
   const account = useAccount();
@@ -36,7 +37,11 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <AccountScreenLayout title="Personal Information" subtitle="Keep your AniMarket contact and livestock location details up to date." onBack={onBack}>
+    <AccountScreenLayout title="Edit Profile" subtitle="Update your profile photo, contact information and livestock location." onBack={onBack}>
+      <View style={[styles.card, styles.photoCard]}>
+        <Text style={styles.label}>Profile Photo</Text>
+        <ProfilePicture key={account.userId} initials={account.personal.fullName.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'AM'} editable />
+      </View>
       <View style={styles.card}>
         <AccountField label="Full Name" required autoComplete="name" autoCapitalize="words" value={values.fullName} onChangeText={(value) => update('fullName', value)} />
         {['pending', 'verified'].includes(account.verification.status) && <Text style={styles.note}>Changing your full name removes your current ID verification. Use the name on your valid ID.</Text>}
@@ -83,6 +88,7 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
 
 const styles = StyleSheet.create({
   card: { padding: 15, gap: 16, borderWidth: 1, borderColor: accountColors.line, borderRadius: 16, backgroundColor: '#fff' },
+  photoCard: { alignItems: 'center' },
   field: { gap: 7 },
   label: { color: accountColors.text, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   required: { color: accountColors.red },

@@ -15,7 +15,7 @@ import { verificationStyles as s } from './verification_styles';
 type SavedPhoto = { userId: string; version: string; uri: string };
 type PhotoDraft = { base64: string; uri: string };
 
-export function ProfilePicture({ initials, compact }: { initials: string; compact: boolean }) {
+export function ProfilePicture({ initials, compact = false, editable = false }: { initials: string; compact?: boolean; editable?: boolean }) {
   const account = useAccount();
   const insets = useSafeAreaInsets();
   const [saved, setSaved] = useState<SavedPhoto | null>(null);
@@ -82,11 +82,14 @@ export function ProfilePicture({ initials, compact }: { initials: string; compac
   }
 
   return <>
-    <Pressable accessibilityRole="button" accessibilityLabel={account.avatarVersion ? 'Change profile photo' : 'Add profile photo'} onPress={showEditor} style={[styles.avatar, compact && styles.compact]}>
+    <View style={[styles.avatar, compact && styles.compact]}>
       {source ? <Image source={source} cachePolicy="none" contentFit="cover" accessibilityLabel="Your profile photo" style={styles.image} /> : <Text style={styles.initials}>{initials}</Text>}
-      <View style={styles.camera}><SymbolView name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }} size={13} tintColor="#fff" /></View>
-    </Pressable>
-    <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
+    </View>
+    {editable && <Pressable accessibilityRole="button" onPress={showEditor} style={styles.editButton}>
+      <SymbolView name={{ ios: 'camera.fill', android: 'photo_camera', web: 'photo_camera' }} size={18} tintColor={c.forest} />
+      <Text style={styles.editText}>{account.avatarVersion ? 'Change Photo' : 'Add Photo'}</Text>
+    </Pressable>}
+    {editable && <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
       <View style={styles.backdrop}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close profile photo editor" disabled={busy} onPress={close} style={StyleSheet.absoluteFill} />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16), marginTop: insets.top + 12 }]}>
@@ -111,7 +114,7 @@ export function ProfilePicture({ initials, compact }: { initials: string; compac
           </ScrollView>
         </View>
       </View>
-    </Modal>
+    </Modal>}
   </>;
 }
 
@@ -120,7 +123,8 @@ const styles = StyleSheet.create({
   compact: { width: 55, height: 55 },
   image: { width: '100%', height: '100%', borderRadius: 18 },
   initials: { color: c.forest, fontSize: 20, fontWeight: '800' },
-  camera: { position: 'absolute', right: -3, bottom: -3, width: 25, height: 25, borderRadius: 13, borderWidth: 2, borderColor: '#fff', backgroundColor: c.forest, alignItems: 'center', justifyContent: 'center' },
+  editButton: { minHeight: 48, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 11, borderWidth: 1, borderColor: c.forest, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'stretch' },
+  editText: { color: c.forest, fontSize: 14, lineHeight: 20, fontWeight: '700', flexShrink: 1 },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(10,28,20,0.5)' },
   sheet: { width: '100%', maxWidth: 480, maxHeight: '90%', alignSelf: 'center', borderTopLeftRadius: 20, borderTopRightRadius: 20, backgroundColor: '#fff' },
   header: { paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: c.line },
