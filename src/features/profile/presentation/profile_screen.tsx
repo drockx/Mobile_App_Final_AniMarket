@@ -8,6 +8,7 @@ import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
 
 import { useAccount } from '../profile_store';
 import { verificationLabels } from '../domain/identity_verification';
+import { ProfilePicture } from './components/profile_picture';
 
 const color = {
   forest: '#12372a',
@@ -21,7 +22,6 @@ const color = {
 } as const;
 
 const icon = {
-  settings: { ios: 'gearshape', android: 'settings', web: 'settings' },
   check: { ios: 'checkmark.seal', android: 'verified', web: 'verified' },
   listings: { ios: 'list.bullet.rectangle', android: 'list_alt', web: 'list_alt' },
   orders: { ios: 'bag', android: 'shopping_bag', web: 'shopping_bag' },
@@ -132,24 +132,12 @@ export function ProfileScreen({ activeListingCount, orderCount, onMyListings, on
           <View>
             <Text style={styles.headerTitle}>Profile</Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Settings"
-            hitSlop={3}
-            onPress={onAccountSecurity}
-            style={styles.settingsButton}
-          >
-            <Icon name={icon.settings} />
-          </Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.profileCard}>
             <View style={styles.identity}>
-              <View style={[styles.avatar, compact && styles.avatarCompact]}>
-                <Text style={styles.avatarText}>{initials}</Text>
-                <View style={styles.onlineDot} />
-              </View>
+              <ProfilePicture key={account.userId} initials={initials} compact={compact} />
               <View style={styles.identityCopy}>
                 <View style={styles.identityTopRow}>
                   <Text numberOfLines={2} style={styles.personName}>{account.personal.fullName || 'AniMarket Member'}</Text>
@@ -169,15 +157,6 @@ export function ProfileScreen({ activeListingCount, orderCount, onMyListings, on
                   <Text style={styles.verifiedText}>{account.verification.status === 'verified' ? 'Identity verified' : 'AniMarket member'}</Text>
                 </View>
               </View>
-            </View>
-
-            <View style={styles.verification}>
-              <View style={styles.verificationCopy}>
-                <Text style={styles.verificationTitle}>{verificationLabels[account.verification.status]}</Text>
-              </View>
-              <Pressable accessibilityRole="button" accessibilityLabel="Open account verification" onPress={onVerification} style={styles.completeButton}>
-                <Text style={styles.completeText}>{account.verification.status === 'unverified' ? 'Verify' : 'View'}</Text>
-              </Pressable>
             </View>
 
             <View style={styles.stats}>
@@ -214,9 +193,16 @@ export function ProfileScreen({ activeListingCount, orderCount, onMyListings, on
 
           <View style={styles.accountGroup}>
             <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>ACCOUNT</Text></View>
+            <View style={styles.verification}>
+              <View style={styles.verificationCopy}>
+                <Text style={styles.verificationTitle}>{verificationLabels[account.verification.status]}</Text>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel="Open account verification" onPress={onVerification} style={styles.completeButton}>
+                <Text style={styles.completeText}>{account.verification.status === 'unverified' ? 'Verify' : 'View'}</Text>
+              </Pressable>
+            </View>
             <View style={styles.menu}>
               <MenuItem title="Personal Information" symbol={icon.person} onPress={onPersonalInformation} />
-              <MenuItem title="Account Verification" symbol={icon.check} onPress={onVerification} />
               {account.isReviewer && <MenuItem title="ID Reviews" symbol={icon.check} onPress={onIdReviews} />}
               <MenuItem title="Account & Security" symbol={icon.lock} onPress={onAccountSecurity} />
               <MenuItem title="Log Out" symbol={icon.logout} destructive onPress={confirmLogOut} last />
@@ -235,14 +221,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: color.surface },
   header: { paddingHorizontal: 15, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: color.line },
   headerTitle: { color: color.forest, fontSize: 24, lineHeight: 30, fontWeight: '700' },
-  settingsButton: { width: 38, height: 38, borderWidth: 1, borderColor: color.line, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
   content: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 20, gap: 12 },
   profileCard: { padding: 15, paddingBottom: 20, borderRadius: 18, borderWidth: 1, borderColor: color.line, backgroundColor: '#fff', shadowColor: color.forest, shadowOpacity: 0.05, shadowRadius: 18, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  avatar: { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: color.mint },
-  avatarCompact: { width: 55, height: 55 },
-  avatarText: { color: color.forest, fontSize: 20, fontWeight: '800' },
-  onlineDot: { position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, borderWidth: 3, borderColor: '#fff', backgroundColor: '#36a269' },
   identityCopy: { flex: 1, minWidth: 0 },
   identityTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   personName: { flex: 1, minWidth: 0, color: color.forest, fontSize: 17, lineHeight: 22, fontWeight: '700' },
@@ -275,7 +256,7 @@ const styles = StyleSheet.create({
   menuTitle: { color: color.text, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   logoutText: { color: color.red },
   count: { color: color.forest, backgroundColor: color.mint, borderRadius: 20, overflow: 'hidden', paddingHorizontal: 7, paddingVertical: 5, fontSize: 12, lineHeight: 16, fontWeight: '800' },
-  verification: { minHeight: 52, marginTop: 10, borderWidth: 1, borderColor: '#eddcab', borderRadius: 14, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff7df' },
+  verification: { minHeight: 52, borderWidth: 1, borderColor: '#eddcab', borderRadius: 14, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff7df' },
   verificationCopy: { flex: 1 },
   verificationTitle: { color: '#684500', fontSize: 13, lineHeight: 18, fontWeight: '700' },
   completeButton: { minWidth: 64, minHeight: 44, paddingHorizontal: 8, paddingVertical: 7, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },

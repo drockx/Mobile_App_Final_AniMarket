@@ -7,10 +7,10 @@ import { ApiError, apiRequest, getAccessToken, onUnauthorized, setAccessToken } 
 import type { IdentityVerification, ValidIdType } from './domain/identity_verification';
 
 export type PersonalInformation = { fullName: string; email: string; phone: string; city: DavaoDelNorteLocality };
-type Account = { id: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean };
+type Account = { id: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean; avatarVersion: string | null };
 type Session = { token: string; account: Account };
-type AccountSnapshot = { signedIn: boolean; loading: boolean; userId: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean };
-const empty: AccountSnapshot = { signedIn: false, loading: false, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: 'Tagum City' }, verification: { status: 'unverified' }, isReviewer: false };
+type AccountSnapshot = { signedIn: boolean; loading: boolean; userId: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean; avatarVersion: string | null };
+const empty: AccountSnapshot = { signedIn: false, loading: false, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: 'Tagum City' }, verification: { status: 'unverified' }, isReviewer: false, avatarVersion: null };
 let snapshot: AccountSnapshot = { ...empty, loading: true };
 const listeners = new Set<() => void>();
 let initialized: Promise<void> | undefined;
@@ -21,7 +21,7 @@ function publish(next: AccountSnapshot) { snapshot = next; listeners.forEach((li
 export function subscribeAccount(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }
 export function getAccountSnapshot() { return snapshot; }
 export function useAccount() { return useSyncExternalStore(subscribeAccount, getAccountSnapshot, getAccountSnapshot); }
-function accountSnapshot(account: Account): AccountSnapshot { return { userId: account.id, username: account.username, personal: account.personal, verification: account.verification ?? { status: 'unverified' }, isReviewer: account.isReviewer === true, signedIn: true, loading: false }; }
+function accountSnapshot(account: Account): AccountSnapshot { return { userId: account.id, username: account.username, personal: account.personal, verification: account.verification ?? { status: 'unverified' }, isReviewer: account.isReviewer === true, avatarVersion: account.avatarVersion ?? null, signedIn: true, loading: false }; }
 function storeSession(session: Session | null) {
   const write = async () => {
     if (Platform.OS === 'web') {
@@ -134,3 +134,5 @@ export function refreshAccount() {
 export const submitIdentity = (idType: ValidIdType, photo: string) => updateAccount('/verification/id', { idType, photo, fullName: snapshot.personal.fullName, consent: true });
 export const withdrawIdentity = () => updateAccount('/verification/withdraw', {});
 export const checkSellerEligibility = () => updateAccount('/verification/eligibility');
+export const saveProfilePhoto = (photo: string) => updateAccount('/auth/photo', { photo });
+export const removeProfilePhoto = () => updateAccount('/auth/photo/remove', {});

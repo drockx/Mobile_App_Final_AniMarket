@@ -35,6 +35,10 @@ function openDatabase(filename) {
       UNIQUE(conversation_id, sender_id, client_id)
     );
     CREATE INDEX IF NOT EXISTS message_thread ON messages(conversation_id, seq);
+    CREATE TABLE IF NOT EXISTS profile_photos (
+      user_id TEXT PRIMARY KEY REFERENCES users(id), version TEXT NOT NULL,
+      photo BLOB NOT NULL, mime_type TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS identity_verifications (
       user_id TEXT PRIMARY KEY REFERENCES users(id), submission_id TEXT NOT NULL,
       status TEXT NOT NULL CHECK(status IN ('pending', 'verified', 'rejected', 'expired')),

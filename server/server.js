@@ -5,6 +5,7 @@ const { promisify } = require('node:util');
 const { networkInterfaces } = require('node:os');
 const { openDatabase } = require('./database');
 const { createIdentityVerification } = require('./identity_verification');
+const { createProfilePhotos } = require('./profile_photos');
 
 const hashPassword = promisify(scrypt);
 const digest = (value) => createHash('sha256').update(value).digest('hex');
@@ -54,8 +55,9 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
     }
   }
   const verification = createIdentityVerification({ db, databasePath, ApiError, notify });
+  const profilePhotos = createProfilePhotos({ db, ApiError, notify });
   function publicAccount(row) {
-    return { id: row.id, username: row.email, personal: { fullName: row.full_name, email: row.email, phone: row.phone, city: row.city }, verification: verification.status(row.id), isReviewer: Boolean(row.is_reviewer) };
+    return { id: row.id, username: row.email, personal: { fullName: row.full_name, email: row.email, phone: row.phone, city: row.city }, verification: verification.status(row.id), isReviewer: Boolean(row.is_reviewer), avatarVersion: profilePhotos.version(row.id) };
   }
   function limit(key, count, windowMs) {
     const now = Date.now();
@@ -157,6 +159,10 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
       }
       const user = authenticate(req);
       verification.expire();
+      if (['/auth/photo', '/auth/photo/remove'].includes(url.pathname)) {
+        limit(`profile-photo:${user.id}`, 30, 60000);
+        if (await profilePhotos.handle({ user, req, url, bodyJson, respond, account: publicAccount })) return;
+      }
       if (url.pathname.startsWith('/verification/')) {
         limit(`verification:${user.id}`, 60, 60000);
         if (await verification.handle({ user, req, url, bodyJson, respond, account: publicAccount })) return;
