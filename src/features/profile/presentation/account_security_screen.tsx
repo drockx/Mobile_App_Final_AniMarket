@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PASSWORD_GUIDANCE } from '../../auth/domain/credential_policy';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { changePassword, useAccount } from '../profile_store';
@@ -44,7 +45,7 @@ export function AccountSecurityScreen({ onBack }: { onBack: () => void }) {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Change password</Text>
-        <Text style={styles.detailNote}>Use at least 8 characters.</Text>
+        <Text style={styles.detailNote}>{PASSWORD_GUIDANCE}</Text>
         <AccountField label="Current Password" required autoComplete="current-password" secureTextEntry value={current} onChangeText={(value) => update(setCurrent, value)} />
         <AccountField label="New Password" required autoComplete="new-password" secureTextEntry value={next} onChangeText={(value) => update(setNext, value)} />
         <AccountField label="Confirm New Password" required autoComplete="new-password" secureTextEntry value={confirmation} onChangeText={(value) => update(setConfirmation, value)} />

@@ -50,6 +50,7 @@ function openDatabase(filename) {
   `);
   const columns = db.prepare('PRAGMA table_info(users)').all();
   if (!columns.some((column) => column.name === 'is_reviewer')) db.exec('ALTER TABLE users ADD COLUMN is_reviewer INTEGER NOT NULL DEFAULT 0');
+  if (!columns.some((column) => column.name === 'email_verified_at')) db.exec('ALTER TABLE users ADD COLUMN email_verified_at TEXT');
   return db;
 }
 

@@ -36,7 +36,7 @@
         {
           "photosPermission": "Allow AniMarket to choose your profile photo, livestock photos, and a valid ID photo for account verification.",
           "cameraPermission": "Allow AniMarket to take your profile photo and photograph your valid ID for account verification.",
-          "microphonePermission": false
+          "microphonePermission": "Allow AniMarket to use your microphone for voice calls with another user."
         }
       ],
       [
@@ -47,7 +47,13 @@
           "imageWidth": 250
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "microphonePermission": "Allow AniMarket to use your microphone for voice calls with another user."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

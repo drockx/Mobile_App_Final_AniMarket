@@ -15,8 +15,11 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
   const [message, setMessage] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const emailChanged = values.email.trim().toLowerCase() !== account.personal.email.toLowerCase();
 
   function update<K extends keyof typeof values>(key: K, value: typeof values[K]) {
+    if (key === 'email') { setCurrentPassword(''); }
     setValues((current) => ({ ...current, [key]: value }));
     setMessage(null);
     setSaved(false);
@@ -25,10 +28,11 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
   async function save() {
     if (busy) return;
     setBusy(true);
-    const error = await savePersonalInformation(values);
+    const error = await savePersonalInformation(values, emailChanged ? { currentPassword } : undefined);
     setBusy(false);
     setSaved(!error);
     setMessage(error ?? 'Personal information saved.');
+    if (!error) { setCurrentPassword(''); }
   }
 
   return (
@@ -37,6 +41,9 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
         <AccountField label="Full Name" required autoComplete="name" autoCapitalize="words" value={values.fullName} onChangeText={(value) => update('fullName', value)} />
         {['pending', 'verified'].includes(account.verification.status) && <Text style={styles.note}>Changing your full name removes your current ID verification. Use the name on your valid ID.</Text>}
         <AccountField label="Email Address" autoComplete="email" autoCapitalize="none" keyboardType="email-address" value={values.email} onChangeText={(value) => update('email', value)} />
+        {emailChanged && <>
+          <AccountField label="Current Password to Change Email" autoComplete="current-password" secureTextEntry value={currentPassword} onChangeText={setCurrentPassword} />
+        </>}
         <AccountField label="Phone Number" autoComplete="tel" keyboardType="phone-pad" value={values.phone} onChangeText={(value) => update('phone', value)} />
         <View style={styles.field}>
           <Text style={styles.label}>Municipality / City <Text style={styles.required}>*</Text></Text>

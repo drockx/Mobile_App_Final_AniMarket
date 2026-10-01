@@ -13,6 +13,7 @@ import { AuthButton } from './components/auth_button';
 import { AuthCheckbox } from './components/auth_checkbox';
 import { AuthField } from './components/auth_field';
 import { AuthScreenLayout } from './components/auth_screen_layout';
+import { passwordRequirements } from '../domain/credential_policy';
 
 type RegisterScreenProps = {
   onBackToLogin: () => void;
@@ -108,6 +109,10 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
       <Text style={styles.sectionLabel}>Security</Text>
       <View style={styles.fieldGroup}>
         <AuthField compact label="Password" autoComplete="new-password" secure returnKeyType="next" error={errors.password} value={values.password} onChangeText={(value) => updateField('password', value)} />
+        <View style={styles.passwordRules}>
+          <Text style={styles.rulesTitle}>Password requirements</Text>
+          {passwordRequirements(values.password).map((rule) => <Text key={rule.label} accessibilityLabel={`${rule.met ? 'Met' : 'Required'}: ${rule.label}`} style={styles.ruleText}>{rule.met ? '✓' : '○'}  {rule.label}</Text>)}
+        </View>
         <AuthField compact label="Confirm Password" autoComplete="new-password" secure returnKeyType="done" error={errors.confirmPassword} value={values.confirmPassword} onChangeText={(value) => updateField('confirmPassword', value)} />
       </View>
 
@@ -162,6 +167,9 @@ const styles = StyleSheet.create({
   subtitle: { color: '#fff', fontSize: 14, lineHeight: 21, marginBottom: 10 },
   sectionLabel: { color: '#fff', fontSize: 13, fontWeight: '700', letterSpacing: 0.45, textTransform: 'uppercase', marginTop: 13, marginBottom: 8 },
   fieldGroup: { gap: 10 },
+  passwordRules: { backgroundColor: 'rgba(0,0,0,0.28)', borderRadius: 12, padding: 12, gap: 4 },
+  rulesTitle: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 2 },
+  ruleText: { color: '#fff', fontSize: 14, lineHeight: 21, flexShrink: 1 },
   addressLabel: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', marginBottom: 5 },
   addressSelect: { minHeight: 52, borderRadius: 15, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.78)', backgroundColor: 'rgba(0,0,0,0.24)', paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   addressValue: { color: '#fff', fontSize: 15, flexShrink: 1 },

@@ -30,6 +30,8 @@ export function AuthField({
       <View style={styles.inputWrap}>
         <TextInput
           {...inputProps}
+          autoCapitalize={secure ? 'none' : inputProps.autoCapitalize}
+          autoCorrect={secure || inputProps.keyboardType === 'email-address' ? false : undefined}
           accessibilityLabel={label}
           placeholder={label}
           placeholderTextColor="rgba(255,255,255,0.72)"

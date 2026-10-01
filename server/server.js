@@ -6,6 +6,8 @@ const { networkInterfaces } = require('node:os');
 const { openDatabase } = require('./database');
 const { createIdentityVerification } = require('./identity_verification');
 const { createProfilePhotos } = require('./profile_photos');
+const { createVoiceCalls } = require('./voice_calls');
+const { passwordError, emailError } = require('../src/features/auth/domain/credential_policy');
 
 const hashPassword = promisify(scrypt);
 const digest = (value) => createHash('sha256').update(value).digest('hex');
@@ -19,11 +21,13 @@ function requireText(value, label, max = 120) {
 }
 function emailAddress(value) {
   const email = requireText(value, 'email address', 254).toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ApiError(400, 'Enter a valid email address.');
+  const issue = emailError(email);
+  if (issue) throw new ApiError(400, issue);
   return email;
 }
 function passwordValue(value) {
-  if (typeof value !== 'string' || value.length < 8 || value.length > 128) throw new ApiError(400, 'Use a password with 8 to 128 characters.');
+  const issue = passwordError(value);
+  if (issue) throw new ApiError(400, issue);
   return value;
 }
 function personalValues(body) {
@@ -35,7 +39,7 @@ function personalValues(body) {
   return { fullName, email, phone, city: body.city };
 }
 
-function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE || path.join(__dirname, 'data', 'animarket.sqlite'), allowedOrigins = process.env.ANIMARKET_ALLOWED_ORIGINS || '', pollTimeout = 25000 } = {}) {
+function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE || path.join(__dirname, 'data', 'animarket.sqlite'), allowedOrigins = process.env.ANIMARKET_ALLOWED_ORIGINS || '', pollTimeout = 25000, ringTimeout = 45000 } = {}) {
   const db = openDatabase(databasePath);
   const waiters = new Map();
   const rateLimits = new Map();
@@ -56,6 +60,7 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
   }
   const verification = createIdentityVerification({ db, databasePath, ApiError, notify });
   const profilePhotos = createProfilePhotos({ db, ApiError, notify });
+  const calls = createVoiceCalls({ db, ApiError, notify, verification, ringTimeout });
   function publicAccount(row) {
     return { id: row.id, username: row.email, personal: { fullName: row.full_name, email: row.email, phone: row.phone, city: row.city }, verification: verification.status(row.id), isReviewer: Boolean(row.is_reviewer), avatarVersion: profilePhotos.version(row.id) };
   }
@@ -144,6 +149,7 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
           if (body.acceptedTerms !== true) throw new ApiError(400, 'Please agree to the terms and privacy policy.');
           const address = { street: requireText(body.street, 'street'), barangay: requireText(body.barangay, 'barangay'), postalCode: requireText(body.postalCode, 'postal code', 4) };
           if (!/^\d{4}$/.test(address.postalCode)) throw new ApiError(400, 'Postal code must contain four digits.');
+          if (get('SELECT id FROM users WHERE email = ?', person.email)) throw new ApiError(409, 'This email address is already registered.');
           const salt = randomBytes(16).toString('hex');
           const passwordHash = (await hashPassword(password, salt, 64)).toString('hex');
           const id = randomUUID();
@@ -159,6 +165,11 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
       }
       const user = authenticate(req);
       verification.expire();
+      if (url.pathname.startsWith('/calls') && url.pathname !== '/calls/sync') {
+        limit(`calls:${user.id}`, 240, 60000);
+        if (url.pathname === '/calls' && req.method === 'POST') limit(`start-call:${user.id}`, 20, 60000);
+        if (await calls.handle({ user, req, url, bodyJson, respond })) return;
+      }
       if (['/auth/photo', '/auth/photo/remove'].includes(url.pathname)) {
         limit(`profile-photo:${user.id}`, 30, 60000);
         if (await profilePhotos.handle({ user, req, url, bodyJson, respond, account: publicAccount })) return;
@@ -169,6 +180,7 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
       }
       if (url.pathname === '/auth/me' && req.method === 'GET') { respond(200, { account: publicAccount(user) }); return; }
       if (url.pathname === '/auth/logout' && req.method === 'POST') {
+        calls.endForUser(user.id);
         run('DELETE FROM sessions WHERE token_hash = ?', user.token_hash); notify([user.id]); respond(200, { ok: true }); return;
       }
       if (url.pathname === '/auth/password' && req.method === 'POST') {
@@ -182,9 +194,17 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
         notify([user.id]); respond(200, { ok: true }); return;
       }
       if (url.pathname === '/auth/me' && req.method === 'PATCH') {
-        const person = personalValues(await bodyJson(req));
+        const body = await bodyJson(req); const person = personalValues(body);
+        const emailChanged = person.email !== user.email;
+        if (emailChanged) {
+          limit(`email-change:${user.id}`, 10, 15 * 60000);
+          if (typeof body.currentPassword !== 'string' || body.currentPassword.length > 128) throw new ApiError(400, 'Enter your current password to change your email.');
+          const candidate = await hashPassword(body.currentPassword, user.salt, 64);
+          const freshUser = authenticate(req);
+          if (!timingSafeEqual(candidate, Buffer.from(freshUser.password_hash, 'hex'))) throw new ApiError(400, 'Current password is incorrect.');
+        }
         const current = get('SELECT * FROM users WHERE id = ?', user.id);
-        run('UPDATE users SET email = ?, full_name = ?, phone = ?, city = ? WHERE id = ?', person.email, person.fullName, person.phone, person.city, user.id);
+        run('UPDATE users SET email = ?, full_name = ?, phone = ?, city = ?, email_verified_at = ? WHERE id = ?', person.email, person.fullName, person.phone, person.city, emailChanged ? null : current.email_verified_at, user.id);
         if (person.fullName !== current.full_name) verification.invalidateName(user.id);
         const peers = all('SELECT DISTINCT other.user_id FROM members mine JOIN members other ON mine.conversation_id = other.conversation_id WHERE mine.user_id = ?', user.id).map((row) => row.user_id);
         notify([user.id, ...peers]); respond(200, { account: publicAccount(get('SELECT * FROM users WHERE id = ?', user.id)) }); return;
@@ -242,16 +262,17 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
           respond(200, { ok: true }); return;
         }
       }
-      if (url.pathname === '/sync' && req.method === 'GET') {
+      if (['/sync', '/calls/sync'].includes(url.pathname) && req.method === 'GET') {
+        const snapshot = () => url.pathname === '/calls/sync' ? calls.snapshot(user.id, url.searchParams) : syncSnapshot(user.id);
         const cursor = Number(url.searchParams.get('cursor'));
-        if (!url.searchParams.has('cursor') || cursor !== user.revision) { respond(200, syncSnapshot(user.id)); return; }
+        if (!url.searchParams.has('cursor') || cursor !== user.revision) { respond(200, snapshot()); return; }
         let pending = waiters.get(user.id);
         if (!pending) { pending = new Set(); waiters.set(user.id, pending); }
         if (pending.size >= 8) throw new ApiError(429, 'Too many active chat connections.');
         const finish = () => {
           clearTimeout(timer); pending.delete(finish); if (!pending.size) waiters.delete(user.id);
           if (res.destroyed || res.writableEnded) return;
-          try { authenticate(req); respond(200, syncSnapshot(user.id)); }
+          try { authenticate(req); respond(200, snapshot()); }
           catch (error) { respond(error.status || 500, { error: error.message }); }
         };
         const timer = setTimeout(finish, pollTimeout); pending.add(finish);
@@ -265,7 +286,7 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
     }
   });
   server.requestTimeout = 35000;
-  return { server, db, async close() { verification.close(); for (const pending of waiters.values()) for (const wake of [...pending]) wake(); await new Promise((resolve) => server.close(resolve)); db.close(); } };
+  return { server, db, async close() { calls.close(); verification.close(); for (const pending of waiters.values()) for (const wake of [...pending]) wake(); await new Promise((resolve) => server.close(resolve)); db.close(); } };
 }
 
 if (require.main === module) {

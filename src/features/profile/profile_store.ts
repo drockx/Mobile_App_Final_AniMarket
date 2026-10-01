@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import { DAVAO_DEL_NORTE, isDavaoDelNorteLocality, type DavaoDelNorteLocality } from '@/constants/davao_del_norte';
 import { ApiError, apiRequest, getAccessToken, onUnauthorized, setAccessToken } from '@/services/api';
 import type { IdentityVerification, ValidIdType } from './domain/identity_verification';
+import { emailError, passwordError } from '../auth/domain/credential_policy';
 
 export type PersonalInformation = { fullName: string; email: string; phone: string; city: DavaoDelNorteLocality };
 type Account = { id: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean; avatarVersion: string | null };
@@ -89,16 +90,18 @@ export function signOut() {
 }
 export function validatePersonalInformation(personal: PersonalInformation): string | null {
   if (!personal.fullName.trim()) return 'Enter your full name.';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personal.email.trim())) return 'Enter a valid email address.';
+  const emailIssue = emailError(personal.email);
+  if (emailIssue) return emailIssue;
   if (!/^[+\d\s()-]{7,20}$/.test(personal.phone.trim())) return 'Enter a valid phone number.';
   if (!isDavaoDelNorteLocality(personal.city)) return `${DAVAO_DEL_NORTE}: choose a city or municipality.`;
   return null;
 }
-export async function savePersonalInformation(personal: PersonalInformation): Promise<string | null> {
+export async function savePersonalInformation(personal: PersonalInformation, emailChange?: { currentPassword: string }): Promise<string | null> {
   const issue = validatePersonalInformation(personal); if (issue) return issue;
+  if (personal.email.trim().toLowerCase() !== snapshot.personal.email.toLowerCase() && (!emailChange || !emailChange.currentPassword)) return 'Enter your current password to change your email.';
   const epoch = generation; const token = getAccessToken();
   try {
-    const { account } = await apiRequest<{ account: Account }>('/auth/me', { method: 'PATCH', body: personal });
+    const { account } = await apiRequest<{ account: Account }>('/auth/me', { method: 'PATCH', body: { ...personal, ...emailChange } });
     if (epoch !== generation || !token) return 'Please sign in again.';
     await storeSession({ token, account });
     if (epoch !== generation) return 'Please sign in again.';
@@ -107,7 +110,8 @@ export async function savePersonalInformation(personal: PersonalInformation): Pr
 }
 export async function changePassword(current: string, next: string, confirmation: string): Promise<string | null> {
   if (!snapshot.signedIn) return 'Sign in before changing your password.';
-  if (next.length < 8 || next.length > 128) return 'Use 8 to 128 characters for the new password.';
+  const passwordIssue = passwordError(next);
+  if (passwordIssue) return passwordIssue;
   if (next === current) return 'Choose a different password.';
   if (next !== confirmation) return 'New passwords do not match.';
   try { await apiRequest('/auth/password', { method: 'POST', body: { current, next } }); return null; }

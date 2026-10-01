@@ -35,7 +35,7 @@ App-owned source files, folders, and image basenames use snake_case. Expo Router
 
 ```bash
 npm install
-npx expo start
+npm start
 npx expo lint
 npx tsc --noEmit
 npm run check:architecture
@@ -44,9 +44,13 @@ npm run check:navigation
 npm run check:location
 ```
 
+`npm start` explicitly targets Expo Go. To discard Metro's cached bundle, run `npm start -- --clear` and scan the new QR code in Expo Go. The phone's Expo Go must support SDK 57. Use `npm run start:dev` after installing an AniMarket development build for native voice calls; its QR code opens that installed build.
+
 The catalog and orders still use sample/session data. Accounts and text messaging use the included shared server and persistent SQLite database. Registration creates a real account; login checks its email and password. Message history, unread counts and read receipts are shared between authenticated users.
 
 ## Accounts and live messaging
+
+Registration requires an 8–21 character password with uppercase, lowercase, a number, and a special symbol. Email format is validated; email verification is currently disabled. See [registration security](docs/registration_security.md).
 
 Use Node.js 24 LTS or newer. After `npm install`, run `npm run server` in one terminal and `npm start` in another. The server prints its local and LAN addresses and saves private data under `server/data/` (ignored by Git). Keep that directory on persistent storage and back it up when hosting.
 
@@ -77,6 +81,10 @@ Replace the example email with that registered account’s email. Refresh its Pr
 ID photos are available only to their owner and authorized reviewers, never through the public user directory. They are encrypted with AES-256-GCM in SQLite; the private key is stored beside the database as `<database-path>.id.key`. Protect the database directory and key with host access permissions, keep both on persistent storage, and use HTTPS for release hosting. The app disables disk caching of private previews. Live photos are deleted after review or withdrawal; pending photos expire after 30 days, with an hourly cleanup while the server runs and cleanup on requests after restart. Minimal review status and feedback remain until withdrawn or the account name changes. Include ID data and the key in the host’s backup-access and retention policy; deleting live data does not erase older backups.
 
 Run `npm run check:verification` for HTTP tests covering consent, supported IDs, size limits, encrypted storage, private access, reviewer authorization, approval, resubmission, changed names, withdrawal, expiry and persistence after restart. Existing development builds need rebuilding to use the revised camera/photo permission text; Expo Go can use its existing ImagePicker module.
+
+## In-app voice calls
+
+In-app voice calling is available from conversations. See [voice call setup and device checks](docs/voice_calls.md) for the required native development build, foreground incoming calls, and TURN configuration for calls across networks. Firebase remains disconnected.
 
 ## Location selection and maps
 

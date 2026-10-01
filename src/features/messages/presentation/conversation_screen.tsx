@@ -11,9 +11,10 @@ import type { ChatMessage } from '../domain/message_repository';
 const forest = '#12372a';
 const muted = '#5b6d63';
 const sendIcon = { ios: 'paperplane.fill', android: 'send', web: 'send' } as const;
+const callIcon = { ios: 'phone', android: 'call', web: 'call' } as const;
 
-export function ConversationScreen({ conversationId, service, focused, onBack }: {
-  conversationId: string; service: MessageService; focused: boolean; onBack: () => void;
+export function ConversationScreen({ conversationId, service, focused, onBack, onCall }: {
+  conversationId: string; service: MessageService; focused: boolean; onBack: () => void; onCall: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
@@ -67,6 +68,7 @@ export function ConversationScreen({ conversationId, service, focused, onBack }:
           <Text numberOfLines={1} style={styles.name}>{conversation?.participant ?? 'Conversation'}</Text>
           <Text style={styles.status}>{snapshot.status === 'live' ? 'Live messaging' : snapshot.status === 'connecting' ? 'Connecting…' : 'Reconnecting…'}</Text>
         </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Voice call ${conversation?.participant ?? 'user'}`} accessibilityState={{ disabled: !conversation }} disabled={!conversation} onPress={onCall} style={[styles.iconButton, !conversation && styles.disabled]}><SymbolView name={callIcon} size={23} tintColor={forest} /></Pressable>
       </View>
       {conversation?.listingId && <View style={styles.context}><Text numberOfLines={2} style={styles.contextText}>{conversation.listing}</Text></View>}
       {!!snapshot.error && <View accessibilityLiveRegion="polite" style={styles.notice}>

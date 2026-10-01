@@ -1,4 +1,5 @@
 import { DAVAO_DEL_NORTE, isDavaoDelNorteLocality } from '@/constants/davao_del_norte';
+import { emailError, passwordError } from './credential_policy';
 
 export type LoginValues = {
   username: string;
@@ -42,11 +43,8 @@ export function validateRegistrationFields(
   if (!values.lastName.trim()) errors.lastName = 'Last name is required.';
   if (!values.phone.trim()) errors.phone = 'Phone number is required.';
   else if (!/^[+\d\s()-]{7,20}$/.test(values.phone.trim())) errors.phone = 'Enter a valid phone number.';
-  if (!values.email.trim()) {
-    errors.email = 'Email address is required.';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
-    errors.email = 'Enter a valid email address.';
-  }
+  const emailIssue = emailError(values.email);
+  if (emailIssue) errors.email = emailIssue;
 
   if (!values.purok.trim()) errors.purok = 'Purok or street is required.';
   if (!values.barangay.trim()) errors.barangay = 'Barangay is required.';
@@ -61,8 +59,8 @@ export function validateRegistrationFields(
     errors.postalCode = 'Postal code must contain four digits.';
   }
 
-  if (!values.password) errors.password = 'Password is required.';
-  else if (values.password.length < 8 || values.password.length > 128) errors.password = 'Use 8 to 128 characters.';
+  const passwordIssue = passwordError(values.password);
+  if (passwordIssue) errors.password = passwordIssue;
   if (!values.confirmPassword) {
     errors.confirmPassword = 'Confirm your password.';
   } else if (values.password !== values.confirmPassword) {
