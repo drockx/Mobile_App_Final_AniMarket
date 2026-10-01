@@ -4,6 +4,7 @@ const { randomBytes, randomUUID, scrypt, timingSafeEqual, createHash } = require
 const { promisify } = require('node:util');
 const { networkInterfaces } = require('node:os');
 const { openDatabase } = require('./database');
+const { createIdentityVerification } = require('./identity_verification');
 
 const hashPassword = promisify(scrypt);
 const digest = (value) => createHash('sha256').update(value).digest('hex');
@@ -32,9 +33,6 @@ function personalValues(body) {
   if (!localities.has(body.city)) throw new ApiError(400, 'Choose a city or municipality in Davao del Norte.');
   return { fullName, email, phone, city: body.city };
 }
-function publicAccount(row) {
-  return { id: row.id, username: row.email, personal: { fullName: row.full_name, email: row.email, phone: row.phone, city: row.city } };
-}
 
 function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE || path.join(__dirname, 'data', 'animarket.sqlite'), allowedOrigins = process.env.ANIMARKET_ALLOWED_ORIGINS || '', pollTimeout = 25000 } = {}) {
   const db = openDatabase(databasePath);
@@ -54,6 +52,10 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
       run('UPDATE users SET revision = revision + 1 WHERE id = ?', id);
       for (const wake of [...(waiters.get(id) || [])]) wake();
     }
+  }
+  const verification = createIdentityVerification({ db, databasePath, ApiError, notify });
+  function publicAccount(row) {
+    return { id: row.id, username: row.email, personal: { fullName: row.full_name, email: row.email, phone: row.phone, city: row.city }, verification: verification.status(row.id), isReviewer: Boolean(row.is_reviewer) };
   }
   function limit(key, count, windowMs) {
     const now = Date.now();
@@ -75,11 +77,11 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
     run('INSERT INTO sessions VALUES (?, ?, ?)', digest(token), user.id, Date.now() + 30 * 86400000);
     return { token, account: publicAccount(user) };
   }
-  async function bodyJson(req) {
+  async function bodyJson(req, maximum = 16384) {
     let size = 0; const parts = [];
     for await (const part of req) {
       size += part.length;
-      if (size > 16384) throw new ApiError(413, 'This message is too large.');
+      if (size > maximum) throw new ApiError(413, 'This upload is too large.');
       parts.push(part);
     }
     try { const value = JSON.parse(Buffer.concat(parts).toString()); if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(); return value; }
@@ -105,7 +107,7 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
         participant: row.participant, initials: row.participant.split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase(),
         listing: row.listing_title || 'Direct message', listingId: row.listing_id || undefined,
         preview: row.preview || 'Start a conversation', updatedAt: row.sent_at || row.created_at,
-        unreadCount: row.unread_count, verifiedSeller: false, lastMessageSeq: row.last_seq || 0,
+        unreadCount: row.unread_count, verifiedSeller: verification.status(row.participant_id).status === 'verified', lastMessageSeq: row.last_seq || 0,
         readSeq: row.read_seq, otherReadSeq: row.other_read_seq,
       }));
   }
@@ -154,6 +156,11 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
         respond(200, createSession(user)); return;
       }
       const user = authenticate(req);
+      verification.expire();
+      if (url.pathname.startsWith('/verification/')) {
+        limit(`verification:${user.id}`, 60, 60000);
+        if (await verification.handle({ user, req, url, bodyJson, respond, account: publicAccount })) return;
+      }
       if (url.pathname === '/auth/me' && req.method === 'GET') { respond(200, { account: publicAccount(user) }); return; }
       if (url.pathname === '/auth/logout' && req.method === 'POST') {
         run('DELETE FROM sessions WHERE token_hash = ?', user.token_hash); notify([user.id]); respond(200, { ok: true }); return;
@@ -170,7 +177,9 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
       }
       if (url.pathname === '/auth/me' && req.method === 'PATCH') {
         const person = personalValues(await bodyJson(req));
+        const current = get('SELECT * FROM users WHERE id = ?', user.id);
         run('UPDATE users SET email = ?, full_name = ?, phone = ?, city = ? WHERE id = ?', person.email, person.fullName, person.phone, person.city, user.id);
+        if (person.fullName !== current.full_name) verification.invalidateName(user.id);
         const peers = all('SELECT DISTINCT other.user_id FROM members mine JOIN members other ON mine.conversation_id = other.conversation_id WHERE mine.user_id = ?', user.id).map((row) => row.user_id);
         notify([user.id, ...peers]); respond(200, { account: publicAccount(get('SELECT * FROM users WHERE id = ?', user.id)) }); return;
       }
@@ -250,7 +259,7 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
     }
   });
   server.requestTimeout = 35000;
-  return { server, db, async close() { for (const pending of waiters.values()) for (const wake of [...pending]) wake(); await new Promise((resolve) => server.close(resolve)); db.close(); } };
+  return { server, db, async close() { verification.close(); for (const pending of waiters.values()) for (const wake of [...pending]) wake(); await new Promise((resolve) => server.close(resolve)); db.close(); } };
 }
 
 if (require.main === module) {

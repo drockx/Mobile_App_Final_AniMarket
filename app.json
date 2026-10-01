@@ -34,8 +34,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow AniMarket to select photos for livestock listings and conversations.",
-          "cameraPermission": "Allow AniMarket to take photos for conversations.",
+          "photosPermission": "Allow AniMarket to choose livestock photos and a valid ID photo for account verification.",
+          "cameraPermission": "Allow AniMarket to photograph your valid ID for account verification.",
           "microphonePermission": false
         }
       ],

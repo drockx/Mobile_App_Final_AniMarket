@@ -35,7 +35,17 @@ function openDatabase(filename) {
       UNIQUE(conversation_id, sender_id, client_id)
     );
     CREATE INDEX IF NOT EXISTS message_thread ON messages(conversation_id, seq);
+    CREATE TABLE IF NOT EXISTS identity_verifications (
+      user_id TEXT PRIMARY KEY REFERENCES users(id), submission_id TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('pending', 'verified', 'rejected', 'expired')),
+      id_type TEXT NOT NULL, submitted_name TEXT NOT NULL,
+      photo BLOB, mime_type TEXT NOT NULL, consent_at TEXT NOT NULL,
+      submitted_at TEXT NOT NULL, expires_at TEXT NOT NULL,
+      reviewed_at TEXT, reviewed_by TEXT REFERENCES users(id), reason TEXT
+    );
   `);
+  const columns = db.prepare('PRAGMA table_info(users)').all();
+  if (!columns.some((column) => column.name === 'is_reviewer')) db.exec('ALTER TABLE users ADD COLUMN is_reviewer INTEGER NOT NULL DEFAULT 0');
   return db;
 }
 

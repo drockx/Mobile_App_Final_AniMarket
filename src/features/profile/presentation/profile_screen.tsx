@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
 
 import { useAccount } from '../profile_store';
+import { verificationLabels } from '../domain/identity_verification';
 
 const color = {
   forest: '#12372a',
@@ -100,20 +101,18 @@ type ProfileScreenProps = {
   onPriceCalculator: () => void;
   onPersonalInformation: () => void;
   onAccountSecurity: () => void;
+  onVerification: () => void;
+  onIdReviews: () => void;
   onLogOut: () => void;
 };
 
-export function ProfileScreen({ activeListingCount, orderCount, onMyListings, onMyOrders, onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onLogOut }: ProfileScreenProps) {
+export function ProfileScreen({ activeListingCount, orderCount, onMyListings, onMyOrders, onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onVerification, onIdReviews, onLogOut }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const compact = width < 360;
   const account = useAccount();
   const initials = account.personal.fullName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'AM';
 
-  const showUnavailable = (title: string) => {
-    if (Platform.OS === 'web') window.alert(`${title} is coming soon.`);
-    else Alert.alert(title, `${title} is coming soon.`);
-  };
   const confirmLogOut = () => {
     if (Platform.OS === 'web') {
       if (window.confirm('Log out of AniMarket?')) onLogOut();
@@ -166,18 +165,18 @@ export function ProfileScreen({ activeListingCount, orderCount, onMyListings, on
                 </View>
                 <Text style={styles.location}>{account.personal.city}, Davao del Norte</Text>
                 <View style={styles.verifiedRow}>
-                  <View style={styles.verifiedIcon}><Icon name={icon.check} size={14} tintColor={color.green} /></View>
-                  <Text style={styles.verifiedText}>AniMarket demo member</Text>
+                  {account.verification.status === 'verified' && <View style={styles.verifiedIcon}><Icon name={icon.check} size={14} tintColor={color.green} /></View>}
+                  <Text style={styles.verifiedText}>{account.verification.status === 'verified' ? 'Identity verified' : 'AniMarket member'}</Text>
                 </View>
               </View>
             </View>
 
             <View style={styles.verification}>
               <View style={styles.verificationCopy}>
-                <Text style={styles.verificationTitle}>Account verification: 75% complete</Text>
+                <Text style={styles.verificationTitle}>{verificationLabels[account.verification.status]}</Text>
               </View>
-              <Pressable accessibilityRole="button" accessibilityLabel="Complete account verification" hitSlop={7} onPress={() => showUnavailable('Account verification')} style={styles.completeButton}>
-                <Text style={styles.completeText}>Complete</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Open account verification" onPress={onVerification} style={styles.completeButton}>
+                <Text style={styles.completeText}>{account.verification.status === 'unverified' ? 'Verify' : 'View'}</Text>
               </Pressable>
             </View>
 
@@ -217,6 +216,8 @@ export function ProfileScreen({ activeListingCount, orderCount, onMyListings, on
             <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>ACCOUNT</Text></View>
             <View style={styles.menu}>
               <MenuItem title="Personal Information" symbol={icon.person} onPress={onPersonalInformation} />
+              <MenuItem title="Account Verification" symbol={icon.check} onPress={onVerification} />
+              {account.isReviewer && <MenuItem title="ID Reviews" symbol={icon.check} onPress={onIdReviews} />}
               <MenuItem title="Account & Security" symbol={icon.lock} onPress={onAccountSecurity} />
               <MenuItem title="Log Out" symbol={icon.logout} destructive onPress={confirmLogOut} last />
             </View>
@@ -277,6 +278,6 @@ const styles = StyleSheet.create({
   verification: { minHeight: 52, marginTop: 10, borderWidth: 1, borderColor: '#eddcab', borderRadius: 14, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff7df' },
   verificationCopy: { flex: 1 },
   verificationTitle: { color: '#684500', fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  completeButton: { minWidth: 64, minHeight: 34, paddingHorizontal: 6, paddingVertical: 4, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  completeButton: { minWidth: 64, minHeight: 44, paddingHorizontal: 8, paddingVertical: 7, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
   completeText: { color: '#805300', fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'center' },
 });

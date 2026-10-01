@@ -1,0 +1,31 @@
+import { StyleSheet } from 'react-native';
+import { accountColors as c } from './account_screen_layout';
+
+export const verificationStyles = StyleSheet.create({
+  card: { padding: 15, gap: 12, borderWidth: 1, borderColor: c.line, borderRadius: 16, backgroundColor: '#fff' },
+  title: { color: c.forest, fontSize: 16, lineHeight: 23, fontWeight: '800' },
+  body: { color: c.text, fontSize: 14, lineHeight: 21 },
+  note: { color: c.muted, fontSize: 13, lineHeight: 20 },
+  label: { color: c.forest, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  status: { padding: 13, borderRadius: 12, backgroundColor: '#eaf5ed', gap: 5 },
+  error: { color: c.red, backgroundColor: '#fff1ef', padding: 12, borderRadius: 10, fontSize: 13, lineHeight: 20 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  button: { minHeight: 48, borderRadius: 11, paddingVertical: 12, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: c.forest },
+  buttonText: { color: '#fff', fontSize: 14, lineHeight: 21, fontWeight: '800', textAlign: 'center' },
+  secondary: { minHeight: 48, borderRadius: 11, paddingVertical: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  secondaryText: { color: c.forest, fontSize: 14, lineHeight: 21, fontWeight: '700', textAlign: 'center' },
+  flexButton: { flexGrow: 1, flexBasis: 120 },
+  disabled: { opacity: 0.5 },
+  select: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.line, borderRadius: 11, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.surface },
+  selectText: { flex: 1, color: c.text, fontSize: 14, lineHeight: 21 },
+  options: { borderWidth: 1, borderColor: c.line, borderRadius: 11, overflow: 'hidden' },
+  option: { minHeight: 48, padding: 12, justifyContent: 'center' },
+  selectedOption: { backgroundColor: '#eaf5ed' },
+  photo: { width: '100%', aspectRatio: 1.55, borderRadius: 12, backgroundColor: c.surface },
+  consent: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 10, minHeight: 48 },
+  checkbox: { width: 24, height: 24, borderWidth: 1.5, borderRadius: 6, borderColor: c.forest, alignItems: 'center', justifyContent: 'center' },
+  checked: { backgroundColor: c.forest },
+  checkmark: { color: '#fff', fontSize: 16, lineHeight: 20, fontWeight: '800' },
+  consentText: { flex: 1, color: c.text, fontSize: 13, lineHeight: 20 },
+  input: { minHeight: 88, padding: 12, borderWidth: 1, borderColor: c.line, borderRadius: 11, color: c.text, backgroundColor: c.surface, fontSize: 14, lineHeight: 21, textAlignVertical: 'top' },
+});

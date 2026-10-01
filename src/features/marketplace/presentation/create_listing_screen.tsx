@@ -148,6 +148,8 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
   const [descriptionHeight, setDescriptionHeight] = useState(120);
   const scroll = useRef<ScrollView>(null);
   const [error, setError] = useState('');
+  const [publishing, setPublishing] = useState(false);
+  const publishingRef = useRef(false);
 
   const reference = useMemo(() => {
     const market = marketReferenceData.find((item) => item.location === davaoDelNorteLocation(city))
@@ -193,7 +195,8 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
     setError('');
   }
 
-  function publish() {
+  async function publish() {
+    if (publishingRef.current) return;
     let problem = '';
     if (!photos.length) problem = 'Add at least one livestock photo.';
     else if (!title.trim()) problem = 'Enter a listing title.';
@@ -213,7 +216,9 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
       return;
     }
 
-    const listing = marketplace.publishListing({
+    publishingRef.current = true; setPublishing(true); setError('');
+    try {
+    const listing = await marketplace.publishListing({
       title: title.trim(), category, details: `${age.trim() || 'Age not specified'} · ${weight.trim()} kg`,
       price: Number(price), priceUnit, verified: false, location: davaoDelNorteLocation(city),
       streetPurok: streetPurok.trim(), barangay: barangay.trim(),
@@ -224,6 +229,10 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
       imageUri: photos[0], imageUris: photos, vaccinationProof: proof ?? undefined,
     }, pickupPin);
     onPublished(listing.id);
+    } catch (issue) {
+      const message = issue instanceof Error ? issue.message : 'Unable to publish your listing. Please try again.';
+      setError(message); showMessage('Listing not published', message);
+    } finally { publishingRef.current = false; setPublishing(false); }
   }
 
   return (
@@ -378,8 +387,8 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Publish listing" onPress={publish} style={styles.publishButton}>
-          <Text style={styles.publishText}>Publish Listing</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Publish listing" accessibilityState={{ disabled: publishing }} disabled={publishing} onPress={publish} style={[styles.publishButton, publishing && { opacity: 0.6 }]}>
+          <Text style={styles.publishText}>{publishing ? 'Publishing…' : 'Publish Listing'}</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

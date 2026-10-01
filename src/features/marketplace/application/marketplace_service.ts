@@ -7,7 +7,7 @@ import type { ListingRepository } from '../domain/listing_repository';
 export type MarketplaceService = {
   findListings(criteria: ListingCriteria): Listing[];
   getListing(id: string): Listing | undefined;
-  publishListing(listing: Omit<Listing, 'id'>, pickupPin: PickupPin): Listing;
+  publishListing(listing: Omit<Listing, 'id'>, pickupPin: PickupPin): Listing | Promise<Listing>;
 };
 
 export function createMarketplaceService(repository: ListingRepository): MarketplaceService {

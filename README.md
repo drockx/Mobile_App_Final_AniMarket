@@ -58,6 +58,22 @@ For internet use, host `server/server.js` behind HTTPS with Node 24+, persistent
 
 Run `npm run check:messages` for real HTTP tests covering two-way live delivery, authorization, account lookup, retries, read receipts, pagination, password changes, account switching and persistence after a server restart.
 
+## Account verification
+
+Open **Profile → Account Verification**. The account already collects full name, contact number and Davao del Norte locality. Verification requires one clear photo of a valid photo ID, such as a National ID, passport, driver’s license or UMID. No DTI or business-registration document is requested. Users choose a photo or take one, inspect it with zoom, and consent before submitting. JPEG/PNG uploads are limited to 5 MB. Submissions remain pending until a trusted reviewer approves them; rejection includes feedback and permits resubmission. Name changes and withdrawing verification revoke approval. Publishing a local livestock listing checks the current server approval, including when a cached profile says verified. Sample listings and orders remain sample/session data.
+
+To enable reviews, register a separate reviewer account, then run this command on the trusted server host:
+
+```bash
+npm run verification:reviewer -- reviewer@example.com
+```
+
+Replace the example email with that registered account’s email. Refresh its Profile to open **ID Reviews**, inspect an ID, and approve or request a new photo. Public registration and profile updates cannot grant reviewer access. Reviewers cannot approve their own ID. Every review action is also authorized by the server and tied to the current submission. Approval updates profile status and real conversation badges; the verification screen refreshes pending status every 10 seconds while active. This is manual ID review, not a connection to a government ID-validation service. Mobile numbers are collected, but SMS OTP verification is not connected to an SMS provider.
+
+ID photos are available only to their owner and authorized reviewers, never through the public user directory. They are encrypted with AES-256-GCM in SQLite; the private key is stored beside the database as `<database-path>.id.key`. Protect the database directory and key with host access permissions, keep both on persistent storage, and use HTTPS for release hosting. The app disables disk caching of private previews. Live photos are deleted after review or withdrawal; pending photos expire after 30 days, with an hourly cleanup while the server runs and cleanup on requests after restart. Minimal review status and feedback remain until withdrawn or the account name changes. Include ID data and the key in the host’s backup-access and retention policy; deleting live data does not erase older backups.
+
+Run `npm run check:verification` for HTTP tests covering consent, supported IDs, size limits, encrypted storage, private access, reviewer authorization, approval, resubmission, changed names, withdrawal, expiry and persistence after restart. Existing development builds need rebuilding to use the revised camera/photo permission text; Expo Go can use its existing ImagePicker module.
+
 ## Location selection and maps
 
 Listings and delivery checkout use the same location picker: search a street, barangay, city or landmark; use foreground GPS; tap or move the map under the fixed pin; then confirm. Cancelling keeps the previous selection. Nearby address fields fill when available, and the user completes house/purok, barangay and landmark details. A reverse-geocoding failure leaves manual pin selection available. City/province changes require a matching confirmed pin. Delivery checkout validates the point and carries it unchanged to review and status, including cancelled requests. Published listing pickup coordinates are stored outside the public catalog and become available on the placed order. Sample listings without coordinates show an honest missing-pin message.

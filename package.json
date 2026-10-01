@@ -47,6 +47,8 @@
     "lint": "expo lint",
     "server": "node ./server/server.js",
     "check:messages": "node --test ./scripts/check_messages.js",
+    "check:verification": "node --test ./scripts/check_verification.js",
+    "verification:reviewer": "node ./server/grant_reviewer.js",
     "check:architecture": "node ./scripts/check_architecture.js",
     "check:orders": "node ./scripts/check_orders.js",
     "check:navigation": "node ./scripts/check_navigation.js",

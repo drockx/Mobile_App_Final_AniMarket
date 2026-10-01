@@ -4,12 +4,13 @@ import { Platform } from 'react-native';
 
 import { DAVAO_DEL_NORTE, isDavaoDelNorteLocality, type DavaoDelNorteLocality } from '@/constants/davao_del_norte';
 import { ApiError, apiRequest, getAccessToken, onUnauthorized, setAccessToken } from '@/services/api';
+import type { IdentityVerification, ValidIdType } from './domain/identity_verification';
 
 export type PersonalInformation = { fullName: string; email: string; phone: string; city: DavaoDelNorteLocality };
-type Account = { id: string; username: string; personal: PersonalInformation };
+type Account = { id: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean };
 type Session = { token: string; account: Account };
-type AccountSnapshot = { signedIn: boolean; loading: boolean; userId: string; username: string; personal: PersonalInformation };
-const empty: AccountSnapshot = { signedIn: false, loading: false, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: 'Tagum City' } };
+type AccountSnapshot = { signedIn: boolean; loading: boolean; userId: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean };
+const empty: AccountSnapshot = { signedIn: false, loading: false, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: 'Tagum City' }, verification: { status: 'unverified' }, isReviewer: false };
 let snapshot: AccountSnapshot = { ...empty, loading: true };
 const listeners = new Set<() => void>();
 let initialized: Promise<void> | undefined;
@@ -20,7 +21,7 @@ function publish(next: AccountSnapshot) { snapshot = next; listeners.forEach((li
 export function subscribeAccount(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }
 export function getAccountSnapshot() { return snapshot; }
 export function useAccount() { return useSyncExternalStore(subscribeAccount, getAccountSnapshot, getAccountSnapshot); }
-function accountSnapshot(account: Account): AccountSnapshot { return { userId: account.id, username: account.username, personal: account.personal, signedIn: true, loading: false }; }
+function accountSnapshot(account: Account): AccountSnapshot { return { userId: account.id, username: account.username, personal: account.personal, verification: account.verification ?? { status: 'unverified' }, isReviewer: account.isReviewer === true, signedIn: true, loading: false }; }
 function storeSession(session: Session | null) {
   const write = async () => {
     if (Platform.OS === 'web') {
@@ -112,3 +113,24 @@ export async function changePassword(current: string, next: string, confirmation
   try { await apiRequest('/auth/password', { method: 'POST', body: { current, next } }); return null; }
   catch (error) { return error instanceof Error ? error.message : 'Unable to change your password.'; }
 }
+
+let refreshRequest: { token: string | null; promise: Promise<AccountSnapshot> } | undefined;
+async function updateAccount(path: string, body?: unknown) {
+  const epoch = generation; const token = getAccessToken();
+  const { account } = await apiRequest<{ account: Account }>(path, { method: body ? 'POST' : 'GET', body, timeout: body ? 30000 : 12000 });
+  if (epoch !== generation || !token) throw new Error('Please sign in again.');
+  await storeSession({ token, account });
+  if (epoch !== generation) throw new Error('Please sign in again.');
+  publish(accountSnapshot(account)); return snapshot;
+}
+export function refreshAccount() {
+  const token = getAccessToken();
+  if (!refreshRequest || refreshRequest.token !== token) {
+    const promise = updateAccount('/auth/me').finally(() => { if (refreshRequest?.promise === promise) refreshRequest = undefined; });
+    refreshRequest = { token, promise };
+  }
+  return refreshRequest.promise;
+}
+export const submitIdentity = (idType: ValidIdType, photo: string) => updateAccount('/verification/id', { idType, photo, fullName: snapshot.personal.fullName, consent: true });
+export const withdrawIdentity = () => updateAccount('/verification/withdraw', {});
+export const checkSellerEligibility = () => updateAccount('/verification/eligibility');

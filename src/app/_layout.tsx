@@ -20,6 +20,10 @@ export default function RootLayout() {
         <Stack.Screen name="my_listings" />
         <Stack.Screen name="personal_information" />
         <Stack.Screen name="account_security" />
+        <Stack.Screen name="account_verification" />
+      </Stack.Protected>
+      <Stack.Protected guard={account.signedIn && account.isReviewer}>
+        <Stack.Screen name="verification_review" />
       </Stack.Protected>
     </Stack>
   );

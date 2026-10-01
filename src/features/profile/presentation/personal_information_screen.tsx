@@ -35,6 +35,7 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
     <AccountScreenLayout title="Personal Information" subtitle="Keep your AniMarket contact and livestock location details up to date." onBack={onBack}>
       <View style={styles.card}>
         <AccountField label="Full Name" required autoComplete="name" autoCapitalize="words" value={values.fullName} onChangeText={(value) => update('fullName', value)} />
+        {['pending', 'verified'].includes(account.verification.status) && <Text style={styles.note}>Changing your full name removes your current ID verification. Use the name on your valid ID.</Text>}
         <AccountField label="Email Address" autoComplete="email" autoCapitalize="none" keyboardType="email-address" value={values.email} onChangeText={(value) => update('email', value)} />
         <AccountField label="Phone Number" autoComplete="tel" keyboardType="phone-pad" value={values.phone} onChangeText={(value) => update('phone', value)} />
         <View style={styles.field}>

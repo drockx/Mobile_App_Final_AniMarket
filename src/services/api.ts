@@ -20,7 +20,7 @@ export function apiBaseUrl(): string {
       if (/^(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.)/.test(hostname)) return `http://${hostname}:3001`;
     }
   }
-  throw new ApiError('Messaging is not configured yet. Please contact the app administrator.');
+  throw new ApiError('The app server is not configured yet. Please contact the app administrator.');
 }
 type RequestOptions = { method?: 'GET' | 'POST' | 'PATCH'; body?: unknown; signal?: AbortSignal; public?: boolean; token?: string | null; timeout?: number };
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
