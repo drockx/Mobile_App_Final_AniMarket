@@ -52,6 +52,7 @@
     "check:profile": "node --test ./scripts/check_profile_photos.js",
     "verification:reviewer": "node ./server/grant_reviewer.js",
     "check:architecture": "node ./scripts/check_architecture.js",
+    "check:data": "node ./scripts/check_data.js",
     "check:orders": "node ./scripts/check_orders.js",
     "check:navigation": "node ./scripts/check_navigation.js",
     "check:location": "node ./scripts/check_location.js"

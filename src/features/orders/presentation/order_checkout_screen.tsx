@@ -1,4 +1,5 @@
 import { NavigationIcon } from '@/components/navigation_icon';
+import { DataFeedback } from '@/components/data_feedback';
 import { useRef, useState } from 'react';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,13 +12,14 @@ import { getListingImage } from '@/features/marketplace/presentation/listing_ima
 import type { SelectedLocation } from '@/features/location/domain/location';
 import { LocationPicker } from '@/features/location/presentation/location_picker';
 
-import type { CheckoutService } from '../application/checkout_service';
+import type { OrderService as CheckoutService } from '../application/order_service';
 import { checkoutTotals, DELIVERY_PROVINCES, emptyCheckoutForm, PICKUP_TIMES, selectDeliveryLocation, updateCheckoutField, validateCheckout, type CheckoutForm, type CheckoutItem } from '../domain/checkout';
 import { CheckoutButton, checkoutColors as color, CheckoutDate, CheckoutField, checkoutIcons as icons, CheckoutSelect, FieldError } from './checkout_controls';
 import { amountRange, money, OrderNotice as Notice, OrderSteps, OrderSummaryRow as SummaryRow } from './order_components';
 
 const paymentOptions = [{ value: 'cod', label: 'Pay upon meetup / delivery' }, { value: 'seller', label: 'Coordinate payment with seller' }] as const;
-export function OrderCheckoutScreen({ item, service, receiverName = '', receiverPhone = '', onBack, onReview }: {
+export function OrderCheckoutScreen({ item, service, loading, error, onRetry, receiverName = '', receiverPhone = '', onBack, onReview }: {
+  loading?: boolean; error?: string | null; onRetry?: () => void;
   item?: CheckoutItem; service: CheckoutService; receiverName?: string; receiverPhone?: string; onBack: () => void; onReview: (id: string) => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -51,7 +53,7 @@ export function OrderCheckoutScreen({ item, service, receiverName = '', receiver
   }
 
   if (!item) return <View style={[styles.missing, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-    <StatusBar style="dark" /><Text style={styles.reviewTitle}>Listing unavailable</Text><Text style={styles.reviewCopy}>This listing is no longer available for checkout.</Text><CheckoutButton label="Back to Marketplace" onPress={onBack} />
+    <StatusBar style="dark" /><DataFeedback loading={loading} error={error} onRetry={onRetry} />{!loading && !error && <><Text style={styles.reviewTitle}>Listing unavailable</Text><Text style={styles.reviewCopy}>This listing is no longer available for checkout.</Text></>}<CheckoutButton label="Back to Marketplace" onPress={onBack} />
   </View>;
 
   const image = item.imageUri ? { uri: item.imageUri } : getListingImage(item.id);

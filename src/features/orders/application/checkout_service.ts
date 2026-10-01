@@ -1,5 +1,6 @@
 import { checkoutTotals, TRANSPORT_ESTIMATE, validateCheckout, type CheckoutDraft, type CheckoutForm, type CheckoutItem, type OrderRequest, type SaveOrderResult } from '../domain/checkout';
 import { copyLocation, isCoordinate, type Coordinate } from '../../location/domain/location';
+import { createRecordId } from '../../../services/development_data';
 
 export function createCheckoutService() {
   // Matches the app's session-based demo stores. Requests stay local; no seller is notified.
@@ -7,7 +8,6 @@ export function createCheckoutService() {
   const requests = new Map<string, OrderRequest>();
   const listeners = new Set<() => void>();
   let snapshot: readonly OrderRequest[] = [];
-  let requestNumber = 0;
   function publish() {
     snapshot = Array.from(requests.values()).reverse();
     listeners.forEach((listener) => listener());
@@ -25,6 +25,9 @@ export function createCheckoutService() {
     getDraft: (listingId: string) => drafts.get(listingId)?.draft,
     getRequest: (listingId: string) => drafts.get(listingId)?.request,
     getOrder: (orderId: string) => requests.get(orderId),
+    releaseRequest(orderId: string) {
+      for (const entry of drafts.values()) if (entry.request?.id === orderId) entry.request = undefined;
+    },
     cancelRequest(orderId: string, now = new Date()): SaveOrderResult {
       const original = requests.get(orderId);
       if (!original) return { request: null, error: 'This order request is no longer available in this session.' };
@@ -41,7 +44,6 @@ export function createCheckoutService() {
       if (!item) return { request: null, error: 'This listing is no longer available. Return to the marketplace.' };
       const entry = drafts.get(item.id);
       if (!entry) return { request: null, error: 'Complete checkout before saving an order request.' };
-      if (entry.request && entry.request.status !== 'cancelled') return { request: entry.request, error: null };
       if (Object.keys(validateCheckout(entry.form, item, now)).length) {
         return { request: null, error: 'Your checkout details need updating. Edit the order to check the date and required fields.' };
       }
@@ -49,8 +51,9 @@ export function createCheckoutService() {
       if (original.price !== item.price || original.priceUnit !== item.priceUnit || original.weight !== item.weight) {
         return { request: null, error: 'The listing price or weight changed. Edit the order and review the updated total.' };
       }
+      if (entry.request && entry.request.status !== 'cancelled') return { request: entry.request, error: null };
       const request: OrderRequest = {
-        id: `ANM-${now.getFullYear()}-${String(++requestNumber).padStart(6, '0')}`,
+        id: createRecordId(),
         createdAt: now.toISOString(), status: 'saved-locally', draft: entry.draft,
         pickupPin: isCoordinate(pickupPin) ? { ...pickupPin } : undefined,
       };

@@ -1,5 +1,6 @@
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useMemo, useRef, useState } from 'react';
+import { createRecordId } from '@/services/development_data';
 import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,12 +15,12 @@ import {
   DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel, davaoDelNorteLocation,
   type DavaoDelNorteLocality,
 } from '@/constants/davao_del_norte';
-import { marketReferenceData } from '@/features/market_reference/market_reference_dependencies';
+import { useMarketReferences } from '@/features/market_reference/market_reference_dependencies';
 import { listingLocality, locationIssue, type SelectedLocation } from '@/features/location/domain/location';
 import { LocationPicker } from '@/features/location/presentation/location_picker';
 
 import type { MarketplaceService } from '../application/marketplace_service';
-import type { ListingPriceUnit, LivestockCategory } from '../domain/listing';
+import type { Listing, ListingPriceUnit, LivestockCategory } from '../domain/listing';
 
 const colors = {
   forest: '#12372a', ink: '#1a202c', muted: '#64748b', line: '#e2e8f0',
@@ -115,8 +116,10 @@ function validDate(value: string) {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value && date.getTime() <= Date.now();
 }
 
-export function CreateListingScreen({ marketplace, initialPrice = '', initialCategory = 'Cow', initialWeight = '', initialTitle = '', initialPriceUnit = 'per head', onClose, onPublished, onMarketReference }: {
+export function CreateListingScreen({ marketplace, initialDraft, initialPickup, initialPrice = '', initialCategory = 'Cow', initialWeight = '', initialTitle = '', initialPriceUnit = 'per head', onClose, onSavedDraft, onPublished, onMarketReference }: {
   marketplace: MarketplaceService;
+  initialDraft?: Listing;
+  initialPickup?: SelectedLocation | null;
   initialPrice?: string;
   initialCategory?: LivestockCategory;
   initialWeight?: string;
@@ -124,44 +127,46 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
   initialPriceUnit?: ListingPriceUnit;
   onClose: () => void;
   onPublished: (id: string) => void;
+  onSavedDraft: () => void;
   onMarketReference: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const [photos, setPhotos] = useState<string[]>([]);
-  const [title, setTitle] = useState(initialTitle);
-  const [category, setCategory] = useState<LivestockCategory>(initialCategory);
-  const [age, setAge] = useState('');
-  const [weight, setWeight] = useState(initialWeight);
-  const [vaccination, setVaccination] = useState<VaccinationStatus>('vaccinated');
-  const [vaccinationDate, setVaccinationDate] = useState('');
-  const [vaccineName, setVaccineName] = useState('');
-  const [proof, setProof] = useState<{ name: string; uri: string } | null>(null);
-  const [city, setCity] = useState<DavaoDelNorteLocality>('Tagum City');
-  const [streetPurok, setStreetPurok] = useState('');
-  const [barangay, setBarangay] = useState('');
-  const [pickupLocation, setPickupLocation] = useState<SelectedLocation | null>(null);
+  const [photos, setPhotos] = useState<string[]>(initialDraft?.imageUris ?? (initialDraft?.imageUri ? [initialDraft.imageUri] : []));
+  const [title, setTitle] = useState(initialDraft?.title ?? initialTitle);
+  const [category, setCategory] = useState<LivestockCategory>(initialDraft?.category ?? initialCategory);
+  const [age, setAge] = useState(initialDraft?.age ?? '');
+  const [weight, setWeight] = useState(initialDraft?.weight.replace(/\s*kg$/i, '') ?? initialWeight);
+  const [vaccination, setVaccination] = useState<VaccinationStatus>(initialDraft ? initialDraft.health === 'Vaccinated' ? 'vaccinated' : initialDraft.health === 'Not vaccinated' ? 'not-vaccinated' : 'unknown' : 'vaccinated');
+  const [vaccinationDate, setVaccinationDate] = useState(initialDraft?.vaccinationDate ?? '');
+  const [vaccineName, setVaccineName] = useState(initialDraft?.vaccineName ?? '');
+  const [proof, setProof] = useState<{ name: string; uri: string } | null>(initialDraft?.vaccinationProof ?? null);
+  const [city, setCity] = useState<DavaoDelNorteLocality>(listingLocality(initialDraft?.location.split(',')[0]) ?? 'Tagum City');
+  const [streetPurok, setStreetPurok] = useState(initialDraft?.streetPurok ?? '');
+  const [barangay, setBarangay] = useState(initialDraft?.barangay ?? '');
+  const [pickupLocation, setPickupLocation] = useState<SelectedLocation | null>(initialPickup ?? null);
   const pickupPin = pickupLocation?.coordinate;
-  const [price, setPrice] = useState(initialPrice);
-  const [priceUnit, setPriceUnit] = useState<ListingPriceUnit>(initialPriceUnit);
-  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState(initialDraft?.price ? String(initialDraft.price) : initialPrice);
+  const [priceUnit, setPriceUnit] = useState<ListingPriceUnit>(initialDraft?.priceUnit ?? initialPriceUnit);
+  const [description, setDescription] = useState(initialDraft?.description ?? '');
   const [descriptionFocused, setDescriptionFocused] = useState(false);
   const [descriptionHeight, setDescriptionHeight] = useState(120);
   const scroll = useRef<ScrollView>(null);
   const [error, setError] = useState('');
   const [publishing, setPublishing] = useState(false);
   const publishingRef = useRef(false);
+  const [operationId] = useState(createRecordId);
+  const referenceData = useMarketReferences();
 
   const reference = useMemo(() => {
-    const market = marketReferenceData.find((item) => item.location === davaoDelNorteLocation(city))
-      ?? marketReferenceData[0];
+    const market = referenceData.items.find((item) => item.location === davaoDelNorteLocation(city));
     const marketCategory = { Cow: 'cow', Goat: 'goat', Pig: 'pig', Chicken: 'poultry' }[category];
     const rate = market?.prices.find((item) => item.category === marketCategory);
     const kg = Number(weight);
     const perKg = rate?.unit.toLowerCase().includes('per kg') ?? false;
-    const suggested = rate && perKg && Number.isFinite(kg) && kg > 0
+    const suggested = rate && perKg && !referenceData.loading && !referenceData.error && Number.isFinite(kg) && kg > 0
       ? Math.max(100, Math.round((kg * (rate.min + rate.max) / 2) / 500) * 500) : null;
     return { market, rate, perKg, kg, suggested };
-  }, [category, city, weight]);
+  }, [category, city, weight, referenceData]);
 
   async function addPhotos() {
     try {
@@ -195,6 +200,25 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
     setError('');
   }
 
+  function listingInput(): Omit<Listing, 'id'> {
+    return {
+      title: title.trim(), category, details: `${age.trim() || 'Age not specified'} · ${weight.trim()} kg`,
+      price: Number(price), priceUnit, verified: false, location: davaoDelNorteLocation(city),
+      streetPurok: streetPurok.trim(), barangay: barangay.trim(),
+      weight: `${weight.trim()} kg`, age: age.trim(),
+      health: vaccination === 'vaccinated' ? 'Vaccinated' : vaccination === 'not-vaccinated' ? 'Not vaccinated' : 'Unknown',
+      healthVerification: { status: 'unverified' }, description: description.trim(),
+      imageUri: photos[0], imageUris: photos, vaccinationProof: proof ?? undefined, vaccinationDate, vaccineName,
+    };
+  }
+  async function saveDraft() {
+    if (publishingRef.current) return;
+    publishingRef.current = true; setPublishing(true); setError('');
+    try { await marketplace.saveDraft(listingInput(), pickupPin, initialDraft?.id, operationId); onSavedDraft(); }
+    catch (issue) { setError(issue instanceof Error ? issue.message : 'Unable to save your draft. Please retry.'); }
+    finally { publishingRef.current = false; setPublishing(false); }
+  }
+
   async function publish() {
     if (publishingRef.current) return;
     let problem = '';
@@ -218,16 +242,7 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
 
     publishingRef.current = true; setPublishing(true); setError('');
     try {
-    const listing = await marketplace.publishListing({
-      title: title.trim(), category, details: `${age.trim() || 'Age not specified'} · ${weight.trim()} kg`,
-      price: Number(price), priceUnit, verified: false, location: davaoDelNorteLocation(city),
-      streetPurok: streetPurok.trim(), barangay: barangay.trim(),
-      weight: `${weight.trim()} kg`, age: age.trim() || 'Not specified',
-      health: vaccination === 'vaccinated' ? 'Vaccinated' : vaccination === 'not-vaccinated' ? 'Not vaccinated' : 'Unknown',
-      healthVerification: { status: 'unverified' },
-      description: description.trim() || 'No description provided.',
-      imageUri: photos[0], imageUris: photos, vaccinationProof: proof ?? undefined,
-    }, pickupPin);
+    const listing = await marketplace.publishListing(listingInput(), pickupPin, initialDraft?.id, operationId);
     onPublished(listing.id);
     } catch (issue) {
       const message = issue instanceof Error ? issue.message : 'Unable to publish your listing. Please try again.';
@@ -347,7 +362,7 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
             <Text style={styles.cardTitle}>Davao del Norte Price Guide</Text>
             <Text style={styles.marketBadge}>Market reference</Text>
           </View>
-          <Text style={styles.referenceLocation}>{reference.market ? `${categories.find((item) => item.value === category)?.label} sample from ${reference.market.location}` : 'No Davao del Norte market reference available'}</Text>
+          <Text style={styles.referenceLocation}>{reference.market ? `${categories.find((item) => item.value === category)?.label} ${reference.market.sample ? 'sample' : 'reference'} from ${reference.market.location}` : 'No Davao del Norte market reference available'}</Text>
           <View style={styles.referenceRow}>
             <View style={styles.referenceStat}><Text style={styles.statLabel}>REFERENCE RATE</Text><Text style={styles.statValue}>{reference.rate ? `${peso(reference.rate.min)}–${peso(reference.rate.max)}${reference.perKg ? '/kg' : '/head'}` : 'Unavailable'}</Text></View>
             <View style={styles.referenceStat}><Text style={styles.statLabel}>ESTIMATED VALUE</Text><Text style={styles.statValue}>{reference.suggested !== null && reference.rate ? `${peso(reference.kg * reference.rate.min)}–${peso(reference.kg * reference.rate.max)}` : reference.perKg ? 'Enter live weight' : 'Set manually'}</Text></View>
@@ -358,8 +373,8 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
             </Pressable>
             <Pressable accessibilityRole="button" onPress={onMarketReference} style={styles.marketButton}><Text style={styles.marketButtonText}>View market prices</Text></Pressable>
           </View>
-          <Text style={styles.basis}>{reference.suggested !== null ? `Based on ${reference.kg.toLocaleString()} kg live weight and local sample prices.` : 'Enter a live weight for a price estimate where per-kg data is available.'}</Text>
-          <Text style={styles.disclaimer}>Advisory sample only. Breed, age, health, transport, and local demand may affect the final price.</Text>
+          <Text style={styles.basis}>{reference.suggested !== null ? `Based on ${reference.kg.toLocaleString()} kg live weight and local ${reference.market?.sample ? 'sample' : 'market'} prices.` : 'Enter a live weight for a price estimate where per-kg data is available.'}</Text>
+          <Text style={styles.disclaimer}>Advisory estimate. Breed, age, health, transport, and local demand may affect the final price.</Text>
         </View>
 
         <View style={styles.field}>
@@ -387,6 +402,7 @@ export function CreateListingScreen({ marketplace, initialPrice = '', initialCat
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Save listing draft" disabled={publishing} accessibilityState={{ disabled: publishing }} onPress={saveDraft} style={[styles.suggestionButton, { marginBottom: 8 }]}><Text style={styles.suggestionText}>{publishing ? 'Saving…' : 'Save Draft'}</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Publish listing" accessibilityState={{ disabled: publishing }} disabled={publishing} onPress={publish} style={[styles.publishButton, publishing && { opacity: 0.6 }]}>
           <Text style={styles.publishText}>{publishing ? 'Publishing…' : 'Publish Listing'}</Text>
         </Pressable>

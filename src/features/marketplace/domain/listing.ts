@@ -9,6 +9,11 @@ export type HealthVerification =
 
 export type Listing = {
   id: string;
+  status?: 'active' | 'draft' | 'paused' | 'sold';
+  createdAt?: string;
+  updatedAt?: string;
+  views?: number;
+  inquiries?: number;
   title: string;
   category: LivestockCategory;
   details: string;
@@ -27,10 +32,28 @@ export type Listing = {
   imageUri?: string;
   imageUris?: string[];
   vaccinationProof?: { name: string; uri: string };
-  seller?: { id?: string; name: string; memberSince: string };
+  vaccinationDate?: string;
+  vaccineName?: string;
+  seller?: { id?: string; name: string; memberSince: string; phone?: string };
 };
 
 export type PickupPin = { latitude: number; longitude: number };
+
+export function sameListingDetails(left: Listing, right: Listing): boolean {
+  const fields: (keyof Listing)[] = ['title', 'category', 'price', 'priceUnit', 'location', 'streetPurok', 'barangay', 'weight', 'age', 'health', 'description', 'imageUri', 'imageUris', 'vaccinationProof', 'vaccinationDate', 'vaccineName'];
+  return left.seller?.id === right.seller?.id && fields.every((key) => JSON.stringify(left[key]) === JSON.stringify(right[key]));
+}
+
+export function isListingRecord(listing: Listing): boolean {
+  return typeof listing.title === 'string' && ['Cow', 'Pig', 'Goat', 'Chicken'].includes(listing.category)
+    && typeof listing.location === 'string' && Number.isFinite(listing.price) && (listing.status === 'draft' ? listing.price >= 0 : listing.price > 0)
+    && ['details', 'weight', 'age', 'health', 'description'].every((key) => typeof listing[key as keyof Listing] === 'string')
+    && typeof listing.verified === 'boolean' && !!listing.healthVerification
+    && ['verified', 'unverified'].includes(listing.healthVerification.status)
+    && (!listing.status || ['active', 'draft', 'paused', 'sold'].includes(listing.status))
+    && (!listing.imageUris || (Array.isArray(listing.imageUris) && listing.imageUris.every((uri) => typeof uri === 'string')))
+    && (!listing.seller || (typeof listing.seller.name === 'string' && typeof listing.seller.memberSince === 'string'));
+}
 
 export function formatListingAddress(listing: Listing): string {
   return [listing.streetPurok, listing.barangay, listing.location].filter(Boolean).join(', ');
@@ -67,5 +90,6 @@ export function filterListings(
 
   if (criteria.sort === 'price-asc') return filtered.sort((a, b) => a.price - b.price);
   if (criteria.sort === 'price-desc') return filtered.sort((a, b) => b.price - a.price);
+  if (criteria.sort === 'newest') return filtered.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
   return filtered;
 }

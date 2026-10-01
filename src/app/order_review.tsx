@@ -13,7 +13,7 @@ export default function OrderReviewRoute() {
   const savedRequest = listingId ? checkoutService.getRequest(listingId) : undefined;
   const edit = () => router.dismissTo({ pathname: '/order_checkout', params: listingId ? { id: listingId } : {} });
   return <OrderReviewScreen
-    key={listingId ?? 'missing'} draft={draft} example={example}
+    key={`${account.userId}:${listingId ?? 'missing'}`} draft={draft} example={example}
     buyerName={example ? '' : account.personal.fullName} buyerPhone={example ? '' : account.personal.phone}
     savedRequest={savedRequest?.status === 'cancelled' ? undefined : savedRequest}
     onBack={() => { if (router.canGoBack()) router.back(); else edit(); }}

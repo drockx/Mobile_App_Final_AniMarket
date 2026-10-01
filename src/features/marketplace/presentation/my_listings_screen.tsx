@@ -1,5 +1,6 @@
 import { NavigationIcon } from '@/components/navigation_icon';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { DataFeedback } from '@/components/data_feedback';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
@@ -51,6 +52,9 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
   const stackPrice = Math.min(width, 480) < 420 || fontScale > 1.15;
   const stackSearch = width < 400 || fontScale > 1.15;
   const listings = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
+  const data = service.getState();
+  const saving = useRef(false);
+  const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<typeof statuses[number]>('all');
   const [sort, setSort] = useState<Sort>('recent');
@@ -70,16 +74,24 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
   function editPrice(listing: SellerListing) {
     setPrice(String(listing.price)); setError(''); setDialog({ kind: 'price', listing });
   }
+  async function mutate(action: () => Promise<unknown>, message: string) {
+    if (saving.current) return;
+    saving.current = true; setBusy(true); setError('');
+    try { await action(); setDialog(null); setFeedback(message); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to save your changes. Please retry.'); }
+    finally { saving.current = false; setBusy(false); }
+  }
   function savePrice() {
     if (dialog?.kind !== 'price') return;
-    if (!price.trim() || !service.updatePrice(dialog.listing.id, Number(price))) {
+    if (!price.trim() || !Number.isFinite(Number(price)) || Number(price) <= 0) {
       setError('Enter a valid price greater than zero.'); return;
     }
-    setDialog(null); setFeedback('Listing price updated.');
+    const id = dialog.listing.id;
+    void mutate(() => service.updatePrice(id, Number(price)), 'Listing price updated.');
   }
   function togglePaused(listing: SellerListing) {
     const paused = listing.status === 'active';
-    service.setPaused(listing.id, paused); setDialog(null); setFeedback(paused ? 'Listing paused.' : 'Listing resumed.');
+    void mutate(() => service.setPaused(listing.id, paused), paused ? 'Listing paused.' : 'Listing resumed.');
   }
   function secondary(listing: SellerListing) {
     if (listing.status === 'draft') setDialog({ kind: 'preview', listing });
@@ -94,6 +106,7 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
   }
 
   const header = <View>
+    <DataFeedback loading={data.loading || busy} error={error || data.error} onRetry={() => { setError(''); service.retry(); }} />
     <View style={styles.summary}>
       {[[String(counts.active + counts.paused), 'Published'], [String(listings.filter((x) => x.status === 'active').reduce((sum, x) => sum + x.inquiries, 0)), 'New inquiries'], [String(counts.draft), 'Draft']].map(([value, label], index) => <View key={label} style={[styles.summaryCard, index === 1 && styles.attentionCard]}>
         <Text style={[styles.summaryValue, index === 1 && styles.amberText]}>{value}</Text><Text style={styles.summaryLabel}>{label}</Text>
@@ -158,17 +171,18 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
         </View>}
       />
     </View>
-    <Modal transparent visible={dialog !== null} animationType="fade" onRequestClose={() => setDialog(null)}>
+    <Modal transparent visible={dialog !== null} animationType="fade" onRequestClose={() => { if (!busy) setDialog(null); }}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-        <Pressable accessibilityLabel="Close dialog" onPress={() => setDialog(null)} style={StyleSheet.absoluteFill} />
+        <Pressable accessibilityLabel="Close dialog" disabled={busy} onPress={() => setDialog(null)} style={StyleSheet.absoluteFill} />
         <View accessibilityViewIsModal style={styles.dialog}>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.dialogContent}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.dialogContent} pointerEvents={busy ? 'none' : 'auto'}>
+            <DataFeedback loading={busy} error={error} />
             {dialog?.kind === 'sort' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Sort listings</Text>{sorts.map((option) => <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ checked: sort === option.value }} onPress={() => { setSort(option.value); setDialog(null); }} style={styles.option}><Text style={[styles.optionText, sort === option.value && styles.selectedOption]}>{option.label}</Text>{sort === option.value && <Text style={styles.selectedOption}>✓</Text>}</Pressable>)}<Button secondary label="Cancel" onPress={() => setDialog(null)} /></>}
             {dialog?.kind === 'price' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Update listing price</Text><Text style={styles.dialogCopy}>Update {dialog.listing.title}. The new price applies {dialog.listing.unit}.</Text><Text style={styles.inputLabel}>Price (₱)</Text><TextInput accessibilityLabel="Price in pesos" autoFocus value={price} onChangeText={(value) => { setPrice(value); setError(''); }} keyboardType="decimal-pad" onSubmitEditing={savePrice} style={styles.priceInput} />{!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}<View style={styles.dialogActions}><View style={styles.flex}><Button secondary label="Cancel" onPress={() => setDialog(null)} /></View><View style={styles.flex}><Button label="Save Price" onPress={savePrice} /></View></View></>}
             {dialog?.kind === 'more' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Listing actions</Text><Text style={styles.dialogCopy}>{dialog.listing.title}</Text>{(dialog.listing.status === 'active' || dialog.listing.status === 'paused') && <Button secondary label={dialog.listing.status === 'active' ? 'Pause Listing' : 'Resume Listing'} onPress={() => togglePaused(dialog.listing)} />}<Button secondary label="List Similar" onPress={() => { const listing = dialog.listing; setDialog(null); onCreate(listing); }} /><Button secondary destructive label="Delete Listing" onPress={() => setDialog({ kind: 'delete', listing: dialog.listing })} /><Button secondary label="Cancel" onPress={() => setDialog(null)} /></>}
-            {dialog?.kind === 'delete' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Delete listing?</Text><Text style={styles.dialogCopy}>{dialog.listing.title} will be removed from My Listings. This cannot be undone during this session.</Text><Button destructive label="Delete Listing" onPress={() => { service.remove(dialog.listing.id); setDialog(null); setFeedback('Listing deleted.'); }} /><Button secondary label="Cancel" onPress={() => setDialog(null)} /></>}
+            {dialog?.kind === 'delete' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Delete listing?</Text><Text style={styles.dialogCopy}>{dialog.listing.title} will be removed from My Listings. This cannot be undone during this session.</Text><Button destructive label="Delete Listing" onPress={() => { const id = dialog.listing.id; void mutate(() => service.remove(id), 'Listing deleted.'); }} /><Button secondary label="Cancel" onPress={() => setDialog(null)} /></>}
             {dialog?.kind === 'preview' && <><Text accessibilityRole="header" style={styles.dialogTitle}>{dialog.listing.title}</Text><Badge status={dialog.listing.status} /><Text style={styles.price}>{money(dialog.listing.price)} {dialog.listing.unit}</Text><Text style={styles.dialogCopy}>{dialog.listing.details}{'\n'}{dialog.listing.location}</Text><View style={styles.notice}><Text style={styles.noticeText}>{dialog.listing.notice}</Text></View><Button label="Continue Draft" onPress={() => { const listing = dialog.listing; setDialog(null); onCreate(listing, true); }} /><Button secondary label="Close" onPress={() => setDialog(null)} /></>}
-            {dialog?.kind === 'order' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Completed order</Text><Text style={styles.dialogCopy}>{dialog.listing.orderId}{'\n'}{dialog.listing.title}{'\n'}{money(dialog.listing.price)} {dialog.listing.unit}</Text><Text style={styles.dialogCopy}>This sample sale is separate from your current session. View your placed requests and their status in My Orders.</Text><Button label="My Orders" onPress={() => { setDialog(null); onOrders(); }} /><Button secondary label="Close" onPress={() => setDialog(null)} /></>}
+            {dialog?.kind === 'order' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Completed order</Text><Text style={styles.dialogCopy}>{dialog.listing.orderId}{'\n'}{dialog.listing.title}{'\n'}{money(dialog.listing.price)} {dialog.listing.unit}</Text><Text style={styles.dialogCopy}>View the order associated with this livestock in My Orders.</Text><Button label="My Orders" onPress={() => { setDialog(null); onOrders(); }} /><Button secondary label="Close" onPress={() => setDialog(null)} /></>}
           </ScrollView>
         </View>
       </KeyboardAvoidingView>

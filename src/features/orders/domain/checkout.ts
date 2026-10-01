@@ -1,5 +1,5 @@
 import type { ListingPriceUnit, LivestockCategory } from '@/features/marketplace/domain/listing';
-import { copyLocation, locationIssue, sameCity, type Coordinate, type SelectedLocation } from '../../location/domain/location';
+import { copyLocation, isCoordinate, locationIssue, sameCity, type Coordinate, type SelectedLocation } from '../../location/domain/location';
 
 export const PICKUP_TIMES = ['8:00 AM–10:00 AM', '10:00 AM–12:00 PM', '1:00 PM–3:00 PM', '3:00 PM–4:00 PM'] as const;
 export const DELIVERY_PROVINCES = ['Davao del Norte'] as const;
@@ -11,6 +11,7 @@ export type CheckoutItem = {
   health: string;
   seller: string;
   sellerId?: string;
+  sellerPhone?: string;
   sellerAddress: string;
   price: number;
   priceUnit?: ListingPriceUnit;
@@ -53,13 +54,30 @@ export type CheckoutDraft = {
 };
 export type OrderRequest = {
   id: string;
+  ownerId?: string;
   createdAt: string;
-  status: 'saved-locally' | 'awaiting-seller' | 'cancelled';
+  status: 'saved-locally' | 'awaiting-seller' | 'accepted' | 'scheduled' | 'ready' | 'in-transit' | 'completed' | 'rejected' | 'cancelled';
   cancelledAt?: string;
   pickupPin?: Coordinate;
   draft: CheckoutDraft;
 };
 export type SaveOrderResult = { request: OrderRequest | null; error: string | null };
+
+export function isOrderRecord(order: OrderRequest): boolean {
+  const draft = order.draft;
+  return typeof order.ownerId === 'string' && !!order.ownerId && typeof order.createdAt === 'string'
+    && Number.isFinite(Date.parse(order.createdAt))
+    && ['saved-locally', 'awaiting-seller', 'accepted', 'scheduled', 'ready', 'in-transit', 'completed', 'rejected', 'cancelled'].includes(order.status)
+    && !!draft?.item && typeof draft.item.id === 'string' && typeof draft.item.title === 'string'
+    && typeof draft.item.seller === 'string' && typeof draft.item.sellerAddress === 'string' && typeof draft.item.weight === 'string'
+    && Number.isFinite(draft.item.price) && draft.item.price > 0
+    && Number.isFinite(draft.totalMin) && Number.isFinite(draft.totalMax) && draft.totalMin > 0 && draft.totalMax >= draft.totalMin
+    && ['cod', 'seller'].includes(draft.payment) && ['pickup', 'delivery'].includes(draft.fulfillment)
+    && (draft.fulfillment === 'pickup' ? !!draft.pickup && typeof draft.pickup.date === 'string' && typeof draft.pickup.time === 'string'
+      : !!draft.delivery && ['date', 'receiver', 'phone', 'street', 'barangay', 'city', 'province', 'postal', 'landmark', 'notes'].every((key) => typeof draft.delivery![key as keyof NonNullable<CheckoutDraft['delivery']>] === 'string')
+        && !!draft.delivery.location && isCoordinate(draft.delivery.location.coordinate)
+        && Number.isFinite(draft.delivery.feeMin) && Number.isFinite(draft.delivery.feeMax));
+}
 
 export function dateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

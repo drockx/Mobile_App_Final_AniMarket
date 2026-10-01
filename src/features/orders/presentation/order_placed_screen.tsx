@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { DataFeedback } from '@/components/data_feedback';
 import { SymbolView } from 'expo-symbols';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,15 +9,18 @@ import { CheckoutButton, checkoutColors as color, checkoutIcons as icons } from 
 import { OrderBadge, OrderCard, OrderConfirmation, OrderItem } from './order_cards';
 import { amountRange, OrderNotice, OrderSteps, OrderSummaryRow, readableDate } from './order_components';
 import { OrderPage } from './order_page';
+import { orderStatusCopy } from '../domain/order_status';
 
-export function OrderPlacedScreen({ order, onOrders, onStatus, onMarketplace }: {
+export function OrderPlacedScreen({ order, loading, error, onRetry, onOrders, onStatus, onMarketplace }: {
+  loading?: boolean; error?: string | null; onRetry?: () => void;
   order?: OrderRequest; onOrders: () => void; onStatus: () => void; onMarketplace: () => void;
 }) {
   const insets = useSafeAreaInsets();
   if (!order || order.status === 'cancelled') return <OrderPage title="Order Placed" onBack={onOrders}>
     <ScrollView contentContainerStyle={[styles.missing, { paddingBottom: Math.max(insets.bottom, 20) }]}>
-      <Text accessibilityRole="header" style={styles.missingTitle}>{order ? 'This order was cancelled' : 'Order unavailable'}</Text>
-      <Text style={styles.body}>{order ? 'View the order status for its cancellation details.' : 'This order is not available in the current session. You can view your other requests in My Orders.'}</Text>
+      <DataFeedback loading={loading} error={error} onRetry={onRetry} />
+      {!loading && !error && <><Text accessibilityRole="header" style={styles.missingTitle}>{order ? 'This order was cancelled' : 'Order unavailable'}</Text>
+      <Text style={styles.body}>{order ? 'View the order status for its cancellation details.' : 'This order is not available for your account. You can view your other requests in My Orders.'}</Text></>}
       {order && <CheckoutButton label="View Order Status" onPress={onStatus} />}
       <CheckoutButton label="My Orders" secondary={!!order} onPress={onOrders} />
       <CheckoutButton secondary label="Browse Marketplace" onPress={onMarketplace} />
@@ -32,12 +36,12 @@ export function OrderPlacedScreen({ order, onOrders, onStatus, onMarketplace }: 
       <LinearGradient colors={['#12372a', '#2d6a4f']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
         <View style={styles.check}><SymbolView name={icons.check} size={32} tintColor="#fff" /></View>
         <Text accessibilityRole="header" style={styles.heroTitle}>Your order request is placed</Text>
-        <Text style={styles.heroCopy}>{local ? 'Your request is saved in My Orders for this session. The seller has not been notified yet.' : 'Your request is waiting for seller confirmation. Follow its progress in My Orders.'}</Text>
+        <Text style={styles.heroCopy}>{local ? 'Your request is saved in My Orders for this session. The seller has not been notified yet.' : orderStatusCopy(order).description}</Text>
         <View style={styles.heroReference}><Text style={styles.referenceLabel}>Order number</Text><Text selectable style={styles.reference}>{order.id}</Text></View>
       </LinearGradient>
 
       <OrderCard title="Order details" meta={`Placed ${new Date(order.createdAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}`}>
-        <View style={styles.badge}><OrderBadge label={local ? 'Saved locally' : 'Waiting for seller'} pending={!local} /></View>
+        <View style={styles.badge}><OrderBadge label={orderStatusCopy(order).pill} pending={order.status === 'awaiting-seller'} /></View>
         <OrderItem item={item} showBadges={false} />
         <View style={styles.details}>
           <OrderSummaryRow detail label="Arrangement" value={delivery ? 'Delivery requested' : 'Seller pickup'} />

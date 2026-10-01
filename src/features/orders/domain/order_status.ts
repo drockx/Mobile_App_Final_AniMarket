@@ -1,9 +1,18 @@
 import type { OrderRequest } from './checkout';
 
 export function orderStatusCopy(request: OrderRequest) {
+  const lifecycle = {
+    accepted: { title: 'Seller accepted your order', pill: 'Accepted', description: 'Confirm the final schedule and pickup or delivery arrangements with the seller.' },
+    scheduled: { title: 'Order scheduled', pill: 'Scheduled', description: 'Follow the confirmed pickup or delivery schedule.' },
+    ready: { title: 'Livestock ready', pill: 'Ready', description: 'Your livestock is ready for the confirmed handover.' },
+    'in-transit': { title: 'Livestock in transit', pill: 'In transit', description: 'Your delivery is on its way. Coordinate arrival details with the seller.' },
+    completed: { title: 'Order completed', pill: 'Completed', description: 'The livestock handover has been recorded as complete.' },
+    rejected: { title: 'Seller declined your request', pill: 'Declined', description: 'This request will not proceed. You can browse other livestock listings.' },
+  };
+  if (request.status in lifecycle) return lifecycle[request.status as keyof typeof lifecycle];
   if (request.status === 'cancelled') return {
     title: 'Order request cancelled', pill: 'Cancelled',
-    description: 'This request was cancelled in your current session. No seller notification or payment was sent.',
+    description: 'This request was cancelled and will not proceed.',
   };
   if (request.status === 'saved-locally') return {
     title: 'Order request saved', pill: 'Saved locally',
@@ -32,7 +41,13 @@ export function orderProgress(request: OrderRequest) {
     ['Ready for pickup', 'Seller marks the livestock ready for collection.'],
     ['Completed', 'Buyer confirms the livestock was received.'],
   ];
+  const stage = request.status === 'accepted' ? 1 : request.status === 'scheduled' ? 2
+    : request.status === 'ready' || request.status === 'in-transit' ? 3 : request.status === 'completed' ? 4 : 0;
   return [first, ...next].map(([title, description], index) => ({
-    title, description, state: index === 0 ? request.status === 'cancelled' ? 'cancelled' as const : 'current' as const : 'future' as const,
+    title: index === 0 && stage > 0 ? 'Order request sent' : request.status === 'rejected' && index === 0 ? 'Order request declined' : title,
+    description: index === 0 && stage > 0 ? 'Your request reached the seller.' : description, state: index === stage ? request.status === 'cancelled' || request.status === 'rejected' ? 'cancelled' as const
+      : request.status === 'completed' ? 'complete' as const : 'current' as const : index < stage ? 'complete' as const : 'future' as const,
   }));
 }
+
+export function canCancelOrder(request: OrderRequest) { return ['saved-locally', 'awaiting-seller', 'accepted', 'scheduled'].includes(request.status); }

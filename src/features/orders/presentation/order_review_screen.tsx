@@ -1,5 +1,5 @@
 import { NavigationIcon } from '@/components/navigation_icon';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -26,7 +26,7 @@ function Person({ name, description, badge }: { name: string; description: strin
 export function OrderReviewScreen({ draft, example = false, buyerName = '', buyerPhone = '', savedRequest, onBack, onEdit, onViewListing, onSave, onContinue, onStatus, onPlaced }: {
   draft?: CheckoutDraft; example?: boolean; buyerName?: string; buyerPhone?: string; savedRequest?: OrderRequest;
   onBack: () => void; onEdit: () => void; onViewListing?: () => void;
-  onSave: (reviewed: boolean) => SaveOrderResult; onContinue: () => void;
+  onSave: (reviewed: boolean) => SaveOrderResult | Promise<SaveOrderResult>; onContinue: () => void;
   onStatus: (orderId: string) => void;
   onPlaced: (orderId: string) => void;
 }) {
@@ -38,12 +38,18 @@ export function OrderReviewScreen({ draft, example = false, buyerName = '', buye
   const [request, setRequest] = useState(savedRequest ?? null);
   const [listingPreviewOpen, setListingPreviewOpen] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const saving = useRef(false);
+  const [busy, setBusy] = useState(false);
 
-  function saveRequest() {
-    if (request) return;
-    const result = onSave(agreed);
-    setError(result.error ?? undefined);
-    if (result.request) { setRequest(result.request); onPlaced(result.request.id); }
+  async function saveRequest() {
+    if (request || saving.current) return;
+    saving.current = true; setBusy(true); setError(undefined);
+    try {
+      const result = await onSave(agreed);
+      setError(result.error ?? undefined);
+      if (result.request) { setRequest(result.request); onPlaced(result.request.id); }
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to save your order. Please retry.'); }
+    finally { saving.current = false; setBusy(false); }
   }
 
   if (!draft) return <View style={[styles.missing, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
@@ -94,8 +100,8 @@ export function OrderReviewScreen({ draft, example = false, buyerName = '', buye
           </View>
           {delivery && <LocationPreview label={example ? 'Example destination pin' : 'Confirmed delivery destination'} coordinate={delivery.location.coordinate} />}
           {delivery && <View style={styles.transporter}>
-            <View style={[styles.transporterTop, compact && styles.column]}><Text style={[styles.transporterName, compact && styles.noFlex]}>Davao Livestock Transport Cooperative</Text><Badge label="To confirm" pending /></View>
-            <Text style={styles.body}>Livestock-ready vehicle • Ventilated partitions</Text><Text style={styles.body}>Vehicle availability and the final quote require confirmation.</Text>
+            <View style={[styles.transporterTop, compact && styles.column]}><Text style={[styles.transporterName, compact && styles.noFlex]}>Transporter to be arranged</Text><Badge label="To confirm" pending /></View>
+            <Text style={styles.body}>Confirm vehicle suitability, availability, and the final delivery quote.</Text>
           </View>}
         </ReviewCard>
 
@@ -134,8 +140,8 @@ export function OrderReviewScreen({ draft, example = false, buyerName = '', buye
         <FieldError message={error} />
         {request && <View accessibilityRole="alert" style={styles.savedBanner}><Text style={styles.exampleTitle}>Request saved locally</Text><Text style={styles.body}>{request.id}</Text><CheckoutButton secondary label="View Order Status" onPress={() => onStatus(request.id)} /></View>}
         <View style={[styles.actions, stackActions && styles.column]}>
-          <View style={[styles.editAction, stackActions && styles.noFlex]}><CheckoutButton secondary label="Edit Order" onPress={onEdit} /></View>
-          <View style={[styles.sendAction, stackActions && styles.noFlex]}><CheckoutButton label={request ? 'Request Saved' : 'Send Order Request'} disabled={!agreed || !!request} onPress={saveRequest} /></View>
+          <View style={[styles.editAction, stackActions && styles.noFlex]}><CheckoutButton secondary label="Edit Order" disabled={busy} onPress={onEdit} /></View>
+          <View style={[styles.sendAction, stackActions && styles.noFlex]}><CheckoutButton label={busy ? 'Saving…' : request ? 'Request Saved' : 'Send Order Request'} disabled={busy || !agreed || !!request} onPress={saveRequest} /></View>
         </View>
         <Text style={styles.finePrint}>Demo requests are saved in your current session. The seller is not notified and no payment is collected.</Text>
       </ScrollView>
@@ -144,7 +150,7 @@ export function OrderReviewScreen({ draft, example = false, buyerName = '', buye
         <OrderSummaryRow label="Listing price" value={`${money(item.price)}${item.priceUnit ? ` ${item.priceUnit}` : ''}`} />
         <Text style={styles.body}>Seller: {item.seller}</Text><Text style={styles.body}>{item.sellerAddress}</Text>
         {!!item.availability && <Text style={styles.body}>Pickup availability: {item.availability}</Text>}
-        <Text style={styles.finePrint}>This is a sample listing for the order screens.</Text>
+        <Text style={styles.finePrint}>Livestock details recorded for this order.</Text>
         <CheckoutButton secondary label="Back to Review" onPress={() => setListingPreviewOpen(false)} />
       </CheckoutSheet>
     </View>

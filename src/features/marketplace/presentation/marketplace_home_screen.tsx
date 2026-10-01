@@ -1,4 +1,6 @@
 import { useState, useSyncExternalStore } from 'react';
+import { DataFeedback } from '@/components/data_feedback';
+import { AnimalPlaceholder } from '@/components/animal_placeholder';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -52,7 +54,9 @@ const icons = {
 function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.title} details`} onPress={onPress} style={styles.card}>
-      <Image source={listing.imageUri ? { uri: listing.imageUri } : getListingImage(listing.id)} contentFit="cover" style={styles.cardImage} />
+      <View style={styles.cardImage}>{listing.imageUri || getListingImage(listing.id)
+        ? <Image source={listing.imageUri ? { uri: listing.imageUri } : getListingImage(listing.id)} contentFit="cover" style={StyleSheet.absoluteFill} />
+        : <AnimalPlaceholder category={listing.category} />}</View>
       <View style={styles.cardBody}>
         <Text numberOfLines={2} style={styles.cardTitle}>{listing.title}</Text>
         <Text numberOfLines={2} style={styles.cardDetails}>{listing.details}</Text>
@@ -83,6 +87,7 @@ export function MarketplaceHomeScreen({
   onOpenFilters,
 }: MarketplaceHomeScreenProps) {
   const insets = useSafeAreaInsets();
+  const data = useSyncExternalStore(marketplace.subscribe, marketplace.getState, marketplace.getState);
   const notifications = useSyncExternalStore(notificationStore.subscribe, notificationStore.getSnapshot, notificationStore.getSnapshot);
   const [categoryDraft, setCategoryDraft] = useState<{ routeKey: string; value: LivestockCategory | null } | null>(null);
   const [verifiedDraft, setVerifiedDraft] = useState<{ routeKey: string; value: boolean } | null>(null);
@@ -198,6 +203,7 @@ export function MarketplaceHomeScreen({
           </Pressable>
         </View>
 
+        <DataFeedback loading={data.loading} error={data.error} onRetry={marketplace.retry} />
         {visibleListings.length ? (
           <View style={styles.grid}>
             {visibleListings.map((listing) => (
@@ -205,7 +211,7 @@ export function MarketplaceHomeScreen({
             ))}
           </View>
         ) : (
-          <Text style={styles.emptyState}>No listings match your search or filters.</Text>
+          !data.loading && !data.error && <Text style={styles.emptyState}>{data.items.length ? 'No listings match your search or filters.' : 'No livestock listings yet. New listings will appear here.'}</Text>
         )}
       </ScrollView>
 

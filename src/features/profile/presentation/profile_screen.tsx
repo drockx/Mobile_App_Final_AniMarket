@@ -94,6 +94,7 @@ function MenuItem({
 type ProfileScreenProps = {
   activeListingCount: number;
   orderCount: number;
+  unreadMessageCount: number;
   onMyListings: () => void;
   onMyOrders: () => void;
   onMessages: () => void;
@@ -106,7 +107,7 @@ type ProfileScreenProps = {
   onLogOut: () => void;
 };
 
-export function ProfileScreen({ activeListingCount, orderCount, onMyListings, onMyOrders, onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onVerification, onIdReviews, onLogOut }: ProfileScreenProps) {
+export function ProfileScreen({ activeListingCount, orderCount, unreadMessageCount, onMyListings, onMyOrders, onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onVerification, onIdReviews, onLogOut }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const compact = width < 360;
@@ -160,7 +161,7 @@ export function ProfileScreen({ activeListingCount, orderCount, onMyListings, on
             </View>
 
             <View style={styles.stats}>
-              {[['4.8', 'RATING'], [String(activeListingCount), 'ACTIVE LISTINGS'], [String(orderCount), 'ORDERS']].map(([value, label], index) => (
+              {[['—', 'RATING'], [String(activeListingCount), 'ACTIVE LISTINGS'], [String(orderCount), 'ORDERS']].map(([value, label], index) => (
                 <View key={label} style={[styles.stat, index < 2 && styles.statDivider]}>
                   <Text style={styles.statValue}>{value}</Text>
                   <Text style={styles.statLabel}>{label}</Text>
@@ -186,7 +187,7 @@ export function ProfileScreen({ activeListingCount, orderCount, onMyListings, on
             <Text style={styles.sectionTitle}>MARKETPLACE ACTIVITY</Text>
           </View>
           <View style={styles.menu}>
-            <MenuItem title="Messages" symbol={icon.messages} badge="3 unread" onPress={onMessages} />
+            <MenuItem title="Messages" symbol={icon.messages} badge={unreadMessageCount > 0 ? `${unreadMessageCount} unread` : undefined} onPress={onMessages} />
             <MenuItem title="Price Calculator" symbol={icon.calculator} onPress={onPriceCalculator} />
             <MenuItem title="Davao del Norte Market Reference" symbol={icon.chart} onPress={onMarketReference} last />
           </View>

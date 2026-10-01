@@ -1,5 +1,6 @@
 import { NavigationIcon } from '@/components/navigation_icon';
-import { useState } from 'react';
+import { DataFeedback } from '@/components/data_feedback';
+import { useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
@@ -8,14 +9,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LocationPreview } from '@/features/location/presentation/location_preview';
 
 import { livestockAmount, type OrderRequest, type SaveOrderResult } from '../domain/checkout';
-import { orderProgress, orderStatusCopy } from '../domain/order_status';
+import { canCancelOrder, orderProgress, orderStatusCopy } from '../domain/order_status';
 import { CheckoutButton, checkoutColors as color, checkoutIcons as icons, CheckoutSheet, FieldError } from './checkout_controls';
 import { OrderBadge, OrderCard, OrderConfirmation, OrderItem } from './order_cards';
 import { amountRange, money, OrderNotice, OrderSummaryRow, readableDate } from './order_components';
 
-export function OrderStatusScreen({ order, example = false, onBack, onMarketplace, onViewListing, onMessage, onCancel }: {
+export function OrderStatusScreen({ order, loading, error: loadError, onRetry, example = false, onBack, onMarketplace, onViewListing, onMessage, onCall, onCancel }: {
+  loading?: boolean; error?: string | null; onRetry?: () => void;
   order?: OrderRequest; example?: boolean; onBack: () => void; onMarketplace: () => void;
-  onViewListing?: () => void; onMessage?: () => void; onCancel: (orderId: string) => SaveOrderResult;
+  onViewListing?: () => void; onMessage?: () => void; onCancel: (orderId: string) => SaveOrderResult | Promise<SaveOrderResult>;
+  onCall?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
@@ -27,20 +30,26 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
   const [listingOpen, setListingOpen] = useState(false);
   const [contactAction, setContactAction] = useState<'phone' | 'message' | null>(null);
   const [error, setError] = useState<string | undefined>();
+  const saving = useRef(false);
+  const [busy, setBusy] = useState(false);
 
-  function cancelRequest() {
-    if (!request) return;
-    const result = onCancel(request.id);
-    setError(result.error ?? undefined);
-    if (result.request) { if (example) setExampleRequest(result.request); setCancelOpen(false); }
+  async function cancelRequest() {
+    if (!request || saving.current) return;
+    saving.current = true; setBusy(true); setError(undefined);
+    try {
+      const result = await onCancel(request.id);
+      setError(result.error ?? undefined);
+      if (result.request) { if (example) setExampleRequest(result.request); setCancelOpen(false); }
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to cancel your order. Please retry.'); }
+    finally { saving.current = false; setBusy(false); }
   }
   function messageSeller() {
     if (onMessage) onMessage(); else setContactAction('message');
   }
 
   if (!request) return <View style={[styles.missing, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
-    <StatusBar style="dark" /><Text accessibilityRole="header" style={styles.missingTitle}>Order unavailable</Text>
-    <Text style={styles.body}>This order request is not available in the current session.</Text><CheckoutButton label="My Orders" onPress={onBack} /><CheckoutButton secondary label="Back to Marketplace" onPress={onMarketplace} />
+    <StatusBar style="dark" /><DataFeedback loading={loading} error={loadError} onRetry={onRetry} />
+    {!loading && !loadError && <><Text accessibilityRole="header" style={styles.missingTitle}>Order unavailable</Text><Text style={styles.body}>This order request is not available for your account.</Text></>}<CheckoutButton label="My Orders" onPress={onBack} /><CheckoutButton secondary label="Back to Marketplace" onPress={onMarketplace} />
   </View>;
 
   const { item, delivery, pickup } = request.draft;
@@ -49,11 +58,11 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
   const steps = orderProgress(request);
   const livestock = livestockAmount(item);
   const payment = request.draft.payment === 'seller' ? 'Coordinate with seller' : delivery ? 'Pay upon delivery' : 'Pay upon pickup';
-  const readyCount = Number(!!item.vaccinationProofName) + 1;
+  const readyCount = Number(!!item.vaccinationProofName) + Number(!!item.healthVerified);
   const initials = item.seller.trim().split(/\s+/).filter(Boolean).map((word) => word[0]).filter((_, index, parts) => index === 0 || index === parts.length - 1).join('').toUpperCase();
   const avatarDiameter = Math.max(44, Math.ceil(20 * fontScale + 8));
   const contactButtons = <View style={styles.miniActions}>
-    <Pressable accessibilityRole="button" accessibilityLabel="Call seller" onPress={() => setContactAction('phone')} style={({ pressed }) => [styles.miniButton, pressed && styles.pressed]}><SymbolView name={icons.phone} size={19} tintColor={color.green} /></Pressable>
+    {onCall && <Pressable accessibilityRole="button" accessibilityLabel="Call seller" onPress={onCall} style={({ pressed }) => [styles.miniButton, pressed && styles.pressed]}><SymbolView name={icons.phone} size={19} tintColor={color.green} /></Pressable>}
     <Pressable accessibilityRole="button" accessibilityLabel="Message seller" onPress={messageSeller} style={({ pressed }) => [styles.miniButton, pressed && styles.pressed]}><SymbolView name={icons.chat} size={19} tintColor={color.green} /></Pressable>
   </View>;
 
@@ -77,8 +86,8 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
 
         <OrderCard title="Order item (1)" meta={`Listing ${item.listingReference ?? item.id} • Quantity 1`}><OrderItem item={item} /></OrderCard>
         <OrderCard title="Order Progress" meta={cancelled ? 'Cancelled' : 'Step 1 of 5'}>
-          <View style={styles.timeline}>{steps.map((step, index) => <View key={step.title} accessible accessibilityLabel={`${step.state === 'future' ? 'Upcoming' : step.state === 'cancelled' ? 'Cancelled' : 'Current'}: ${step.title}. ${step.description}`} style={styles.event}>
-            <View style={styles.eventRail}><View style={[styles.dot, step.state === 'current' && styles.currentDot, step.state === 'cancelled' && styles.cancelledDot]} />{index < steps.length - 1 && <View style={styles.connector} />}</View>
+          <View style={styles.timeline}>{steps.map((step, index) => <View key={step.title} accessible accessibilityLabel={`${step.state === 'future' ? 'Upcoming' : step.state === 'cancelled' ? 'Cancelled' : step.state === 'complete' ? 'Completed' : 'Current'}: ${step.title}. ${step.description}`} style={styles.event}>
+            <View style={styles.eventRail}><View style={[styles.dot, (step.state === 'current' || step.state === 'complete') && styles.currentDot, step.state === 'cancelled' && styles.cancelledDot]} />{index < steps.length - 1 && <View style={styles.connector} />}</View>
             <View style={[styles.eventCopy, index === steps.length - 1 && styles.lastEvent]}><Text style={[styles.eventTitle, step.state === 'future' && styles.futureTitle, step.state === 'cancelled' && styles.cancelledText]}>{step.title}</Text><Text style={styles.body}>{step.description}</Text></View>
           </View>)}</View>
         </OrderCard>
@@ -98,7 +107,7 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
           {delivery && <LocationPreview label={example ? 'Example destination pin' : 'Confirmed delivery destination'} coordinate={delivery.location.coordinate} />}
           {request.pickupPin && <LocationPreview label="Seller pickup point" coordinate={request.pickupPin} />}
           {!delivery && !request.pickupPin && <Text style={styles.body}>The seller has not provided an exact pickup pin. Confirm the meeting point with the seller.</Text>}
-          {delivery && <View style={styles.transporter}><View style={[styles.transporterTop, compact && styles.column]}><Text style={[styles.transporterName, compact && styles.noFlex]}>Davao Livestock Transport Cooperative</Text><OrderBadge label="To confirm" pending /></View><Text style={styles.body}>Livestock-ready vehicle • Ventilated partitions</Text><Text style={styles.body}>Vehicle availability, driver details, and the final quote require confirmation.</Text></View>}
+          {delivery && <View style={styles.transporter}><View style={[styles.transporterTop, compact && styles.column]}><Text style={[styles.transporterName, compact && styles.noFlex]}>Transporter to be arranged</Text><OrderBadge label="To confirm" pending /></View><Text style={styles.body}>Confirm vehicle suitability, driver details, and the final delivery quote.</Text></View>}
         </OrderCard>
 
         <OrderCard title="Payment Summary" meta={payment}>
@@ -122,13 +131,13 @@ export function OrderStatusScreen({ order, example = false, onBack, onMarketplac
         </OrderCard>
         <OrderNotice>{cancelled ? 'This request is cancelled. You can return to the listing to review availability before making a new request.' : delivery ? 'Delivery remains optional until the seller accepts and the buyer approves the final transport quote. Confirm pickup or delivery with the seller before payment.' : 'Bring suitable livestock transport and any documents agreed with the seller. Both parties must confirm the handover.'}</OrderNotice>
         <View style={[styles.actions, stackActions && styles.column]}><View style={[styles.actionCell, stackActions && styles.noFlex]}><CheckoutButton secondary label="View Listing" onPress={onViewListing ?? (() => setListingOpen(true))} /></View><View style={[styles.actionCell, stackActions && styles.noFlex]}><CheckoutButton label="Message Seller" onPress={messageSeller} /></View></View>
-        {!cancelled && <Pressable accessibilityRole="button" onPress={() => { setError(undefined); setCancelOpen(true); }} style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}><Text style={styles.cancelledText}>Cancel order request</Text></Pressable>}
+        {canCancelOrder(request) && <Pressable accessibilityRole="button" onPress={() => { setError(undefined); setCancelOpen(true); }} style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}><Text style={styles.cancelledText}>Cancel order request</Text></Pressable>}
         {!cancelOpen && <FieldError message={error} />}
       </ScrollView>
 
-      <CheckoutSheet title="Cancel order request?" visible={cancelOpen} onClose={() => setCancelOpen(false)}>
+      <CheckoutSheet title="Cancel order request?" visible={cancelOpen} onClose={() => { if (!busy) setCancelOpen(false); }}>
         <Text style={styles.body}>Cancel {request.id}? The order details will remain available in this session. No seller notification or payment will be sent.</Text><FieldError message={error} />
-        <Pressable accessibilityRole="button" onPress={cancelRequest} style={({ pressed }) => [styles.dangerButton, pressed && styles.pressed]}><Text style={styles.dangerButtonText}>Cancel Request</Text></Pressable><CheckoutButton secondary label="Keep Request" onPress={() => setCancelOpen(false)} />
+        <Pressable accessibilityRole="button" disabled={busy} accessibilityState={{ disabled: busy }} onPress={cancelRequest} style={({ pressed }) => [styles.dangerButton, pressed && styles.pressed]}><Text style={styles.dangerButtonText}>{busy ? 'Cancelling…' : 'Cancel Request'}</Text></Pressable><CheckoutButton secondary label="Keep Request" disabled={busy} onPress={() => setCancelOpen(false)} />
       </CheckoutSheet>
       <CheckoutSheet title={contactAction === 'phone' ? 'Call Seller' : 'Message Seller'} visible={contactAction !== null} onClose={() => setContactAction(null)}>
         <Text style={styles.sellerName}>{item.seller}</Text><Text style={styles.body}>{contactAction === 'phone' ? 'The seller has not provided a phone number for this listing.' : 'A seller conversation is not connected to this listing yet.'}</Text><CheckoutButton secondary label="Close" onPress={() => setContactAction(null)} />

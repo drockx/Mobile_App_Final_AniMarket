@@ -1,5 +1,7 @@
 import { NavigationIcon } from '@/components/navigation_icon';
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
+import { DataFeedback } from '@/components/data_feedback';
+import { AnimalPlaceholder } from '@/components/animal_placeholder';
 import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -45,14 +47,21 @@ export function ListingDetailsScreen({
   onBack,
   onOrder,
   onChat,
+  onCall,
+  orderEnabled = true,
+  orderNotice,
 }: {
   listingId?: string;
   marketplace: MarketplaceService;
   onBack: () => void;
   onOrder: (id: string) => void;
   onChat?: () => void;
+  onCall?: () => void;
+  orderEnabled?: boolean;
+  orderNotice?: string;
 }) {
   const insets = useSafeAreaInsets();
+  const data = useSyncExternalStore(marketplace.subscribe, marketplace.getState, marketplace.getState);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const listing = marketplace.getListing(listingId ?? '');
 
@@ -60,7 +69,8 @@ export function ListingDetailsScreen({
     return (
       <View style={[styles.missing, { paddingTop: insets.top }]}>
         <StatusBar style="dark" />
-        <Text style={styles.missingTitle}>Listing not found</Text>
+        <DataFeedback loading={data.loading} error={data.error} onRetry={marketplace.retry} />
+        {!data.loading && !data.error && <Text style={styles.missingTitle}>Listing not found</Text>}
         <Pressable onPress={onBack} accessibilityRole="button">
           <Text style={styles.missingLink}>Back to marketplace</Text>
         </Pressable>
@@ -91,7 +101,7 @@ export function ListingDetailsScreen({
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={{ paddingTop: insets.top, backgroundColor: '#1a1a1a' }}>
           <View style={styles.hero}>
-            <Image source={imageSource} contentFit="cover" style={StyleSheet.absoluteFill} />
+            {imageSource ? <Image source={imageSource} contentFit="cover" style={StyleSheet.absoluteFill} /> : <AnimalPlaceholder category={listing.category} />}
             <View style={styles.heroActions}>
               <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} style={styles.heroButton}>
                 <NavigationIcon name="back" color="#fff" />
@@ -153,23 +163,24 @@ export function ListingDetailsScreen({
             <View>
               <Text style={styles.sellerName}>{listing.seller?.name ?? 'Seller profile pending'}</Text>
               <Text style={styles.sellerMeta}>
-                {listing.seller ? `Member since ${listing.seller.memberSince}` : 'Seller details not provided'}
+                {listing.seller?.memberSince ? `Member since ${listing.seller.memberSince}` : 'AniMarket seller'}
               </Text>
               {listing.verified && <Text style={styles.verified}>✓ Verified Seller</Text>}
+              {orderNotice && <Text style={styles.sellerMeta}>{orderNotice}</Text>}
             </View>
           </View>
         </View>
       </ScrollView>
 
       <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Pressable onPress={() => unavailable('Calling')} accessibilityRole="button" accessibilityLabel="Call seller" style={styles.callButton}>
+        {onCall && <Pressable onPress={onCall} accessibilityRole="button" accessibilityLabel="Call seller" style={styles.callButton}>
           <Icon name={icons.phone} size={20} />
-        </Pressable>
-        <Pressable onPress={onChat ?? (() => unavailable('Chat'))} accessibilityRole="button" style={styles.chatButton}>
+        </Pressable>}
+        <Pressable disabled={!onChat} accessibilityState={{ disabled: !onChat }} onPress={onChat ?? (() => unavailable('Chat'))} accessibilityRole="button" style={[styles.chatButton, !onChat && { opacity: 0.5 }]}>
           <Icon name={icons.chat} color="#fff" size={18} />
           <Text style={styles.chatText}>Chat Seller</Text>
         </Pressable>
-        <Pressable onPress={() => onOrder(listing.id)} accessibilityRole="button" style={styles.orderButton}>
+        <Pressable disabled={!orderEnabled} accessibilityState={{ disabled: !orderEnabled }} onPress={() => onOrder(listing.id)} accessibilityRole="button" style={[styles.orderButton, !orderEnabled && { opacity: 0.5 }]}>
           <Icon name={icons.cart} size={18} />
           <Text style={styles.orderText}>Order</Text>
         </Pressable>

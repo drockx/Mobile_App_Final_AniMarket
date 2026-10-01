@@ -2,6 +2,8 @@
 
 Expo SDK 57 and Expo Router power the Android, iOS, and web app.
 
+The app now supports an empty data source and replaceable asynchronous repositories. Firebase remains disconnected. See [data readiness and the future backend contract](docs/backend_readiness.md). Use `EXPO_PUBLIC_SAMPLE_DATA=false` in development to disable optional sample listings and prices.
+
 ## Architecture
 
 ```text

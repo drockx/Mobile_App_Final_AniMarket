@@ -1,4 +1,5 @@
 import { NavigationIcon } from '@/components/navigation_icon';
+import { DataFeedback } from '@/components/data_feedback';
 import { useState, useSyncExternalStore } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -81,12 +82,25 @@ export function NotificationsScreen({ onBack, onOpenNotification }: Props) {
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<NotificationCategory | 'all'>('all');
   const notifications = useSyncExternalStore(notificationStore.subscribe, notificationStore.getSnapshot, notificationStore.getSnapshot);
+  const data = notificationStore.getState();
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const visible = notifications.filter((item) => filter === 'all' || item.category === filter);
   const unreadCount = notifications.filter((item) => item.unread).length;
 
-  function open(notification: AppNotification) {
-    notificationStore.markRead(notification.id);
-    onOpenNotification(notification);
+  async function open(notification: AppNotification) {
+    if (busy) return;
+    setBusy(true); setError('');
+    try { await notificationStore.markRead(notification.id); onOpenNotification(notification); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to update notification.'); }
+    finally { setBusy(false); }
+  }
+  async function markAll() {
+    if (busy) return;
+    setBusy(true); setError('');
+    try { await notificationStore.markAllRead(); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to update notifications.'); }
+    finally { setBusy(false); }
   }
 
   return (
@@ -104,8 +118,8 @@ export function NotificationsScreen({ onBack, onOpenNotification }: Props) {
           accessibilityRole="button"
           accessibilityLabel="Mark all notifications as read"
           accessibilityState={{ disabled: unreadCount === 0 }}
-          disabled={unreadCount === 0}
-          onPress={notificationStore.markAllRead}
+          disabled={busy || unreadCount === 0}
+          onPress={markAll}
           style={[styles.markAll, unreadCount === 0 && styles.markAllDisabled]}
         >
           <Text style={styles.markAllText}>Mark all read</Text>
@@ -113,6 +127,7 @@ export function NotificationsScreen({ onBack, onOpenNotification }: Props) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}>
+        <DataFeedback loading={data.loading} error={error || data.error} onRetry={() => { setError(''); notificationStore.retry(); }} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} accessibilityLabel="Notification filters">
           {filters.map((item) => {
             const selected = filter === item.value;

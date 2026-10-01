@@ -14,8 +14,11 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMarketReferences, marketReferenceStore } from '@/features/market_reference/market_reference_dependencies';
+import { DataFeedback } from '@/components/data_feedback';
+import { isDavaoDelNorteLocality, davaoDelNorteLocation } from '@/constants/davao_del_norte';
 
-import { adjustment, categories, estimatePrice, peso, references, type Category, type Condition, type Province, type Purpose } from '../calculator';
+import { adjustment, categories, estimatePrice, peso, type Category, type Condition, type Province, type Purpose, type ReferenceRates } from '../calculator';
 
 const forest = '#12372a';
 const ink = '#1a202c';
@@ -34,7 +37,7 @@ const purposes = [
   { value: 'slaughter', label: 'Slaughter' },
   { value: 'dairy', label: 'Dairy' },
 ];
-const provinces = Object.keys(references).map((value) => ({ value, label: value === 'Other' ? 'Other province' : value }));
+const provinces = [{ value: 'Davao del Norte', label: 'Davao del Norte' }];
 const conditions: { value: Condition; detail: string }[] = [
   { value: 'C', detail: 'Below ideal' },
   { value: 'B', detail: 'Good condition' },
@@ -91,8 +94,9 @@ function BreakdownRow({ label, value }: { label: string; value: string }) {
   return <View style={styles.breakdownRow}><Text style={styles.breakdownLabel}>{label}</Text><Text style={styles.breakdownValue}>{value}</Text></View>;
 }
 
-export function PriceCalculatorScreen({ initialCategory = 'cattle', onBack, onUsePrice }: {
+export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity = 'Tagum City', onBack, onUsePrice }: {
   initialCategory?: Category;
+  initialCity?: string;
   onBack: () => void;
   onUsePrice: (price: number, category: Category, weight: number) => void;
 }) {
@@ -104,15 +108,21 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', onBack, onUs
   const [sex, setSex] = useState('male');
   const [purpose, setPurpose] = useState<Purpose>('general');
   const [condition, setCondition] = useState<Condition>('B');
-  const [city, setCity] = useState('Tagum City');
+  const [city, setCity] = useState(initialCity);
   const [province, setProvince] = useState<Province>('Davao del Norte');
   const [picker, setPicker] = useState<Picker | null>(null);
-  const [result, setResult] = useState<PriceResult | null>(null);
+  const [savedResult, setResult] = useState<{ value: PriceResult; basis: string } | null>(null);
+  const data = useMarketReferences();
 
-  const rates = references[province][category];
+  const locality = city.trim();
+  const market = isDavaoDelNorteLocality(locality) ? data.items.find((item) => item.location === davaoDelNorteLocation(locality)) : undefined;
+  const price = market?.prices.find((item) => item.category === ({ cattle: 'cow', swine: 'pig', goat: 'goat', poultry: 'poultry' }[category]) && /per kg/i.test(item.unit));
+  const rates: ReferenceRates | null = price ? [price.min, price.max] : null;
+  const basis = JSON.stringify([market?.id, market?.updatedAt, rates, category, city, province, weight, age, condition, purpose]);
+  const result = savedResult?.basis === basis ? savedResult.value : null;
   const categoryLabel = categories.find((item) => item.value === category)?.label.toLowerCase();
   const valid = Number(weight) >= 1 && Number(weight) <= 2000
-    && Number(age) >= 1 && Number(age) <= 240 && city.trim().length > 0;
+    && Number(age) >= 1 && Number(age) <= 240 && isDavaoDelNorteLocality(locality) && !!rates && !data.loading && !data.error;
   const pickerOptions = picker === 'category' ? categories : picker === 'sex' ? sexes : picker === 'purpose' ? purposes : provinces;
   const pickerValue = picker === 'category' ? category : picker === 'sex' ? sex : picker === 'purpose' ? purpose : province;
 
@@ -132,7 +142,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', onBack, onUs
   function calculate() {
     if (!valid) return;
     Keyboard.dismiss();
-    setResult(estimatePrice({ category, province, weight: Number(weight), age: Number(age), condition, purpose }));
+    setResult({ value: estimatePrice({ category, province, weight: Number(weight), age: Number(age), condition, purpose }, rates), basis });
   }
 
   return (
@@ -184,20 +194,21 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', onBack, onUs
         </View>
 
         <View style={styles.referenceCard}>
+          <DataFeedback loading={data.loading} error={data.error} onRetry={marketReferenceStore.retry} />
           <View style={styles.referenceTop}>
             <View style={styles.referenceCopy}>
-              <Text style={styles.referenceTitle}>{province === 'Other' ? 'Regional' : province} {categoryLabel} reference</Text>
-              <Text style={styles.referenceRate}>{peso(rates[0])}–{peso(rates[1])}/kg</Text>
+              <Text style={styles.referenceTitle}>{city}, {province} {categoryLabel} reference</Text>
+              <Text style={styles.referenceRate}>{rates ? `${peso(rates[0])}–${peso(rates[1])}/kg` : 'No per-kg reference available'}</Text>
             </View>
-            <Text style={styles.referenceBadge}>Province level</Text>
+            <Text style={styles.referenceBadge}>Local market</Text>
           </View>
-          <Text style={styles.referenceMeta}>Prototype market reference • Updated September 2026. Replace with a verified production data source.</Text>
+          <Text style={styles.referenceMeta}>{market?.sample ? 'Sample prices; confirm current prices with the seller.' : market?.source ?? 'Estimates require a local per-kg market reference.'}</Text>
         </View>
 
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid }} disabled={!valid} onPress={calculate} style={[styles.calculateButton, !valid && styles.buttonDisabled]}>
           <Text style={styles.calculateText}>Calculate Estimated Price</Text>
         </Pressable>
-        {!valid && <Text style={styles.error}>Enter a weight from 1–2,000 kg, an age from 1–240 months, and a city.</Text>}
+        {!valid && <Text style={styles.error}>Use a weight of 1–2,000 kg, an age of 1–240 months, and a Davao del Norte locality with a per-kg reference. You can also set a listing price manually.</Text>}
 
         {result && (
           <View style={styles.resultSection} onLayout={() => scrollRef.current?.scrollToEnd({ animated: true })}>
@@ -209,7 +220,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', onBack, onUs
             <View style={styles.breakdown}>
               <Text style={styles.breakdownTitle}>Calculation Breakdown</Text>
               <BreakdownRow label="Live weight" value={`${Number(weight).toLocaleString()} kg`} />
-              <BreakdownRow label="Regional reference" value={`${peso(rates[0])}–${peso(rates[1])}/kg`} />
+              <BreakdownRow label="Local reference" value={rates ? `${peso(rates[0])}–${peso(rates[1])}/kg` : 'Unavailable'} />
               <BreakdownRow label="Body condition" value={adjustment(result.conditionFactor)} />
               <BreakdownRow label="Age adjustment" value={adjustment(result.ageFactor)} />
               <BreakdownRow label="Purpose adjustment" value={adjustment(result.purposeFactor)} />

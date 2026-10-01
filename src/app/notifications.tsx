@@ -13,7 +13,7 @@ export default function NotificationsRoute() {
   const account = useAccount();
   function openNotification(notification: AppNotification) {
     if (notification.destination === 'messages') {
-      const conversationId = notification.conversationId ?? (notification.id === 'message-1' ? 'juan-brahman' : undefined);
+      const conversationId = notification.conversationId;
       if (conversationId && messageService.get(conversationId)) {
         router.push({ pathname: '/messages/[id]', params: { id: conversationId } });
       } else router.push({ pathname: '/messages', params: { side: notification.side ?? (notification.category === 'listing' ? 'selling' : 'buying') } });
@@ -24,7 +24,7 @@ export default function NotificationsRoute() {
         router.push({ pathname: '/order_status', params: { orderId: notification.orderId } });
       } else router.push('/my_orders');
     } else {
-      const draftId = notification.draftId ?? (notification.id === 'listing-2' ? 'ANM-L-0181' : undefined);
+      const draftId = notification.draftId;
       const draft = sellerListingsService.getSnapshot().find((entry) => entry.id === draftId && entry.status === 'draft');
       if (draft) router.push({ pathname: '/listings/create', params: createListingParams(draft, true) });
       else router.push(account.signedIn ? '/my_listings' : '/login');

@@ -1,4 +1,5 @@
 import { NavigationIcon } from '@/components/navigation_icon';
+import { DataFeedback } from '@/components/data_feedback';
 import { useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -13,18 +14,20 @@ import { amountRange, OrderSummaryRow } from './order_components';
 import { OrderPage } from './order_page';
 
 const filters: { value: OrderFilter; label: string }[] = [
-  { value: 'all', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'cancelled', label: 'Cancelled' },
+  { value: 'all', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' },
 ];
 
-export function MyOrdersScreen({ orders, onBack, onOpenOrder, onMarketplace }: {
+export function MyOrdersScreen({ orders, loading, error, onRetry, onBack, onOpenOrder, onMarketplace }: {
+  loading?: boolean; error?: string | null; onRetry?: () => void;
   orders: readonly OrderRequest[]; onBack: () => void; onOpenOrder: (orderId: string) => void; onMarketplace: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<OrderFilter>('all');
   const [query, setQuery] = useState('');
   const visibleOrders = filterOrders(orders, filter, query);
-  const activeCount = orders.filter((order) => order.status !== 'cancelled').length;
-  const counts = { all: orders.length, active: activeCount, cancelled: orders.length - activeCount };
+  const activeCount = orders.filter((order) => !['cancelled', 'rejected', 'completed'].includes(order.status)).length;
+  const completed = orders.filter((order) => order.status === 'completed').length;
+  const counts = { all: orders.length, active: activeCount, completed, cancelled: orders.length - activeCount - completed };
   const reset = () => { setQuery(''); setFilter('all'); };
 
   return <OrderPage title="My Orders" onBack={onBack}>
@@ -36,6 +39,7 @@ export function MyOrdersScreen({ orders, onBack, onOpenOrder, onMarketplace }: {
       showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) }]}
       ListHeaderComponent={<>
+        <DataFeedback loading={loading} error={error} onRetry={onRetry} />
         <Text style={styles.intro}>View your requests and follow their order status.</Text>
         <View style={styles.search}>
           <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={20} tintColor={color.muted} />
@@ -60,13 +64,13 @@ export function MyOrdersScreen({ orders, onBack, onOpenOrder, onMarketplace }: {
           <CheckoutButton label="View Order Status" secondary={cancelled} onPress={() => onOpenOrder(order.id)} />
         </OrderCard>;
       }}
-      ListEmptyComponent={<View style={styles.empty}>
+      ListEmptyComponent={!loading && !error ? <View style={styles.empty}>
         <View style={styles.emptyIcon}><SymbolView name={{ ios: 'bag', android: 'shopping_bag', web: 'shopping_bag' }} size={30} tintColor={color.green} /></View>
         <Text accessibilityRole="header" style={styles.emptyTitle}>{orders.length ? 'No matching orders' : 'No orders yet'}</Text>
         <Text style={styles.emptyCopy}>{orders.length ? 'Try a different search or select another status.' : 'Choose livestock from the marketplace. Your placed requests and status will appear here.'}</Text>
         <CheckoutButton label={orders.length ? 'Show All Orders' : 'Browse Marketplace'} onPress={orders.length ? reset : onMarketplace} />
-      </View>}
-      ListFooterComponent={orders.length ? <View style={styles.footer}><Text style={styles.sessionNote}>Demo requests stay in this running session. Seller updates and payments are not connected.</Text><CheckoutButton secondary label="Browse Marketplace" onPress={onMarketplace} /></View> : null}
+      </View> : null}
+      ListFooterComponent={orders.some((order) => order.status === 'saved-locally') ? <View style={styles.footer}><Text style={styles.sessionNote}>Locally saved requests stay in this running session. Confirm arrangements with the seller.</Text><CheckoutButton secondary label="Browse Marketplace" onPress={onMarketplace} /></View> : null}
     />
   </OrderPage>;
 }

@@ -1,4 +1,5 @@
 import { NavigationIcon } from '@/components/navigation_icon';
+import { DataFeedback } from '@/components/data_feedback';
 import { useMemo, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
@@ -81,21 +82,22 @@ function PriceCard({ item, onHistory, onCalculator }: {
   );
 }
 
-export function MarketReferenceScreen({ markets, onOpenCalculator }: { markets: readonly LocalMarket[]; onOpenCalculator?: (category: MarketCategory) => void }) {
+export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpenCalculator }: { markets: readonly LocalMarket[]; loading?: boolean; error?: string | null; onRetry?: () => void; onOpenCalculator?: (category: MarketCategory, city: string) => void }) {
   const insets = useSafeAreaInsets();
-  const [marketId, setMarketId] = useState('tagum');
+  const [marketId, setMarketId] = useState('');
   const [marketOpen, setMarketOpen] = useState(false);
   const [category, setCategory] = useState<MarketCategory | 'all'>('all');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortValue>('name');
   const [sortOpen, setSortOpen] = useState(false);
   const [modal, setModal] = useState<ModalKind>(null);
-  const [selectedPrice, setSelectedPrice] = useState<MarketPrice | null>(null);
+  const [selectedPriceSeed, setSelectedPrice] = useState<MarketPrice | null>(null);
   const market = markets.find((entry) => entry.id === marketId) ?? markets[0];
+  const selectedPrice = market?.prices.find((item) => item.id === selectedPriceSeed?.id) ?? null;
 
   const prices = useMemo(() => {
     const search = query.trim().toLowerCase();
-    const matching = market.prices.filter((item) =>
+    const matching = (market?.prices ?? []).filter((item) =>
       (category === 'all' || item.category === category)
       && (!search || `${item.name} ${item.unit}`.toLowerCase().includes(search)),
     );
@@ -111,6 +113,14 @@ export function MarketReferenceScreen({ markets, onOpenCalculator }: { markets: 
     setModal('history');
   }
 
+  if (!market) return <View style={styles.screen}>
+    <StatusBar style="dark" />
+    <View style={[styles.header, { paddingTop: insets.top + 9 }]}><Text style={styles.headerTitle}>Market Reference</Text></View>
+    <View style={{ flex: 1, padding: 20 }}><DataFeedback loading={loading} error={error} onRetry={onRetry} />
+      {!loading && !error && <Text style={styles.emptyState}>No market prices are available yet. You can set a listing price manually.</Text>}
+    </View><MarketplaceBottomBar activeTab="market" bottomInset={insets.bottom} />
+  </View>;
+
   return (
     <View style={styles.screen}>
       <StatusBar style="dark" />
@@ -119,6 +129,7 @@ export function MarketReferenceScreen({ markets, onOpenCalculator }: { markets: 
       </View>
 
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <DataFeedback loading={loading} error={error} onRetry={onRetry} />
         <View style={styles.regionCard}>
           <Text style={styles.eyebrow}>DAVAO DEL NORTE MARKET</Text>
           <Pressable
@@ -150,8 +161,8 @@ export function MarketReferenceScreen({ markets, onOpenCalculator }: { markets: 
               ))}
             </View>
           )}
-          <Text style={styles.marketMeta}>{market.location} • Local sample reference</Text>
-          <Text style={styles.marketMeta}>Sample data for the prototype; verify prices before trading.</Text>
+          <Text style={styles.marketMeta}>{market.location} • {market.sample ? 'Sample reference' : market.source ?? 'Market reference'}</Text>
+          <Text style={styles.marketMeta}>{market.sample ? 'Sample prices; confirm with the seller before trading.' : market.updatedAt ? `Updated ${new Date(market.updatedAt).toLocaleDateString()}` : 'Confirm current prices before trading.'}</Text>
         </View>
 
         <View style={styles.toolsRow}>
@@ -187,7 +198,7 @@ export function MarketReferenceScreen({ markets, onOpenCalculator }: { markets: 
           <Text style={[styles.summaryText, styles.summaryHint]}>Range • Median • 7-day change</Text>
         </View>
         {prices.length ? prices.map((item) => (
-          <PriceCard key={item.id} item={item} onCalculator={onOpenCalculator ? () => onOpenCalculator(item.category) : undefined} onHistory={() => openPriceModal(item)} />
+          <PriceCard key={item.id} item={item} onCalculator={onOpenCalculator ? () => onOpenCalculator(item.category, market.location.split(',')[0]) : undefined} onHistory={() => openPriceModal(item)} />
         )) : <Text style={styles.emptyState}>No market references match this search and category.</Text>}
 
       </ScrollView>
