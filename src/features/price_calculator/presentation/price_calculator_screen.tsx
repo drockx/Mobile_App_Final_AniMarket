@@ -3,17 +3,18 @@ import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useRef, useState, type ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMarketReferences, marketReferenceStore } from '@/features/market_reference/market_reference_dependencies';
 import { DataFeedback } from '@/components/data_feedback';
 import { isDavaoDelNorteLocality, davaoDelNorteLocation } from '@/constants/davao_del_norte';
+import { appColors, appTypography } from '@/constants/app_theme';
 
 import { adjustment, categories, estimatePrice, peso, type Category, type Condition, type Province, type Purpose, type ReferenceRates } from '../calculator';
 
 const forest = '#12372a';
 const ink = '#1a202c';
-const muted = '#718096';
+const muted = appColors.muted;
 const border = '#e2e8f0';
 
 const sexes = [
@@ -53,7 +54,7 @@ function SelectField({ label, value, options, onPress }: {
     <View style={styles.formGroup}>
       <Label>{label}</Label>
       <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${options.find((option) => option.value === value)?.label ?? value}`} onPress={onPress} style={styles.selectField}>
-        <Text numberOfLines={1} style={styles.inputText}>{options.find((option) => option.value === value)?.label ?? value}</Text>
+        <Text style={styles.inputText}>{options.find((option) => option.value === value)?.label ?? value}</Text>
         <NavigationIcon name="down" />
       </Pressable>
     </View>
@@ -92,6 +93,8 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
   onUsePrice: (price: number, category: Category, weight: number) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width < 360 || fontScale > 1.2;
   const scrollRef = useRef<ScrollView>(null);
   const [category, setCategory] = useState<Category>(initialCategory);
   const [weight, setWeight] = useState('450');
@@ -139,9 +142,9 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
       <StatusBar style="dark" />
-      <View style={[styles.header, { paddingTop: insets.top, height: insets.top + 58 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 8, minHeight: insets.top + 64 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={10} style={styles.backButton}><NavigationIcon name="back" /></Pressable>
-        <Text style={styles.headerTitle}>Price Calculator</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Price Calculator</Text>
         <View style={styles.backButton} />
       </View>
 
@@ -151,11 +154,11 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
         <Text style={styles.sectionTitle}>Livestock Information</Text>
         <SelectField label="Livestock Category" value={category} options={categories} onPress={() => setPicker('category')} />
 
-        <View style={styles.row}>
+        <View style={[styles.row, compact && styles.stackedRow]}>
           <View style={styles.rowItem}><NumberField label="Live Weight (kg)" value={weight} decimal onChangeText={(value) => change(setWeight, value)} /></View>
           <View style={styles.rowItem}><NumberField label="Age (months)" value={age} onChangeText={(value) => change(setAge, value)} /></View>
         </View>
-        <View style={styles.row}>
+        <View style={[styles.row, compact && styles.stackedRow]}>
           <View style={styles.rowItem}><SelectField label="Sex" value={sex} options={sexes} onPress={() => setPicker('sex')} /></View>
           <View style={styles.rowItem}><SelectField label="Selling Purpose" value={purpose} options={purposes} onPress={() => setPicker('purpose')} /></View>
         </View>
@@ -174,7 +177,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
         </View>
 
         <Text style={[styles.sectionTitle, styles.marketTitle]}>Market Location</Text>
-        <View style={styles.row}>
+        <View style={[styles.row, compact && styles.stackedRow]}>
           <View style={styles.rowItem}>
             <View style={styles.formGroup}>
               <Label>Municipality / City</Label>
@@ -186,7 +189,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
 
         <View style={styles.referenceCard}>
           <DataFeedback loading={data.loading} error={data.error} onRetry={marketReferenceStore.retry} />
-          <View style={styles.referenceTop}>
+          <View style={[styles.referenceTop, compact && styles.stackedRow]}>
             <View style={styles.referenceCopy}>
               <Text style={styles.referenceTitle}>{city}, {province} {categoryLabel} reference</Text>
               <Text style={styles.referenceRate}>{rates ? `${peso(rates[0])}–${peso(rates[1])}/kg` : 'No per-kg reference available'}</Text>
@@ -216,7 +219,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
               <BreakdownRow label="Age adjustment" value={adjustment(result.ageFactor)} />
               <BreakdownRow label="Purpose adjustment" value={adjustment(result.purposeFactor)} />
             </View>
-            <View style={styles.resultActions}>
+            <View style={[styles.resultActions, compact && styles.stackedRow]}>
               <Pressable accessibilityRole="button" onPress={() => onUsePrice(result.suggested, category, Number(weight))} style={[styles.resultButton, styles.usePrice]}><Text style={styles.usePriceText}>Use Suggested Price</Text></Pressable>
               <Pressable accessibilityRole="button" onPress={() => { setResult(null); scrollRef.current?.scrollTo({ y: 0, animated: true }); }} style={[styles.resultButton, styles.editInputs]}><Text style={styles.editText}>Edit Inputs</Text></Pressable>
             </View>
@@ -245,56 +248,57 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
-  header: { paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#edf2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: { paddingHorizontal: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#edf2f7', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center', color: forest, fontSize: 17, lineHeight: 23, fontWeight: '800' },
+  headerTitle: { ...appTypography.title, flex: 1, minWidth: 0, textAlign: 'center', color: forest },
   content: { paddingHorizontal: 20, paddingTop: 18 },
-  intro: { color: '#5f6f66', fontSize: 11, lineHeight: 16, marginBottom: 14 },
-  sectionTitle: { color: forest, fontSize: 14, lineHeight: 19, fontWeight: '800', marginBottom: 12 },
+  intro: { ...appTypography.body, color: muted, marginBottom: 18 },
+  sectionTitle: { ...appTypography.section, color: forest, marginBottom: 12 },
   marketTitle: { marginTop: 1 },
   formGroup: { marginBottom: 16 },
-  label: { color: ink, fontSize: 12, lineHeight: 16, fontWeight: '700', marginBottom: 7 },
+  label: { color: ink, fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 7 },
   required: { color: '#c53030' },
-  input: { minHeight: 44, width: '100%', paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', color: '#2d3748', fontSize: 14, lineHeight: 20 },
-  selectField: { minHeight: 44, paddingHorizontal: 13, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', flexDirection: 'row', alignItems: 'center', gap: 5 },
-  inputText: { flex: 1, minWidth: 0, color: '#2d3748', fontSize: 12, lineHeight: 18 },
+  input: { ...appTypography.input, minHeight: 50, width: '100%', paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', color: '#2d3748' },
+  selectField: { minHeight: 50, paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', flexDirection: 'row', alignItems: 'center', gap: 8 },
+  inputText: { ...appTypography.input, flex: 1, minWidth: 0, color: '#2d3748' },
   row: { flexDirection: 'row', gap: 10 },
+  stackedRow: { flexDirection: 'column' },
   rowItem: { flex: 1, minWidth: 0 },
   conditionRow: { flexDirection: 'row', gap: 7 },
-  conditionCard: { flex: 1, minHeight: 62, paddingHorizontal: 4, borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
+  conditionCard: { flex: 1, minHeight: 78, paddingHorizontal: 4, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
   conditionSelected: { borderColor: forest, borderWidth: 1.5, backgroundColor: '#e7f3ea' },
-  conditionTitle: { color: forest, fontSize: 10, lineHeight: 14, fontWeight: '700' },
-  conditionDetail: { color: muted, fontSize: 8, lineHeight: 12, marginTop: 3, textAlign: 'center' },
-  help: { color: muted, fontSize: 9.5, lineHeight: 13, marginTop: 5 },
+  conditionTitle: { color: forest, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  conditionDetail: { color: muted, fontSize: 12, lineHeight: 17, marginTop: 3, textAlign: 'center' },
+  help: { color: muted, fontSize: 13, lineHeight: 19, marginTop: 7 },
   referenceCard: { padding: 13, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 13, backgroundColor: '#f1f8f3', marginTop: 2, marginBottom: 16 },
   referenceTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
   referenceCopy: { flex: 1 },
-  referenceTitle: { color: '#4a6558', fontSize: 10, lineHeight: 14 },
+  referenceTitle: { color: '#4a6558', fontSize: 14, lineHeight: 20 },
   referenceRate: { color: forest, fontSize: 15, lineHeight: 20, fontWeight: '800', marginTop: 3 },
-  referenceBadge: { color: '#166534', backgroundColor: '#d8eddf', fontSize: 8, lineHeight: 12, fontWeight: '700', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 20 },
-  referenceMeta: { color: muted, fontSize: 9, lineHeight: 13, marginTop: 8 },
-  calculateButton: { minHeight: 48, borderRadius: 12, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
+  referenceBadge: { alignSelf: 'flex-start', color: '#166534', backgroundColor: '#d8eddf', fontSize: 12, lineHeight: 17, fontWeight: '700', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
+  referenceMeta: { color: muted, fontSize: 13, lineHeight: 19, marginTop: 8 },
+  calculateButton: { minHeight: 50, padding: 12, borderRadius: 12, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
   buttonDisabled: { backgroundColor: '#9aaba2' },
-  calculateText: { color: '#fff', fontSize: 13, lineHeight: 18, fontWeight: '800' },
-  error: { color: '#c53030', fontSize: 11, lineHeight: 15, marginTop: 6 },
+  calculateText: { ...appTypography.button, color: '#fff', textAlign: 'center' },
+  error: { color: '#b42318', fontSize: 13, lineHeight: 19, marginTop: 8 },
   resultSection: { marginTop: 18 },
   resultCard: { padding: 18, borderRadius: 17, backgroundColor: forest },
-  resultLabel: { color: '#b9d6c1', fontSize: 9, lineHeight: 13, fontWeight: '700', letterSpacing: 0.5 },
+  resultLabel: { color: '#b9d6c1', fontSize: 12, lineHeight: 17, fontWeight: '700', letterSpacing: 0.5 },
   resultRange: { color: '#fff', fontSize: 23, lineHeight: 30, fontWeight: '800', marginTop: 5 },
-  suggested: { color: '#fff', fontSize: 11, lineHeight: 19, padding: 9, borderRadius: 10, backgroundColor: '#2d6a4f', marginTop: 8 },
+  suggested: { color: '#fff', fontSize: 14, lineHeight: 21, padding: 9, borderRadius: 10, backgroundColor: '#2d6a4f', marginTop: 8 },
   suggestedValue: { fontSize: 15, fontWeight: '800' },
   breakdown: { marginTop: 12, borderWidth: 1, borderColor: border, borderRadius: 13, overflow: 'hidden' },
-  breakdownTitle: { color: forest, backgroundColor: '#f7faf8', fontSize: 12, lineHeight: 17, fontWeight: '700', padding: 12 },
+  breakdownTitle: { color: forest, backgroundColor: '#f7faf8', fontSize: 16, lineHeight: 22, fontWeight: '700', padding: 12 },
   breakdownRow: { paddingHorizontal: 12, paddingVertical: 9, borderTopWidth: 1, borderTopColor: '#edf2f7', flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
-  breakdownLabel: { color: muted, fontSize: 10, lineHeight: 14 },
-  breakdownValue: { color: '#2d3748', fontSize: 10, lineHeight: 14, fontWeight: '700', textAlign: 'right' },
+  breakdownLabel: { flex: 1, color: muted, fontSize: 14, lineHeight: 20 },
+  breakdownValue: { flex: 1, color: '#2d3748', fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'right' },
   resultActions: { flexDirection: 'row', gap: 8, marginTop: 11 },
-  resultButton: { flex: 1, minHeight: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  resultButton: { flex: 1, minHeight: 50, borderRadius: 10, alignItems: 'center', justifyContent: 'center', padding: 12 },
   usePrice: { backgroundColor: forest },
-  usePriceText: { color: '#fff', fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  usePriceText: { ...appTypography.button, color: '#fff', textAlign: 'center' },
   editInputs: { borderWidth: 1, borderColor: forest },
-  editText: { color: forest, fontSize: 11, fontWeight: '700' },
-  disclaimer: { color: '#5f6f66', backgroundColor: '#f7f8fa', fontSize: 9.5, lineHeight: 14, padding: 11, borderRadius: 10, marginTop: 12 },
+  editText: { ...appTypography.button, color: forest, textAlign: 'center' },
+  disclaimer: { color: muted, backgroundColor: '#f7f8fa', fontSize: 13, lineHeight: 19, padding: 11, borderRadius: 10, marginTop: 12 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(10,28,20,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   optionSheet: { width: '100%', maxWidth: 360, padding: 12, borderRadius: 16, backgroundColor: '#fff' },
   optionTitle: { color: forest, fontSize: 16, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 10 },

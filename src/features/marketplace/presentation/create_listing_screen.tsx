@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { appTypography } from '@/constants/app_theme';
 
 import {
   DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel, davaoDelNorteLocation,
@@ -84,8 +85,8 @@ function SelectField({ label, value, options, onSelect }: {
   return (
     <View style={styles.field}>
       <Label required>{label}</Label>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${selected}`} onPress={() => setOpen(true)} style={[styles.input, styles.select]}>
-        <Text numberOfLines={1} style={styles.inputText}>{selected}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${selected}`} accessibilityState={{ expanded: open }} onPress={() => setOpen(true)} style={[styles.input, styles.select]}>
+        <Text style={styles.inputText}>{selected}</Text>
         <NavigationIcon name={open ? 'up' : 'down'} />
       </Pressable>
       <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -255,7 +256,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
         <Pressable accessibilityRole="button" accessibilityLabel="Close create listing" hitSlop={8} onPress={onClose} style={styles.closeButton}>
           <NavigationIcon name="close" />
         </Pressable>
-        <Text style={styles.headerTitle}>Create Listing</Text>
+        <Text accessibilityRole="header" style={styles.headerTitle}>Create Listing</Text>
         <View style={styles.closeButton} />
       </View>
 
@@ -407,13 +408,13 @@ const styles = StyleSheet.create({
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
   header: { minHeight: 63, paddingHorizontal: 14, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#edf2f7', backgroundColor: '#fff' },
   closeButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { color: colors.forest, fontSize: 18, lineHeight: 24, fontWeight: '800' },
+  headerTitle: { ...appTypography.title, flex: 1, minWidth: 0, textAlign: 'center', color: colors.forest },
   content: { padding: 20, paddingBottom: 28, gap: 17 },
   field: { flex: 1, gap: 7 },
-  label: { color: colors.ink, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  label: { color: colors.ink, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   required: { color: colors.red },
-  input: { minHeight: 46, width: '100%', paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: colors.line, borderRadius: 11, backgroundColor: colors.input, color: '#2d3748', fontSize: 14, lineHeight: 20 },
-  inputText: { flex: 1, minWidth: 0, color: '#2d3748', fontSize: 14, lineHeight: 20 },
+  input: { ...appTypography.input, minHeight: 50, width: '100%', paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: colors.line, borderRadius: 11, backgroundColor: colors.input, color: '#2d3748' },
+  inputText: { ...appTypography.input, flex: 1, minWidth: 0, color: '#2d3748' },
   select: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 7 },
   fixedField: { justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
@@ -421,7 +422,7 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 120, paddingTop: 12, color: colors.ink },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   addPhoto: { width: 72, height: 72, borderRadius: 11, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#bccfc2', backgroundColor: '#f7faf7', alignItems: 'center', justifyContent: 'center' },
-  addPhotoText: { color: '#4a5568', fontSize: 11, lineHeight: 15, fontWeight: '700', marginTop: 3 },
+  addPhotoText: { color: '#4a5568', fontSize: 13, lineHeight: 18, fontWeight: '700', marginTop: 3 },
   photoPlaceholder: { width: 72, height: 72, borderRadius: 11, borderWidth: 1, borderColor: '#c7e5c4', backgroundColor: '#e2efe0', alignItems: 'center', justifyContent: 'center' },
   photoThumb: { width: 72, height: 72, borderRadius: 11, borderWidth: 1, borderColor: '#c7e5c4', backgroundColor: '#e2efe0' },
   removePhoto: { position: 'absolute', right: -8, top: -8, width: 24, height: 24, borderRadius: 12, backgroundColor: '#e53e3e', borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
@@ -429,22 +430,22 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   cardTitle: { color: colors.forest, fontSize: 15, lineHeight: 20, fontWeight: '800', flexShrink: 1 },
   requiredBadge: { color: colors.red, fontSize: 11, fontWeight: '700' },
-  intro: { color: '#5f6f66', fontSize: 12, lineHeight: 17 },
+  intro: { color: '#52645a', fontSize: 14, lineHeight: 21 },
   statusRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#d8e2dc', borderRadius: 10, overflow: 'hidden' },
-  statusButton: { flex: 1, minHeight: 44, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  statusButton: { flex: 1, minHeight: 44, paddingHorizontal: 4, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
   statusSelected: { backgroundColor: colors.forest },
-  statusText: { color: '#4a5568', fontSize: 11, lineHeight: 15, fontWeight: '700', textAlign: 'center' },
+  statusText: { color: '#4a5568', fontSize: 13, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
   statusTextSelected: { color: '#fff' },
   dateInput: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  dateText: { flex: 1, minWidth: 0, padding: 0, color: '#2d3748', fontSize: 14 },
+  dateText: { ...appTypography.input, flex: 1, minWidth: 0, padding: 0, color: '#2d3748' },
   proofUpload: { minHeight: 48, padding: 11, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9fc7ad', borderRadius: 11, backgroundColor: '#f4faf6', alignItems: 'center', justifyContent: 'center' },
   proofUploadText: { color: colors.forest, fontSize: 12, lineHeight: 17, fontWeight: '700', textAlign: 'center' },
   proofAttached: { minHeight: 39, marginTop: 3, paddingHorizontal: 9, borderWidth: 1, borderColor: '#dfe8e2', borderRadius: 9, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#fff' },
   proofName: { flex: 1, color: '#2d3748', fontSize: 11, fontWeight: '600' },
   attachedBadge: { color: '#166534', fontSize: 10, fontWeight: '700', backgroundColor: '#dff2e5', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 4 },
-  proofNote: { color: '#718096', fontSize: 11, lineHeight: 15 },
-  locationHelp: { marginTop: -10, color: '#8491a6', fontSize: 11, lineHeight: 15 },
-  publicAddress: { marginTop: -9, color: '#64748b', fontSize: 11, lineHeight: 16 },
+  proofNote: { color: '#52647a', fontSize: 13, lineHeight: 19 },
+  locationHelp: { marginTop: -10, color: '#52647a', fontSize: 13, lineHeight: 19 },
+  publicAddress: { marginTop: -9, color: '#52647a', fontSize: 13, lineHeight: 19 },
   pinCard: { padding: 14, gap: 11, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 14, backgroundColor: '#fbfdfb' },
   privateBadge: { color: '#276749', backgroundColor: '#e4f3e8', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, fontSize: 10, fontWeight: '700' },
   mapHelp: { color: '#52647a', fontSize: 13, lineHeight: 19 },

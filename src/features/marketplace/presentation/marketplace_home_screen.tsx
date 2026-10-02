@@ -233,9 +233,11 @@ export function MarketplaceHomeScreen({
         <View style={styles.modalBackdrop}>
           <Pressable accessibilityRole="button" accessibilityLabel="Close seller information" onPress={() => setVerificationInfo(false)} style={StyleSheet.absoluteFill} />
           <View accessibilityViewIsModal style={styles.infoCard}>
-            <Text accessibilityRole="header" style={styles.sectionTitle}>Verified sellers</Text>
+            <ScrollView contentContainerStyle={styles.infoContent}>
+            <Text accessibilityRole="header" style={styles.infoTitle}>Verified sellers</Text>
             <Text style={styles.infoText}>A verified seller has completed an identity check. Review the livestock details and documents, and agree on payment and transport before placing an order.</Text>
             <Pressable accessibilityRole="button" onPress={() => setVerificationInfo(false)} style={styles.infoButton}><Text style={styles.infoButtonText}>Got It</Text></Pressable>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -501,7 +503,9 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   modalBackdrop: { flex: 1, backgroundColor: '#12372a70', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  infoCard: { width: '100%', maxWidth: 380, gap: 16, borderRadius: 18, padding: 20, backgroundColor: '#fff' },
+  infoCard: { width: '100%', maxWidth: 380, maxHeight: '85%', borderRadius: 18, backgroundColor: '#fff', overflow: 'hidden' },
+  infoContent: { gap: 16, padding: 20 },
+  infoTitle: { color: palette.green, fontSize: 18, lineHeight: 24, fontWeight: '700' },
   infoText: { color: palette.muted, fontSize: 14, lineHeight: 21 },
   infoButton: { minHeight: 48, padding: 12, borderRadius: 12, backgroundColor: palette.green, alignItems: 'center', justifyContent: 'center' },
   infoButtonText: { color: '#fff', fontSize: 15, lineHeight: 21, fontWeight: '700' },

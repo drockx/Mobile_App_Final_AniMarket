@@ -1,5 +1,5 @@
 import { NavigationIcon } from '@/components/navigation_icon';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel } from '@/constants/davao_del_norte';
@@ -33,6 +33,7 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
   const [message, setMessage] = useState<string | null>(null);
   const [localityOpen, setLocalityOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
 
   function updateField(field: keyof RegistrationValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -43,7 +44,7 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
   }
 
   async function submit() {
-    if (busy) return;
+    if (submitting.current) return;
     const nextErrors = validateRegistrationFields(values, acceptedTerms);
     setErrors(nextErrors);
 
@@ -52,10 +53,10 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
       return;
     }
 
-    setBusy(true);
+    submitting.current = true; setBusy(true);
     try { setMessage(await onRegister(values)); }
     catch { setMessage('Unable to create your account. Please try again.'); }
-    finally { setBusy(false); }
+    finally { submitting.current = false; setBusy(false); }
   }
 
   return (

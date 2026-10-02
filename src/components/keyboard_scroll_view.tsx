@@ -33,7 +33,9 @@ export const KeyboardScrollView = forwardRef<ScrollView, ScrollViewProps>(functi
       view.getNativeScrollRef()?.measureInWindow((_x, y, _width, height) => {
         input.measureInWindow((_inputX, inputY, _inputWidth, inputHeight) => {
           if (focused.current !== input || !input.isFocused() || !height || !inputHeight) return;
-          const delta = inputScrollDelta({ y: inputY, height: inputHeight }, { y, height }, Keyboard.metrics()?.screenY);
+          // react-native-web has no Keyboard.metrics implementation.
+          const keyboardTop = Platform.OS === 'web' ? undefined : Keyboard.metrics?.()?.screenY;
+          const delta = inputScrollDelta({ y: inputY, height: inputHeight }, { y, height }, keyboardTop);
           if (Math.abs(delta) > 1) view.scrollTo({ y: Math.max(0, offset.current + delta), animated: false });
         });
       });
