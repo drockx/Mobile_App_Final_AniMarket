@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   iconButton: { width: 44, height: 44, borderRadius: 13, borderWidth: 1, borderColor: '#ffffff33', backgroundColor: '#ffffff12', alignItems: 'center', justifyContent: 'center' },
   headerCopy: { flex: 1, minWidth: 0, alignItems: 'center' }, headerSpace: { width: 44 },
   title: { color: '#fff', fontSize: 16, lineHeight: 22, fontWeight: '700', textAlign: 'center' },
-  subtitle: { color: '#d3e6d9', fontSize: 12, lineHeight: 18, marginTop: 3 },
+  subtitle: { color: '#d3e6d9', fontSize: 13, lineHeight: 18, marginTop: 3 },
   scroll: { flex: 1 }, content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 28, paddingBottom: 16, justifyContent: 'space-between', gap: 36 },
   person: { alignItems: 'center' }, halo: { width: 144, height: 144, borderRadius: 72, backgroundColor: '#ffffff14', alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 112, height: 112, borderRadius: 56, borderWidth: 4, borderColor: '#e8f4eb66', backgroundColor: '#c3e3cc', alignItems: 'center', justifyContent: 'center' },

@@ -1,7 +1,7 @@
 import { NavigationIcon } from '@/components/navigation_icon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { Image, ImageBackground, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type SplashScreenProps = {
@@ -28,7 +28,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
         pointerEvents="none"
       />
 
-      <View style={[styles.content, { paddingTop: insets.top + 72, paddingBottom: Math.max(insets.bottom + 5, 39) }]}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 72, paddingBottom: Math.max(insets.bottom + 5, 39) }]} showsVerticalScrollIndicator={false}>
         <Image
           source={require('../../../../assets/images/branding/animarket_logo.png')}
           resizeMode="contain"
@@ -54,7 +54,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
             </View>
           </LinearGradient>
         </Pressable>
-      </View>
+      </ScrollView>
     </ImageBackground>
   );
 }
@@ -65,8 +65,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#18291d',
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     alignItems: 'center',
+    gap: 32,
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
     paddingHorizontal: 18,
   },
   ctaPressable: {
@@ -95,19 +99,20 @@ const styles = StyleSheet.create({
     opacity: 0.96,
   },
   headline: {
-    flexShrink: 1,
+    flex: 1,
+    minWidth: 0,
     color: '#fff',
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '700',
     letterSpacing: -0.1,
   },
   nextButton: {
-    width: 67,
-    height: 40,
+    width: 48,
+    height: 48,
+    flexShrink: 0,
     marginLeft: 16,
-    borderRadius: 20,
-    transform: [{ translateY: -2 }],
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',

@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   invalid: { borderColor: colors.danger },
   triggerIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.mint },
   triggerCopy: { flex: 1, minWidth: 0, gap: 4 },
-  triggerTitle: { color: colors.forest, fontSize: 15, lineHeight: 20, fontWeight: '700' },
+  triggerTitle: { color: colors.forest, fontSize: 15, lineHeight: 21, fontWeight: '700' },
   modalBackground: { flex: 1, backgroundColor: '#eef3ef' },
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
   header: { paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.line },
@@ -182,6 +182,6 @@ const styles = StyleSheet.create({
   loading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   notice: { gap: 10, padding: 12, borderRadius: 12, backgroundColor: '#fff8e7', borderWidth: 1, borderColor: '#f2dfae' },
   warning: { color: '#684500', fontSize: 13, lineHeight: 19 },
-  attribution: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  attribution: { color: colors.muted, fontSize: 13, lineHeight: 18 },
   footer: { padding: 16, borderTopWidth: 1, borderTopColor: colors.line, backgroundColor: '#fff' },
 });

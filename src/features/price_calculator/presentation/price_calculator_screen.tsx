@@ -233,12 +233,14 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
           <Pressable accessibilityRole="button" accessibilityLabel="Close options" onPress={() => setPicker(null)} style={StyleSheet.absoluteFill} />
           <View style={styles.optionSheet}>
             <Text style={styles.optionTitle}>Choose {picker === 'category' ? 'Livestock Category' : picker === 'sex' ? 'Sex' : picker === 'purpose' ? 'Selling Purpose' : 'Province'}</Text>
-            {pickerOptions.map((option) => (
-              <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: pickerValue === option.value }} onPress={() => choose(option.value)} style={styles.option}>
-                <Text style={[styles.optionText, pickerValue === option.value && styles.optionSelected]}>{option.label}</Text>
-                {pickerValue === option.value && <Text style={styles.optionSelected}>✓</Text>}
-              </Pressable>
-            ))}
+            <ScrollView style={styles.optionList} keyboardShouldPersistTaps="handled">
+              {pickerOptions.map((option) => (
+                <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: pickerValue === option.value }} onPress={() => choose(option.value)} style={styles.option}>
+                  <Text style={[styles.optionText, pickerValue === option.value && styles.optionSelected]}>{option.label}</Text>
+                  {pickerValue === option.value && <Text style={styles.optionSelected}>✓</Text>}
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -267,15 +269,15 @@ const styles = StyleSheet.create({
   conditionRow: { flexDirection: 'row', gap: 7 },
   conditionCard: { flex: 1, minHeight: 78, paddingHorizontal: 4, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center' },
   conditionSelected: { borderColor: forest, borderWidth: 1.5, backgroundColor: '#e7f3ea' },
-  conditionTitle: { color: forest, fontSize: 14, lineHeight: 20, fontWeight: '700' },
-  conditionDetail: { color: muted, fontSize: 12, lineHeight: 17, marginTop: 3, textAlign: 'center' },
+  conditionTitle: { color: forest, fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
+  conditionDetail: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 3, textAlign: 'center' },
   help: { color: muted, fontSize: 13, lineHeight: 19, marginTop: 7 },
   referenceCard: { padding: 13, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 13, backgroundColor: '#f1f8f3', marginTop: 2, marginBottom: 16 },
-  referenceTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
-  referenceCopy: { flex: 1 },
+  referenceTop: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 },
+  referenceCopy: { flexGrow: 1, flexShrink: 1, flexBasis: 160, minWidth: 0 },
   referenceTitle: { color: '#4a6558', fontSize: 14, lineHeight: 20 },
-  referenceRate: { color: forest, fontSize: 15, lineHeight: 20, fontWeight: '800', marginTop: 3 },
-  referenceBadge: { alignSelf: 'flex-start', color: '#166534', backgroundColor: '#d8eddf', fontSize: 12, lineHeight: 17, fontWeight: '700', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
+  referenceRate: { color: forest, fontSize: 15, lineHeight: 21, fontWeight: '800', marginTop: 3 },
+  referenceBadge: { alignSelf: 'flex-start', maxWidth: '100%', flexShrink: 1, color: '#166534', backgroundColor: '#d8eddf', fontSize: 13, lineHeight: 18, fontWeight: '700', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   referenceMeta: { color: muted, fontSize: 13, lineHeight: 19, marginTop: 8 },
   calculateButton: { minHeight: 50, padding: 12, borderRadius: 12, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
   buttonDisabled: { backgroundColor: '#9aaba2' },
@@ -283,10 +285,10 @@ const styles = StyleSheet.create({
   error: { color: '#b42318', fontSize: 13, lineHeight: 19, marginTop: 8 },
   resultSection: { marginTop: 18 },
   resultCard: { padding: 18, borderRadius: 17, backgroundColor: forest },
-  resultLabel: { color: '#b9d6c1', fontSize: 12, lineHeight: 17, fontWeight: '700', letterSpacing: 0.5 },
+  resultLabel: { color: '#b9d6c1', fontSize: 13, lineHeight: 18, fontWeight: '700', letterSpacing: 0.5 },
   resultRange: { color: '#fff', fontSize: 23, lineHeight: 30, fontWeight: '800', marginTop: 5 },
   suggested: { color: '#fff', fontSize: 14, lineHeight: 21, padding: 9, borderRadius: 10, backgroundColor: '#2d6a4f', marginTop: 8 },
-  suggestedValue: { fontSize: 15, fontWeight: '800' },
+  suggestedValue: { fontSize: 15, lineHeight: 21, fontWeight: '800' },
   breakdown: { marginTop: 12, borderWidth: 1, borderColor: border, borderRadius: 13, overflow: 'hidden' },
   breakdownTitle: { color: forest, backgroundColor: '#f7faf8', fontSize: 16, lineHeight: 22, fontWeight: '700', padding: 12 },
   breakdownRow: { paddingHorizontal: 12, paddingVertical: 9, borderTopWidth: 1, borderTopColor: '#edf2f7', flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
@@ -300,9 +302,10 @@ const styles = StyleSheet.create({
   editText: { ...appTypography.button, color: forest, textAlign: 'center' },
   disclaimer: { color: muted, backgroundColor: '#f7f8fa', fontSize: 13, lineHeight: 19, padding: 11, borderRadius: 10, marginTop: 12 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(10,28,20,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  optionSheet: { width: '100%', maxWidth: 360, padding: 12, borderRadius: 16, backgroundColor: '#fff' },
-  optionTitle: { color: forest, fontSize: 16, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 10 },
-  option: { minHeight: 48, paddingHorizontal: 10, borderTopWidth: 1, borderTopColor: '#edf2f7', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  optionText: { color: ink, fontSize: 14 },
+  optionSheet: { width: '100%', maxWidth: 360, maxHeight: '85%', padding: 12, borderRadius: 16, backgroundColor: '#fff' },
+  optionList: { flexShrink: 1 },
+  optionTitle: { color: forest, fontSize: 16, lineHeight: 22, fontWeight: '800', paddingHorizontal: 8, paddingVertical: 10 },
+  option: { minHeight: 48, paddingHorizontal: 10, paddingVertical: 10, gap: 8, borderTopWidth: 1, borderTopColor: '#edf2f7', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  optionText: { flex: 1, minWidth: 0, color: ink, fontSize: 14, lineHeight: 20 },
   optionSelected: { color: forest, fontWeight: '800' },
 });

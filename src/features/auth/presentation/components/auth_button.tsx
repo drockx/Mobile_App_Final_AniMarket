@@ -40,9 +40,9 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   pressed: { transform: [{ scale: 0.98 }] },
-  gradient: { alignItems: 'center', justifyContent: 'center' },
+  gradient: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12 },
   loginGradient: { minHeight: 60 },
   compactGradient: { minHeight: 56 },
-  label: { color: '#12351f', fontSize: 22, fontWeight: '700' },
-  compactLabel: { fontSize: 19 },
+  label: { color: '#12351f', fontSize: 22, lineHeight: 28, fontWeight: '700', textAlign: 'center' },
+  compactLabel: { fontSize: 19, lineHeight: 26 },
 });

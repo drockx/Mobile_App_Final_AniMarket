@@ -72,13 +72,13 @@ export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  title: { color: '#fff', fontSize: 36, lineHeight: 43, letterSpacing: -1, fontWeight: '700' },
+  title: { color: '#fff', fontSize: 36, lineHeight: 45, letterSpacing: -1, fontWeight: '700' },
   subtitle: { color: '#fff', fontSize: 15, lineHeight: 23, marginTop: 6, marginBottom: 26 },
   fields: { gap: 16, marginBottom: 24 },
-  message: { color: '#fff', backgroundColor: 'rgba(20,31,24,0.5)', borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 13 },
+  message: { color: '#fff', backgroundColor: 'rgba(20,31,24,0.5)', borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 13, lineHeight: 18 },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', columnGap: 4, marginTop: 15 },
   switchText: { color: '#fff', fontSize: 15, lineHeight: 22 },
   switchLink: { color: '#fff', fontSize: 15, lineHeight: 22, fontWeight: '700', textDecorationLine: 'underline' },
   switchButton: { minHeight: 44, justifyContent: 'center' },
-  credit: { color: '#fff', textAlign: 'center', fontSize: 13, fontWeight: '700', marginTop: 38 },
+  credit: { color: '#fff', textAlign: 'center', fontSize: 13, lineHeight: 18, fontWeight: '700', marginTop: 38 },
 });

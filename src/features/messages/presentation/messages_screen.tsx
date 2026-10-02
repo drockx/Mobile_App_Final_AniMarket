@@ -14,7 +14,7 @@ import { filterConversations, type Conversation, type ConversationSide } from '.
 import { NewMessageDialog } from './new_message_dialog';
 
 const forest = '#12372a';
-const muted = '#75847b';
+const muted = '#52645a';
 const border = '#dce8e1';
 
 const icons = {
@@ -44,13 +44,12 @@ function ConversationCard({
       <View style={styles.avatar}><Text style={styles.avatarText}>{conversation.initials}</Text></View>
       <View style={styles.cardCopy}>
         <View style={styles.nameRow}>
-          <Text numberOfLines={1} style={styles.name}>{conversation.participant}</Text>
+          <Text style={styles.name}>{conversation.participant}</Text>
           {conversation.verifiedSeller && <Text style={styles.sellerTag}>Seller</Text>}
         </View>
-        <Text numberOfLines={1} style={styles.listing}>{conversation.listing}</Text>
-        <Text numberOfLines={1} style={styles.preview}>{conversation.preview}</Text>
-      </View>
-      <View style={styles.cardEnd}>
+        <Text numberOfLines={2} style={styles.listing}>{conversation.listing}</Text>
+        <Text numberOfLines={2} style={styles.preview}>{conversation.preview}</Text>
+        <View style={styles.cardMeta}>
         <Text style={styles.time}>{conversation.time}</Text>
         {conversation.unreadCount > 0 ? (
           <View style={styles.unreadBadge}>
@@ -59,6 +58,7 @@ function ConversationCard({
         ) : (
           <View style={styles.chevronBadge}><NavigationIcon name="next" /></View>
         )}
+        </View>
       </View>
     </Pressable>
   );
@@ -166,43 +166,43 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
 const styles = StyleSheet.create({
   background: { flex: 1, backgroundColor: '#fff' },
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
-  header: { paddingHorizontal: 15, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#e7eeea', backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', gap: 10 },
-  title: { flex: 1, color: forest, fontSize: 24, lineHeight: 30, fontWeight: '700' },
-  newButton: { minHeight: 44, paddingHorizontal: 12, borderRadius: 12, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
-  newButtonText: { color: '#fff', fontSize: 13, lineHeight: 18, fontWeight: '700' },
-  connectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  connectionText: { color: '#52675a', fontSize: 12, lineHeight: 18 },
+  header: { paddingHorizontal: 15, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#e7eeea', backgroundColor: '#fff', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
+  title: { flexGrow: 1, flexShrink: 1, flexBasis: 140, minWidth: 0, color: forest, fontSize: 24, lineHeight: 30, fontWeight: '700' },
+  newButton: { minHeight: 44, maxWidth: '100%', marginLeft: 'auto', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
+  newButtonText: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
+  connectionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  connectionText: { color: '#52675a', fontSize: 13, lineHeight: 18 },
   retry: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
-  retryText: { color: forest, fontSize: 14, fontWeight: '700' },
+  retryText: { color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   notice: { color: '#795715', backgroundColor: '#fff7e4', padding: 12, borderRadius: 12, fontSize: 13, lineHeight: 19, marginBottom: 12 },
   content: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 24 },
   segmentedControl: { minHeight: 46, borderRadius: 13, padding: 4, flexDirection: 'row', backgroundColor: '#eef7f3' },
-  segment: { flex: 1, borderRadius: 9, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  segment: { flex: 1, minWidth: 0, minHeight: 44, paddingHorizontal: 8, paddingVertical: 8, borderRadius: 9, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 7 },
   segmentSelected: { backgroundColor: forest },
-  segmentLabel: { color: '#40564a', fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  segmentLabel: { flexShrink: 1, textAlign: 'center', color: '#40564a', fontSize: 14, lineHeight: 20, fontWeight: '700' },
   segmentLabelSelected: { color: '#fff', fontWeight: '700' },
   segmentBadge: { minWidth: 20, minHeight: 20, paddingHorizontal: 4, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
   segmentBadgeSelling: { backgroundColor: '#aa3028' },
-  segmentBadgeText: { color: forest, fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  segmentBadgeText: { color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   segmentBadgeTextSelling: { color: '#fff' },
   searchField: { minHeight: 46, marginTop: 13, paddingHorizontal: 12, borderWidth: 1, borderColor: border, borderRadius: 13, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
-  searchInput: { flex: 1, minHeight: 44, marginLeft: 9, color: '#1d2b27', fontSize: 14 },
-  sectionRow: { marginTop: 14, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  searchInput: { flex: 1, minWidth: 0, minHeight: 44, marginLeft: 9, color: '#1d2b27', fontSize: 16, lineHeight: 22 },
+  sectionRow: { marginTop: 14, marginBottom: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
-  sectionCount: { color: '#586b60', fontSize: 12, lineHeight: 16 },
+  sectionCount: { color: '#586b60', fontSize: 13, lineHeight: 18 },
   card: { minHeight: 84, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
-  avatar: { width: 46, height: 46, borderRadius: 13, backgroundColor: '#c7e4d1', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: forest, fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  avatar: { width: 46, height: 46, flexShrink: 0, borderRadius: 13, backgroundColor: '#c7e4d1', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   cardCopy: { flex: 1, minWidth: 0, marginLeft: 10 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  nameRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
   name: { flexShrink: 1, color: '#17221d', fontSize: 14, lineHeight: 19, fontWeight: '700' },
-  sellerTag: { color: '#22583e', backgroundColor: '#e4f4e9', borderRadius: 5, overflow: 'hidden', paddingHorizontal: 5, paddingVertical: 2, fontSize: 12, lineHeight: 16, fontWeight: '700' },
-  listing: { color: '#2d6a4f', fontSize: 11, lineHeight: 16, fontWeight: '700', marginTop: 3 },
-  preview: { color: muted, fontSize: 11, lineHeight: 16, marginTop: 2 },
-  cardEnd: { minWidth: 56, alignSelf: 'stretch', alignItems: 'flex-end', justifyContent: 'space-between' },
-  time: { color: '#586b60', fontSize: 11, lineHeight: 16 },
+  sellerTag: { color: '#22583e', backgroundColor: '#e4f4e9', borderRadius: 5, overflow: 'hidden', paddingHorizontal: 5, paddingVertical: 2, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  listing: { color: '#2d6a4f', fontSize: 13, lineHeight: 19, fontWeight: '700', marginTop: 4 },
+  preview: { color: muted, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  cardMeta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 8 },
+  time: { color: '#586b60', fontSize: 13, lineHeight: 18 },
   unreadBadge: { minHeight: 24, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12, backgroundColor: '#e8f5ed', alignItems: 'center', justifyContent: 'center' },
-  unreadText: { color: forest, fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  unreadText: { color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   chevronBadge: { width: 27, height: 27, borderRadius: 9, backgroundColor: '#e8f5ed', alignItems: 'center', justifyContent: 'center' },
   emptyState: { color: muted, fontSize: 14, lineHeight: 20, textAlign: 'center', paddingVertical: 32 },
 });

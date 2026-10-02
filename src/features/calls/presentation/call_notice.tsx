@@ -21,5 +21,5 @@ export function CallNotice({ service, hidden, onOpen }: { service: VoiceService;
 const styles = StyleSheet.create({
   container: { position: 'absolute', left: 12, right: 12, alignSelf: 'center', maxWidth: 456, zIndex: 20, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 14, backgroundColor: '#12372a', elevation: 8, shadowColor: '#081f18', shadowOpacity: 0.25, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   open: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: 'center' }, name: { color: '#fff', fontSize: 15, lineHeight: 21, fontWeight: '700' },
-  status: { color: '#dff1e3', fontSize: 12, lineHeight: 18 }, end: { minHeight: 44, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#a52f2a', alignItems: 'center', justifyContent: 'center' }, endText: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  status: { color: '#dff1e3', fontSize: 13, lineHeight: 18 }, end: { minHeight: 44, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#a52f2a', alignItems: 'center', justifyContent: 'center' }, endText: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700' },
 });

@@ -264,6 +264,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     flex: 1,
+    minWidth: 0,
     marginLeft: 8,
   },
   locationCaption: {
@@ -275,13 +276,14 @@ const styles = StyleSheet.create({
   locationName: {
     color: palette.green,
     fontSize: 14,
-    lineHeight: 18,
+    lineHeight: 19,
     fontWeight: '700',
   },
   notificationButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    flexShrink: 0,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: '#dce4ed',
     backgroundColor: '#fff',
@@ -319,8 +321,8 @@ const styles = StyleSheet.create({
     marginLeft: 9,
     paddingVertical: 10,
     color: palette.ink,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
   },
   clearSearchButton: {
     width: 44,
@@ -332,16 +334,20 @@ const styles = StyleSheet.create({
 
   sectionHeading: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
     marginTop: 18,
   },
   sectionTitle: {
-    flex: 1,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 160,
+    minWidth: 0,
     color: palette.green,
     fontSize: 18,
-    lineHeight: 23,
+    lineHeight: 25,
     fontWeight: '700',
   },
 
@@ -354,6 +360,7 @@ const styles = StyleSheet.create({
   chip: {
     minHeight: 44,
     paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#d9e2ec',
@@ -368,7 +375,7 @@ const styles = StyleSheet.create({
   chipText: {
     color: '#4b5870',
     fontSize: 13,
-    lineHeight: 17,
+    lineHeight: 18,
     fontWeight: '600',
   },
   chipTextSelected: {
@@ -383,6 +390,8 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     backgroundColor: palette.greenSoft,
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
     alignItems: 'center',
     shadowColor: '#183f31',
     shadowOpacity: 0.22,
@@ -391,13 +400,15 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   bannerCopy: {
-    flex: 1,
-    paddingRight: 10,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 160,
+    minWidth: 0,
   },
   bannerTitle: {
     color: '#fff',
     fontSize: 16,
-    lineHeight: 20,
+    lineHeight: 22,
     fontWeight: '700',
     marginBottom: 3,
   },
@@ -409,7 +420,9 @@ const styles = StyleSheet.create({
   },
   learnButton: {
     minHeight: 44,
+    maxWidth: '100%',
     paddingHorizontal: 11,
+    paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: '#fff',
     alignItems: 'center',
@@ -417,7 +430,7 @@ const styles = StyleSheet.create({
   },
   learnText: {
     color: palette.green,
-    fontSize: 12,
+    fontSize: 13, lineHeight: 18,
     fontWeight: '700',
   },
 
@@ -426,9 +439,11 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     minHeight: 44,
+    maxWidth: '100%',
     flexDirection: 'row',
     gap: 6,
     paddingHorizontal: 12,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: palette.border,
     borderRadius: 12,
@@ -490,7 +505,7 @@ const styles = StyleSheet.create({
   price: {
     color: palette.green,
     fontSize: 15,
-    lineHeight: 19,
+    lineHeight: 21,
     fontWeight: '800',
     marginTop: 2,
   },
@@ -504,7 +519,7 @@ const styles = StyleSheet.create({
   modalBackdrop: { flex: 1, backgroundColor: '#12372a70', justifyContent: 'center', alignItems: 'center', padding: 24 },
   infoCard: { width: '100%', maxWidth: 380, maxHeight: '85%', borderRadius: 18, backgroundColor: '#fff', overflow: 'hidden' },
   infoContent: { gap: 16, padding: 20 },
-  infoTitle: { color: palette.green, fontSize: 18, lineHeight: 24, fontWeight: '700' },
+  infoTitle: { color: palette.green, fontSize: 18, lineHeight: 25, fontWeight: '700' },
   infoText: { color: palette.muted, fontSize: 14, lineHeight: 21 },
   infoButton: { minHeight: 48, padding: 12, borderRadius: 12, backgroundColor: palette.green, alignItems: 'center', justifyContent: 'center' },
   infoButtonText: { color: '#fff', fontSize: 15, lineHeight: 21, fontWeight: '700' },

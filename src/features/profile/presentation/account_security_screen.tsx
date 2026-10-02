@@ -59,12 +59,12 @@ export function AccountSecurityScreen({ onBack }: { onBack: () => void }) {
 const styles = StyleSheet.create({
   card: { padding: 15, gap: 13, borderWidth: 1, borderColor: accountColors.line, borderRadius: 16, backgroundColor: '#fff' },
   cardTitle: { color: accountColors.forest, fontSize: 16, lineHeight: 22, fontWeight: '800' },
-  detailLabel: { color: accountColors.muted, fontSize: 12, lineHeight: 16, fontWeight: '700', marginBottom: -9 },
+  detailLabel: { color: accountColors.muted, fontSize: 13, lineHeight: 18, fontWeight: '700', marginBottom: -9 },
   username: { color: accountColors.text, fontSize: 14, lineHeight: 20, fontWeight: '700' },
-  detailNote: { color: accountColors.muted, fontSize: 12, lineHeight: 18 },
-  message: { padding: 11, borderRadius: 10, fontSize: 12, lineHeight: 17 },
+  detailNote: { color: accountColors.muted, fontSize: 13, lineHeight: 18 },
+  message: { padding: 11, borderRadius: 10, fontSize: 13, lineHeight: 18 },
   success: { color: '#166534', backgroundColor: '#e8f5eb' },
   error: { color: accountColors.red, backgroundColor: '#fff1ef' },
   saveButton: { minHeight: 48, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: accountColors.forest },
-  saveText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  saveText: { color: '#fff', fontSize: 14, lineHeight: 19, fontWeight: '800' },
 });

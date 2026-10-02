@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   avatar: { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#eaf5ed' },
   compact: { width: 55, height: 55 },
   image: { width: '100%', height: '100%', borderRadius: 18 },
-  initials: { color: c.forest, fontSize: 20, fontWeight: '800' },
+  initials: { color: c.forest, fontSize: 20, lineHeight: 27, fontWeight: '800' },
   editButton: { minHeight: 48, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 11, borderWidth: 1, borderColor: c.forest, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'stretch' },
   editText: { color: c.forest, fontSize: 14, lineHeight: 20, fontWeight: '700', flexShrink: 1 },
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(10,28,20,0.5)' },
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 0, flexShrink: 1 },
   preview: { width: 120, height: 120, borderRadius: 22, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', backgroundColor: '#eaf5ed' },
   previewImage: { width: '100%', height: '100%', borderRadius: 22 },
-  previewInitials: { color: c.forest, fontSize: 32, fontWeight: '800' },
+  previewInitials: { color: c.forest, fontSize: 32, lineHeight: 40, fontWeight: '800' },
   center: { textAlign: 'center' },
   remove: { color: c.red },
 });

@@ -173,7 +173,7 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
             <TextInput accessibilityLabel="Search livestock references" value={query} onChangeText={setQuery} placeholder="Search livestock" placeholderTextColor={muted} style={styles.searchInput} returnKeyType="search" />
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel={`Sort references, ${sortOptions.find((option) => option.value === sort)?.label}`} accessibilityState={{ expanded: sortOpen }} onPress={() => { setSortOpen(!sortOpen); setMarketOpen(false); }} style={styles.sortButton}>
-            <Text numberOfLines={1} style={styles.sortText}>{sortOptions.find((option) => option.value === sort)?.shortLabel}</Text>
+            <Text style={styles.sortText}>{sortOptions.find((option) => option.value === sort)?.shortLabel}</Text>
             <NavigationIcon name={sortOpen ? 'up' : 'down'} />
           </Pressable>
         </View>
@@ -215,7 +215,7 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
             <Text style={styles.modalSubtitle}>{market.name} • {selectedPrice?.unit ?? ''}</Text>
             <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               {selectedPrice && (
-                <View style={styles.chart}>
+                <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.chart}>
                   {selectedPrice.history.map((value, index) => {
                     const low = Math.min(...selectedPrice.history);
                     const high = Math.max(...selectedPrice.history);
@@ -228,7 +228,7 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
                       </View>
                     );
                   })}
-                </View>
+                </ScrollView>
               )}
             </ScrollView>
             <Pressable accessibilityRole="button" onPress={() => setModal(null)} style={styles.closeButton}><Text style={styles.closeText}>Close</Text></Pressable>
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   headerTitle: { color: forest, fontSize: 24, lineHeight: 30, fontWeight: '700' },
   content: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 22 },
   regionCard: { padding: 14, borderWidth: 1, borderColor: border, borderRadius: 15, backgroundColor: '#fff' },
-  eyebrow: { color: muted, fontSize: 12, lineHeight: 16, fontWeight: '800', letterSpacing: 0.35, marginBottom: 7 },
+  eyebrow: { color: muted, fontSize: 13, lineHeight: 18, fontWeight: '800', letterSpacing: 0.35, marginBottom: 7 },
   marketSelect: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#cbd5d0', borderRadius: 10, backgroundColor: '#f8faf9', flexDirection: 'row', alignItems: 'center', gap: 8 },
   marketSelectText: { flex: 1, minWidth: 0, color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   marketMenu: { marginTop: 4, borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#fff', overflow: 'hidden' },
@@ -253,45 +253,45 @@ const styles = StyleSheet.create({
   marketOptionSelected: { backgroundColor: '#eaf5ed' },
   marketOptionCopy: { flex: 1, minWidth: 0 },
   marketOptionName: { color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
-  marketOptionLocation: { color: muted, fontSize: 12, lineHeight: 16, marginTop: 2 },
-  marketOptionCheck: { color: forest, fontSize: 18, lineHeight: 22, fontWeight: '800' },
+  marketOptionLocation: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
+  marketOptionCheck: { color: forest, fontSize: 18, lineHeight: 25, fontWeight: '800' },
   marketMeta: { color: '#53675b', fontSize: 13, lineHeight: 18, marginTop: 5 },
-  toolsRow: { marginTop: 13, flexDirection: 'row', gap: 8 },
-  searchField: { flex: 1, minWidth: 0, minHeight: 44, paddingHorizontal: 11, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
-  searchInput: { flex: 1, minHeight: 42, marginLeft: 7, paddingVertical: 0, color: ink, fontSize: 14 },
-  sortButton: { width: 116, minHeight: 44, paddingHorizontal: 9, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#fff' },
+  toolsRow: { marginTop: 13, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  searchField: { flexGrow: 1, flexShrink: 1, flexBasis: 180, minWidth: 0, minHeight: 48, paddingHorizontal: 11, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
+  searchInput: { flex: 1, minWidth: 0, minHeight: 46, marginLeft: 7, paddingVertical: 10, color: ink, fontSize: 16, lineHeight: 22 },
+  sortButton: { width: 116, maxWidth: '100%', marginLeft: 'auto', minHeight: 48, paddingHorizontal: 9, paddingVertical: 8, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#fff' },
   sortText: { flex: 1, minWidth: 0, color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   sortMenu: { alignSelf: 'flex-end', width: 175, marginTop: 4, borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#fff', overflow: 'hidden' },
-  sortOption: { minHeight: 42, paddingHorizontal: 12, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border },
+  sortOption: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border },
   sortOptionText: { color: ink, fontSize: 13, lineHeight: 18 },
   sortOptionSelected: { color: forest, fontWeight: '800' },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12, marginBottom: 10 },
-  categoryButton: { minHeight: 33, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: border, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  categoryButton: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: border, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   categorySelected: { backgroundColor: forest, borderColor: forest },
   categoryText: { color: muted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   categoryTextSelected: { color: '#fff' },
-  summaryRow: { marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  summaryText: { color: muted, fontSize: 12, lineHeight: 16 },
+  summaryRow: { marginBottom: 8, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  summaryText: { color: muted, fontSize: 13, lineHeight: 18 },
   summaryHint: { flexShrink: 1, textAlign: 'right' },
   priceCard: { marginBottom: 10, padding: 12, borderWidth: 1, borderColor: '#e2e8e4', borderRadius: 14, backgroundColor: '#fff' },
-  cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  itemMain: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  itemIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: '#e6f3e9', alignItems: 'center', justifyContent: 'center' },
+  cardTop: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  itemMain: { flexGrow: 1, flexShrink: 1, flexBasis: 160, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  itemIcon: { width: 38, height: 38, flexShrink: 0, borderRadius: 10, backgroundColor: '#e6f3e9', alignItems: 'center', justifyContent: 'center' },
   animalIcon: { fontSize: 19, lineHeight: 24 },
   itemCopy: { flex: 1, minWidth: 0 },
-  itemName: { color: ink, fontSize: 15, lineHeight: 19, fontWeight: '800' },
+  itemName: { color: ink, fontSize: 15, lineHeight: 21, fontWeight: '800' },
   itemBasis: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
-  priceBox: { alignItems: 'flex-end' },
-  priceRange: { color: forest, fontSize: 16, lineHeight: 20, fontWeight: '800', textAlign: 'right' },
+  priceBox: { maxWidth: '100%', minWidth: 0, flexShrink: 1, marginLeft: 'auto', alignItems: 'flex-end' },
+  priceRange: { color: forest, fontSize: 16, lineHeight: 22, fontWeight: '800', textAlign: 'right' },
   median: { color: '#53675b', fontSize: 13, lineHeight: 18, marginTop: 2 },
-  cardDetails: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#edf2f0', flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
+  cardDetails: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#edf2f0', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 6 },
   trend: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   trendUp: { color: '#15803d' },
   trendDown: { color: '#b42318' },
   trendStable: { color: muted },
   observations: { color: muted, fontSize: 13, lineHeight: 18, textAlign: 'right' },
-  cardActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  cardButton: { flex: 1, minHeight: 42, paddingHorizontal: 5, paddingVertical: 6, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  cardActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  cardButton: { flexGrow: 1, flexShrink: 1, flexBasis: 130, minWidth: 0, minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   calculatorButton: { backgroundColor: forest },
   historyButton: { borderWidth: 1, borderColor: forest, backgroundColor: '#fff' },
   calculatorText: { color: '#fff', fontSize: 13, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
@@ -299,15 +299,15 @@ const styles = StyleSheet.create({
   emptyState: { padding: 24, borderWidth: 1, borderStyle: 'dashed', borderColor: '#cbd5d0', borderRadius: 13, backgroundColor: '#fff', color: muted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   modalRoot: { flex: 1, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,34,25,0.62)' },
   modalSheet: { width: '100%', maxWidth: 420, maxHeight: '82%', padding: 17, borderRadius: 16, backgroundColor: '#fff' },
-  modalTitle: { color: forest, fontSize: 18, lineHeight: 24, fontWeight: '800' },
+  modalTitle: { color: forest, fontSize: 18, lineHeight: 25, fontWeight: '800' },
   modalSubtitle: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 4 },
   modalScroll: { flexGrow: 0, marginTop: 12 },
-  chart: { minHeight: 160, padding: 10, borderRadius: 12, backgroundColor: '#f5f9f6', flexDirection: 'row', alignItems: 'flex-end', gap: 5 },
-  chartColumn: { flex: 1, minWidth: 0, alignItems: 'center' },
-  chartValue: { color: muted, fontSize: 11, lineHeight: 15, textAlign: 'center' },
+  chart: { minWidth: 480, minHeight: 170, padding: 10, borderRadius: 12, backgroundColor: '#f5f9f6', flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  chartColumn: { flexGrow: 1, minWidth: 60, alignItems: 'center' },
+  chartValue: { color: muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
   chartTrack: { height: 108, width: '100%', justifyContent: 'flex-end', paddingHorizontal: 2 },
   chartBar: { width: '100%', borderTopLeftRadius: 5, borderTopRightRadius: 5, backgroundColor: '#4b8b69' },
-  chartDay: { color: muted, fontSize: 12, lineHeight: 16, marginTop: 3 },
-  closeButton: { minHeight: 44, marginTop: 13, borderRadius: 10, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
+  chartDay: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 3 },
+  closeButton: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, marginTop: 13, borderRadius: 10, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
   closeText: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700' },
 });

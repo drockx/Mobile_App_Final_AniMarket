@@ -83,13 +83,13 @@ const styles = StyleSheet.create({
     minHeight: 60,
     borderRadius: 17,
     paddingHorizontal: 19,
-    fontSize: 16,
+    fontSize: 16, lineHeight: 22,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.78)',
     color: '#fff',
     backgroundColor: 'rgba(0,0,0,0.24)',
   },
-  compactInput: { minHeight: 52, borderRadius: 15, paddingHorizontal: 16, fontSize: 15 },
+  compactInput: { minHeight: 52, borderRadius: 15, paddingHorizontal: 16, fontSize: 16, lineHeight: 22 },
   inputError: { borderColor: '#ffb4a8' },
   secureInput: { paddingRight: 68 },
   toggle: {
@@ -101,6 +101,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  toggleText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  toggleText: { color: '#fff', fontSize: 14, lineHeight: 19, fontWeight: '700' },
   errorText: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 5, paddingHorizontal: 2 },
 });

@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
   inputWrap: { position: 'relative' },
   secureInput: { paddingRight: 72 },
   toggle: { position: 'absolute', right: 4, top: 0, bottom: 0, minWidth: 60, minHeight: 48, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
-  toggleText: { color: accountColors.forest, fontSize: 14, fontWeight: '700' },
+  toggleText: { color: accountColors.forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   input: { minHeight: 50, paddingHorizontal: 13, borderWidth: 1, borderColor: accountColors.line, borderRadius: 11, backgroundColor: '#fff', color: accountColors.text, fontSize: 16, lineHeight: 22 },
 });

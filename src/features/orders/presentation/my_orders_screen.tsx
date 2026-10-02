@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   badge: { marginBottom: 14 },
   empty: { paddingVertical: 28, gap: 14 },
   emptyIcon: { width: 64, height: 64, borderRadius: 18, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: color.mint },
-  emptyTitle: { color: color.green, fontSize: 20, lineHeight: 26, fontWeight: '700', textAlign: 'center' },
+  emptyTitle: { color: color.green, fontSize: 20, lineHeight: 27, fontWeight: '700', textAlign: 'center' },
   emptyCopy: { color: color.muted, fontSize: 14, lineHeight: 20, textAlign: 'center', marginBottom: 6 },
   footer: { gap: 14, paddingTop: 2 },
   sessionNote: { color: color.muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
