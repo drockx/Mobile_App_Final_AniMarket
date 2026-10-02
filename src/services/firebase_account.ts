@@ -36,6 +36,7 @@ export async function readFirebaseAccount(user = requireFirebaseUser()): Promise
     getDoc(doc(firestore, 'users', user.uid)), getDoc(doc(firestore, 'roles', user.uid)), getDoc(doc(firestore, 'verifications', user.uid)),
   ]);
   if (auth.currentUser?.uid !== user.uid) throw new ApiError('Your account changed. Sign in again.', 401);
+  if (role.data()?.staff === true) throw new ApiError('This reviewer login is for the AniMarket admin portal. Use a personal account in the mobile app.', 403);
   if (!profile.exists()) throw new ApiError('Your Firebase account exists, but its profile is incomplete. Register again using the same email and password to finish setup.', 409);
   const record = profile.data() as Profile;
   if (record.id !== user.uid || !record.personal || !isDavaoDelNorteLocality(record.personal.city)) throw new ApiError('Your saved profile needs an administrator to correct it.', 409);
@@ -78,6 +79,7 @@ async function register(body: Record<string, unknown>): Promise<AccountSession> 
       user = (await signInWithEmailAndPassword(auth, personal.email, password)).user;
     }
   }
+  if ((await getDoc(doc(firestore, 'roles', user.uid))).data()?.staff === true) throw new ApiError('This reviewer login is for the admin portal. Register your personal account with a different email.', 403);
   if ((await getDoc(doc(firestore, 'users', user.uid))).exists()) throw new ApiError('This email is already registered. Sign in to continue.', 409);
   await updateProfile(user, { displayName: personal.fullName });
   await saveProfile({ id: user.uid, username: personal.fullName, personal, acceptedTerms: true, createdAt: new Date().toISOString(),

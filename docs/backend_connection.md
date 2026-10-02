@@ -1,55 +1,49 @@
-# Backend connection status
+# Backend connection
 
-Updated 2 October 2026. The rollout is staged; the running app still selects the existing local backend through `EXPO_PUBLIC_BACKEND=local`. Switching that flag before the remaining feature adapters are connected would disable those features. No local accounts, messages, ID photos or orders have been migrated or removed.
+Updated 2 October 2026. The app selects its deployed cloud backend through `EXPO_PUBLIC_BACKEND=firebase`. Sample listings are disabled. An empty marketplace is expected until a verified seller publishes livestock. Existing local-development accounts are separate and were not migrated.
 
-| Component | Completed | Remaining before the app switch |
-| --- | --- | --- |
-| Firebase | Installed JS SDK; native login persistence; registration/login/logout/profile/password adapter; owner-only profiles; safe user directory; protected reviewer/verification records. Account rules deployed to `animarket-87354`. Server password policy enforces 8–21 characters with every required character type. | Connect persistent listings/orders, messaging and call signaling; complete private verification/media endpoints; device testing and deliberate migration of existing accounts. |
-| Firebase costs | Cloud Billing API confirmed billing disabled and no linked account before and after rules deployment. Deployment command refuses linked billing. | Keep Spark. Free quotas can block requests; the app reports quota failures. No Firebase Storage, Cloud Functions, paid SMS or Analytics integration was added. |
-| Supabase | Public client configured for `yvamvsbfbknnasfvqdto`; `animarket-ids` private bucket created; JPEG/PNG limited to 5 MB; owner-only read/upload; direct replacement/deletion denied. User confirmed Firebase Third-Party Auth integration. Trusted `animarket` Edge Function deployed for account storage-role provisioning. Real cross-provider test passed. | Connect submission/review/withdrawal and cleanup endpoints to the verification screens. Keep government IDs out of Cloudinary and public records. |
-| Cloudinary | Cloud name `dnbmd5qhj` configured. | Add API credentials only to Supabase Edge Function Secrets; implement/test signed profile/listing photo uploads and cleanup. No unsigned upload preset is used. |
-| Calls/push | Existing foreground WebRTC calls and local messaging server preserved. | Firestore signaling, trusted notifications, device push setup and a suitable free TURN provider still need connection/testing. A call screen alone does not guarantee calls across different networks. |
+| Service | Connected behavior |
+| --- | --- |
+| Firebase `animarket-87354` | Email/password accounts, persistent profiles, livestock listings, orders, real-time messages, call signaling and verification status. Rules restrict private reads and deny direct client changes to trusted records. |
+| Supabase `yvamvsbfbknnasfvqdto` | Trusted `animarket` Edge Function validates Firebase tokens and account revocation, enforces ownership and order transitions, signs uploads and processes private ID decisions. Private ID/document storage is restricted. |
+| Cloudinary `dnbmd5qhj` | Signed public profile and livestock photos, with replacement/deletion cleanup. Government IDs and vaccination documents remain in private Supabase storage. |
+| Account verification portal | [Open the portal](https://animarket-87354-admin.web.app). Reviewer-only pending queue, private ID preview, approval and rejection with feedback. The separate staff account can only review IDs. Its login is in ignored `admin-login.local.txt`. |
+| Cleanup | An hourly Supabase job expires old pending IDs, removes unattached media and retries failed deletions. ID photos are removed after review or withdrawal; pending submissions expire after 30 days. |
 
-## Login and security
+## Account and data security
 
-Firebase owns the sole account session. Native sign-in uses Firebase's AsyncStorage persistence and token refresh; it does not persist a duplicate API session. The existing local backend remains available while the adapters are staged. Email verification remains disabled. Firebase's existing email-enumeration protection may require verification to change an email through its client API; the trusted email-change endpoint needs completion before rollout.
+Passwords require 8–21 characters with uppercase, lowercase, number and symbol, enforced by the client and Firebase. Email verification remains disabled as requested. Email changes require the current password and a recent Firebase session; the trusted endpoint changes only the authenticated account.
 
-Firestore clients cannot read another user's private profile, publish contact details in the directory, change avatar metadata, grant reviewer privileges, or mark an ID approved. Other collections are denied until their feature-specific adapters/rules are added and tested. Profile read failures show a retry/sign-in recovery state. Cancelled sign-ins cannot silently persist a different account; interrupted registrations can safely complete the missing profile with the same email and password.
+Reviewers are assigned by the project owner; users cannot grant themselves access or approve their own IDs. A government-issued photo ID is sufficient for account verification; DTI documents are not required. Account-name changes invalidate prior verification. Approval changes the live profile and seller badges, and enables publishing.
 
-The Supabase function validates Google's JWT signature, issuer, audience, expiry, issue/authentication times and Firebase account revocation/disable status. It checks the caller's owner-only Firestore profile before setting `role=authenticated`, then the app refreshes its Firebase token. That storage role does not grant ID approval or reviewer access. The function accepts no client-supplied UID or role.
+The Edge Function checks Google's signature, issuer, audience, expiry and Firebase disable/revocation state. Its dedicated service account can read/update Auth users and application Firestore records; it has no IAM or billing permissions. Credentials stay in Supabase Secrets and ignored local server files. Public app configuration contains no service-role key, Cloudinary secret or service-account private key.
 
-The dedicated `animarket-edge` service account has a custom project role containing only `firebaseauth.users.get` and `firebaseauth.users.update`. The function currently uses those permissions for its storage-session bridge. It has no Firestore administrative, IAM or billing permissions. Its credential lives in Supabase Edge Function Secrets and ignored `.env.backend-secrets.local`; it is never an `EXPO_PUBLIC_` setting or a mobile asset. Do not commit, share or deploy that local file as website content. Rotate its key through Google IAM and update Supabase secrets when needed.
+Listing publication validates photo ownership, category and a pickup pin inside Davao del Norte. Public listings omit precise pickup coordinates. Order creation rechecks the current price and listing availability; only participants can read an order. Seller acceptance reserves livestock, and buyer completion marks it sold. Failed/repeated requests retain their IDs to prevent duplicates.
 
-## Owner commands
+Messaging uses private conversations and live Firestore subscriptions. Calls use participant-only signaling, busy locks, callee-only answer, microphone permissions and stale-call cleanup. Native audio still needs physical-device testing; TURN is not configured, so cross-network voice reliability is not established. Background incoming-call push is not configured. Payment and transport costs are arrangements/estimates, not automatic money transfers or a booked courier service.
+
+## Cost boundary
+
+The Cloud Billing API confirmed that Firebase billing is disabled with no linked account. Owner deployment scripts stop if a billing account is detected. No Firebase Storage, Cloud Functions, paid SMS or Analytics integration was added. The portal uses static Firebase Hosting on Spark. Free quotas may pause service; they do not create a paid Firebase billing account. Supabase and Cloudinary remain subject to their free-plan limits.
+
+## Verification and owner commands
+
+- `npm run check:app`: lint, TypeScript, architecture and feature regression checks passed.
+- `npm run check:firebase`: 46 rules checks plus actual emulator SDK account flows, recovery and email changes passed.
+- `node --test scripts/check_cloud.mjs`: nine cloud authorization/workflow checks passed, including staff-only access.
+- `node scripts/check_cloud_live.mjs --live`: deployed photos, private ID approval, private documents, listing ownership, complete order flow, two-way messages and call signaling passed. Temporary test accounts, records and media were removed.
+- `node scripts/check_admin_live.js`: hosted portal, real reviewer login, queue and denial of non-review actions passed without changing customer records.
+- Live Supabase storage policy tests passed and rolled their temporary metadata back.
 
 ```powershell
 npm run firebase:check
 npm run firebase:password-policy
 npm run firebase:deploy
-npm run check:firebase
-npm run check:backend
-npx supabase db query --linked --project-ref yvamvsbfbknnasfvqdto --file supabase/tests/private_identity_audit.sql --output json
-npx supabase db query --linked --project-ref yvamvsbfbknnasfvqdto --file supabase/tests/private_identity_rls.sql --output json
+npx supabase functions deploy animarket --project-ref yvamvsbfbknnasfvqdto
+node scripts/setup_admin_portal.js
+node scripts/grant_firebase_reviewer.js SELECTED_CUSTOMER_UID
 ```
 
-`check:firebase` writes only to local demo Auth/Firestore emulators. It covers 29 rule access checks, actual SDK account flows, auth races and registration recovery. The live Supabase policy test inserts temporary metadata in a transaction and rolls it back; it uploads no ID photos or real user data.
+The last command is only for an additional reviewer explicitly selected by the owner. Keep `admin-login.local.txt`, `.env.backend-secrets.local` and `.env.maintenance.local` private. They are excluded from Git and the mobile build. Hosting deploys only `admin_portal/`. Rotate the Cloudinary secret that was shared in chat and update Supabase Secrets.
 
-`node scripts/check_backend_live.js --live` is an explicit production connectivity test. It first verifies Firebase's billing state, creates two isolated temporary accounts and one tiny test image, checks real trusted role provisioning/private storage/isolation, then removes those exact resources. Its ignored manifest enables cleanup recovery if a provider call fails. It never prints tokens or private credentials. Do not run it unnecessarily against quota-limited projects.
-
-Lint, TypeScript, architecture/data/auth/input checks, Android Hermes export and web export must pass before rollout. The current exports verify bundling; physical-device behavior and the remaining cloud feature flows still need testing.
-
-## Current checkpoint and next setup step
-
-Passed: lint, TypeScript, backend JWT/authorization tests, demo Firebase rules/account tests, live private-storage isolation tests, and Android/web exports with the Firebase adapter enabled for those builds. All temporary live-test accounts and files were removed. The running app still uses the local backend until the remaining adapters are complete.
-
-The Supabase secret-name check confirms Cloudinary credentials are still missing. In Cloudinary, open **Settings → API Keys** for cloud `dnbmd5qhj`. Add the following in **Supabase → Edge Functions → Secrets**:
-
-| Secret name | Value |
-| --- | --- |
-| `CLOUDINARY_CLOUD_NAME` | `dnbmd5qhj` |
-| `CLOUDINARY_API_KEY` | The Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | The Cloudinary API secret |
-
-Keep the API secret in Supabase; do not paste it into chat or an `EXPO_PUBLIC_` setting. No billing upgrade is part of this setup.
-
-References: [Firebase pricing plans](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans), [Expo Firebase JS SDK](https://docs.expo.dev/guides/using-firebase/), [Supabase Firebase integration](https://supabase.com/docs/guides/auth/third-party/firebase-auth), [Cloudinary server credentials](https://cloudinary.com/documentation/developer_onboarding_faq_find_credentials).
+References: [Firebase Spark plan](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans), [Firebase Hosting](https://firebase.google.com/docs/hosting/quickstart), [Supabase Firebase authentication](https://supabase.com/docs/guides/auth/third-party/firebase-auth).

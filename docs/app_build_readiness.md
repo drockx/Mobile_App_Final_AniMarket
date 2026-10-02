@@ -1,50 +1,35 @@
 # App build readiness
 
-Checked 2 October 2026 with Expo SDK 57.
+Updated 2 October 2026, Expo SDK 57. The project is configured for an Android APK build with its deployed backend. The user will start the build when ready. The preparatory cloud builds were cancelled; no completed native-build or physical-device result is claimed.
 
-The app passes the checks below and can proceed to a development build. It is not yet ready for a public production release: the cloud feature rollout is staged, and native voice calls have not been tested on physical devices.
+## Prepared
 
-## Completed polish
+- Expo/EAS owner: `drokcx`. Project: `68c6337e-1568-4ecc-9129-831cef15e79c`.
+- Android identifier: `com.example.animarket_final`, version `1.0.0`, version code `1`.
+- Android signing keystore is managed by EAS. Private signing material was not downloaded or committed.
+- `eas.json` includes an `apk` profile with internal distribution and `android.buildType=apk`. It includes only public Firebase/Supabase/Cloudinary configuration and selects the Firebase backend. Production builds use AAB.
+- Default listings are disabled. Live accounts, verification, photos, listings, orders, messages and foreground call signaling are connected. See [backend connection](backend_connection.md).
+- [The account verification portal](https://animarket-87354-admin.web.app) is deployed separately and excluded from the APK. Its private login is saved in ignored `admin-login.local.txt`.
+- Mobile typography, icons, touch targets, narrow layouts, keyboard visibility, navigation/error recovery and duplicate-submit protection were polished. Screens handle loading, empty data, failures and account switching.
+- Secrets, local server data, generated native folders, build output and backend/admin deployment code are excluded from the EAS archive. Firebase remains Spark with billing disabled.
 
-- Unified readable form typography, navigation icons, and touch targets. Narrow marketplace screens use one listing column; calculator fields stack so complete values remain visible.
-- Added livestock image fallbacks, themed route/error recovery, and account error recovery after the navigator mounts.
-- Fixed the web crash when a focused input called a native-only keyboard API. Kept keyboard scrolling and the visible listing description field.
-- Guarded authentication against duplicate submissions and invalid search price ranges. Seller information opens in a scrollable dialog across platforms.
-- Configured AniMarket branding, a light appearance, keyboard resizing, development/preview APKs, and production Android App Bundles.
-- Added `npm run check:app` and an EAS ignore file that excludes server data, local secrets, and backend deployment files from the mobile build archive.
-- Removed the stale, empty Git index lock after confirming no Git process was active. No files or commits were removed.
+## Checked
 
-## Verification
+The final `npm run check:app` passed all 15 checks, including lint, TypeScript, architecture and nine cloud workflow checks. Firebase emulator rules/account flows and deployed cloud workflows passed. The portal's real login and restricted scope passed, and its login layout fits a 320 px viewport without horizontal overflow. Android/iOS Hermes and web exports succeeded. The Firebase-enabled Android Hermes export succeeded in `dist/firebase-ready`; Expo's package compatibility check reports all dependencies up to date. Native config introspection resolved the Android manifest and intended EAS project without generating native directories or building an APK.
 
-| Check | Result |
-| --- | --- |
-| `npm run check:app` | All 14 checks passed, including lint, TypeScript, architecture, and 127 tests. |
-| Browser smoke test | Sign-in, filter validation/reset, account and marketplace routes, two-way live messages, and missing-route recovery passed. 18 captures across 320, 360, 430, and 768 px widths; no page runtime errors or document width overflow. |
-| `npx expo export --platform all --output-dir dist/build-check` | Android and iOS Hermes bundles and web static output exported successfully. |
-| `npx expo install --check` | Installed Expo package versions are compatible. |
-| Expo Doctor | 20 of 21 checks passed. React Native Directory reports `react-native-incall-manager` and `react-native-webrtc` as untested on the New Architecture. |
-| Git whitespace / lock | Diff check passed; index lock absent. |
+Expo Doctor passed 20 of 21 checks. Its existing warning concerns `react-native-webrtc` and `react-native-incall-manager`: React Native Directory lists them as untested on the New Architecture. Bundling and mocked call tests do not establish actual Android audio compatibility. Dependency audit also reports advisories in inherited tooling/transitive packages; no forced SDK downgrade was performed.
 
-The browser used a separate, temporary in-memory backend and disposable test accounts. It did not change Firebase, Supabase, billing, or real user data. Native call tests mock the audio modules; passing them does not verify microphone/audio behavior on a phone. JavaScript export does not compile or sign an APK, AAB, or IPA.
-
-## Remaining before release
-
-1. Finish the persistent Firebase listing/order repositories, messaging and call signaling, and their access rules. The running app still uses `EXPO_PUBLIC_BACKEND=local`; marketplace records and orders are session-only. Production disables sample catalog data. See [backend connection status](backend_connection.md).
-2. Supply Cloudinary API credentials only through Supabase secrets, then finish signed public photo uploads and private ID submission/review/cleanup endpoints. Migrate existing accounts deliberately before switching the app backend.
-3. Configure the actual release backend and public environment values in EAS. A phone release cannot use the temporary browser test server or a development computer's loopback address. Keep Firebase on Spark and Supabase/Cloudinary on their free plans.
-4. Build an Android development client and test installation, login, keyboard visibility, camera/photos, GPS pins, offline recovery, and two-account messaging/calls on physical devices. Test calls across separate networks and configure/test TURN if direct audio connections fail. The app's custom voice modules require a development build.
-5. Link the intended Expo/EAS project and signing credentials. An iOS build also needs the intended bundle identifier. No cloud native build or app-store submission was performed during this audit.
-
-Run the local checks again after any backend or native configuration changes:
+## Build when ready
 
 ```powershell
 npm run check:app
-npx expo-doctor
-npx expo export --platform all --output-dir dist/build-check
+npx eas-cli@latest build --platform android --profile apk
 ```
 
-Once the Expo project and development environment are configured, the Android device test build command is:
+This submits a signed installable APK to EAS. Keep the EAS project and managed signing credentials; future Android updates need the same package and signing key. A Play Store release normally uses the `production` AAB profile.
 
-```powershell
-npx eas-cli@latest build --platform android --profile development
-```
+## Before a public release
+
+Install a build on physical Android devices and verify registration/login persistence, private ID submission and review, profile/livestock photos, GPS/address pins, keyboard behavior, buyer/seller orders, reconnection and two-account messages. Test microphone, speaker, incoming calls and hangup on two phones across different networks. TURN and background call notifications still need a separate decision/setup if those capabilities are required. No billing upgrade is needed for the prepared Firebase setup.
+
+A successful JavaScript export is not a signed APK or a guarantee of error-free behavior. The native build and device acceptance checks remain the next verification steps when the user chooses to build.
