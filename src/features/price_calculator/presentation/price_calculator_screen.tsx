@@ -1,13 +1,14 @@
 import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
 import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
+import { AddressSelect } from '@/components/address_select';
 import { useRef, useState, type ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMarketReferences, marketReferenceStore } from '@/features/market_reference/market_reference_dependencies';
 import { DataFeedback } from '@/components/data_feedback';
-import { isDavaoDelNorteLocality, davaoDelNorteLocation } from '@/constants/davao_del_norte';
+import { DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel, isDavaoDelNorteLocality, davaoDelNorteLocation } from '@/constants/davao_del_norte';
 import { appColors, appFormStyles, appTypography } from '@/constants/app_theme';
 import { marketForLocality, observationDate } from '@/features/market_reference/domain/market_reference';
 
@@ -190,8 +191,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
         <View style={[styles.row, compact && styles.stackedRow]}>
           <View style={styles.rowItem}>
             <View style={styles.formGroup}>
-              <Label>Municipality / City</Label>
-              <TextInput accessibilityLabel="Municipality or City" autoCapitalize="words" onChangeText={(value) => change(setCity, value)} style={styles.input} value={city} />
+              <AddressSelect label="Municipality / City" value={city} options={DAVAO_DEL_NORTE_LOCALITIES.map((name) => ({ label: davaoDelNorteLocalityLabel(name), value: name }))} onSelect={(value) => change(setCity, value)} placeholder="Choose city or municipality" />
             </View>
           </View>
           <View style={styles.rowItem}><SelectField label="Province" value={province} options={provinces} onPress={() => setPicker('province')} /></View>

@@ -128,7 +128,7 @@ async function denied(promise) { await assertFails(promise); checks++; }
     await denied(getDoc(doc(other, 'users', 'owner', 'notificationReads', 'event')));
     console.log(`Account security rules: ${checks} access checks passed.`);
 
-    const body = { fullName: 'Actual SDK User', email: `sdk-${Date.now()}@example.com`, phone: '09123456789', city: 'Tagum City', acceptedTerms: true, password: 'StrongPass1!' };
+    const body = { fullName: 'Actual SDK User', email: `sdk-${Date.now()}@example.com`, phone: '09123456789', city: 'Tagum City', barangay: 'Magugpo Poblacion', acceptedTerms: true, password: 'StrongPass1!' };
     await assert.rejects(request('/auth/register', { method: 'POST', body: { ...body, password: 'weak' } }), /8–21/);
     assert.equal(auth.currentUser, null);
     const session = await request('/auth/register', { method: 'POST', body });
@@ -168,7 +168,7 @@ async function denied(promise) { await assertFails(promise); checks++; }
     const store = require('../src/features/profile/profile_store.ts');
     await store.initializeAccount();
     assert.equal(store.getAccountSnapshot().signedIn, false);
-    const values = { firstName: 'Store', middleName: '', lastName: 'User', email: `store-${Date.now()}@example.com`, phone: '09123456789', municipalityCity: 'Tagum City', purok: 'Purok 1', barangay: 'Magugpo', postalCode: '8100', password: 'StorePass1!' };
+    const values = { firstName: 'Store', middleName: '', lastName: 'User', email: `store-${Date.now()}@example.com`, phone: '09123456789', municipalityCity: 'Tagum City', purok: 'Purok 1', barangay: 'Magugpo Poblacion', postalCode: '8100', password: 'StorePass1!' };
     assert.equal(await store.registerAccount(values), null);
     const storeUid = auth.currentUser.uid;
     assert.equal(store.getAccountSnapshot().userId, storeUid);

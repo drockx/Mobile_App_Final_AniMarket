@@ -1,8 +1,10 @@
 import { NavigationIcon } from '@/components/navigation_icon';
+import { AddressSelect } from '@/components/address_select';
 import { useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel } from '@/constants/davao_del_norte';
+import { barangaysForLocality } from '@/constants/davao_del_norte_barangays';
 
 import {
   validateRegistrationFields,
@@ -31,12 +33,11 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errors, setErrors] = useState<RegistrationFieldErrors>({});
   const [message, setMessage] = useState<string | null>(null);
-  const [localityOpen, setLocalityOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const submitting = useRef(false);
 
   function updateField(field: keyof RegistrationValues, value: string) {
-    setValues((current) => ({ ...current, [field]: value }));
+    setValues((current) => ({ ...current, [field]: value, ...(field === 'municipalityCity' && value !== current.municipalityCity ? { barangay: '' } : {}) }));
     if (errors[field]) {
       setErrors((current) => ({ ...current, [field]: undefined }));
     }
@@ -90,16 +91,9 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
 
       <Text style={styles.sectionLabel}>Address</Text>
       <View style={styles.fieldGroup}>
+        <AddressSelect dark required={false} label="Municipality / City" value={values.municipalityCity} options={DAVAO_DEL_NORTE_LOCALITIES.map((city) => ({ label: davaoDelNorteLocalityLabel(city), value: city }))} onSelect={(value) => updateField('municipalityCity', value)} placeholder="Choose city or municipality" error={errors.municipalityCity} />
+        <AddressSelect dark required={false} label="Barangay" value={values.barangay} options={barangaysForLocality(values.municipalityCity).map((name) => ({ label: name, value: name }))} onSelect={(value) => updateField('barangay', value)} disabled={!values.municipalityCity} placeholder={values.municipalityCity ? 'Choose barangay' : 'Choose city or municipality first'} dialogTitle={`Barangays in ${values.municipalityCity}`} error={errors.barangay} />
         <AuthField compact label="Purok / Street" autoComplete="address-line1" returnKeyType="next" error={errors.purok} value={values.purok} onChangeText={(value) => updateField('purok', value)} />
-        <AuthField compact label="Barangay" returnKeyType="next" error={errors.barangay} value={values.barangay} onChangeText={(value) => updateField('barangay', value)} />
-        <View>
-          <Text style={styles.addressLabel}>Municipality / City</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Choose city or municipality" accessibilityState={{ expanded: localityOpen }} onPress={() => setLocalityOpen(true)} style={[styles.addressSelect, !!errors.municipalityCity && styles.addressError]}>
-            <Text style={styles.addressValue}>{values.municipalityCity || 'Choose a Davao del Norte locality'}</Text>
-            <NavigationIcon name={localityOpen ? 'up' : 'down'} color="#fff" />
-          </Pressable>
-          {!!errors.municipalityCity && <Text accessibilityRole="alert" style={styles.addressErrorText}>{errors.municipalityCity}</Text>}
-        </View>
         <View>
           <Text style={styles.addressLabel}>Province</Text>
           <View style={styles.addressSelect}><Text style={styles.addressValue}>{DAVAO_DEL_NORTE}</Text></View>
@@ -142,21 +136,6 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
         </Pressable>
       </View>
       <Text style={styles.credit}>AniMarket</Text>
-      <Modal visible={localityOpen} transparent animationType="fade" onRequestClose={() => setLocalityOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close locality list" onPress={() => setLocalityOpen(false)} style={StyleSheet.absoluteFill} />
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Davao del Norte localities</Text>
-            <ScrollView style={styles.localityList} keyboardShouldPersistTaps="handled">
-              {DAVAO_DEL_NORTE_LOCALITIES.map((locality) => (
-                <Pressable key={locality} accessibilityRole="button" accessibilityState={{ selected: values.municipalityCity === locality }} onPress={() => { updateField('municipalityCity', locality); setLocalityOpen(false); }} style={styles.localityOption}>
-                  <Text style={styles.localityText}>{davaoDelNorteLocalityLabel(locality)}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </AuthScreenLayout>
   );
 }
@@ -174,14 +153,6 @@ const styles = StyleSheet.create({
   addressLabel: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700', includeFontPadding: false, marginBottom: 8 },
   addressSelect: { minHeight: 52, borderRadius: 15, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.78)', backgroundColor: 'rgba(0,0,0,0.24)', paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   addressValue: { flex: 1, minWidth: 0, color: '#fff', fontSize: 16, lineHeight: 22, includeFontPadding: false },
-  addressError: { borderColor: '#ffb4a8' },
-  addressErrorText: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 5, paddingHorizontal: 2 },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(10,28,20,0.65)', alignItems: 'center', justifyContent: 'center', padding: 22 },
-  modalSheet: { width: '100%', maxWidth: 380, maxHeight: '85%', padding: 14, borderRadius: 18, backgroundColor: '#fff' },
-  modalTitle: { color: '#12372a', fontSize: 17, lineHeight: 23, fontWeight: '700', marginBottom: 9 },
-  localityList: { maxHeight: 430, flexShrink: 1 },
-  localityOption: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#edf2f0' },
-  localityText: { color: '#1a202c', fontSize: 14, lineHeight: 19 },
   terms: { marginTop: 16, marginBottom: 14 },
   termsError: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 4, marginLeft: 38 },
   message: { color: '#fff', backgroundColor: 'rgba(20,31,24,0.5)', borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 13, lineHeight: 18 },

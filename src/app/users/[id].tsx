@@ -2,7 +2,7 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 
 import { useAccount } from '@/features/profile/profile_store';
-import type { PublicProfile } from '@/features/profile/domain/public_profile';
+import type { PublicProfile } from '@/features/profile/presentation/public_profile_screen';
 import { PublicProfileScreen } from '@/features/profile/presentation/public_profile_screen';
 import { backOrReplace } from '@/navigation/app_navigation';
 import { apiRequest } from '@/services/api';

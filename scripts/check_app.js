@@ -5,7 +5,7 @@ const root = path.resolve(__dirname, '..');
 const checks = [
   ['Lint', 'node_modules/expo/bin/cli', 'lint'],
   ['TypeScript', 'node_modules/typescript/bin/tsc', '--noEmit'],
-  ...['architecture', 'data', 'orders', 'navigation', 'location', 'inputs', 'calendar', 'auth', 'messages', 'calls', 'verification', 'profile_photos', 'backend_bootstrap']
+  ...['architecture', 'data', 'addresses', 'orders', 'navigation', 'location', 'inputs', 'calendar', 'auth', 'messages', 'calls', 'verification', 'profile_photos', 'backend_bootstrap']
     .map((name) => [name, `scripts/check_${name}.js`]),
   ['Cloud records', 'scripts/check_cloud.mjs'],
   ['Market prices', 'scripts/check_market_prices.mjs'],

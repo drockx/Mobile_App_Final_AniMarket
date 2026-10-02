@@ -14,6 +14,7 @@ export function createPublicProfiles({ store, accounts, now = Date.now }) {
     const count = summary?.count ?? 0;
     return { profile: {
       id: person.id, fullName: person.personal.fullName, city: person.personal.city,
+      phone: person.personal.phone ?? '', email: person.personal.email ?? '',
       memberSince: person.createdAt, verified: accounts.status(review, person).status === 'verified',
       photoUrl: person.avatar?.url ?? null,
       rating: { count, average: count ? Math.round(summary.sum / count * 10) / 10 : null },

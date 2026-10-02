@@ -11,6 +11,7 @@ const native = require('react-native-web');
 const root = path.resolve(__dirname, '..');
 const research = JSON.parse(fs.readFileSync(path.join(root, 'data/market_references/davao_del_norte.json'), 'utf8'));
 let width = 320;
+let previewAddressDialog = false;
 const originalLoad = Module._load, originalResolve = Module._resolveFilename;
 const mocks = {
   'react-native': { ...native, useWindowDimensions: () => ({ width, height: 720, scale: 1, fontScale: 1 }) },
@@ -18,6 +19,7 @@ const mocks = {
   'expo-status-bar': { StatusBar: () => null },
   'expo-symbols': { SymbolView: ({ size }) => React.createElement('span', { 'aria-hidden': true, style: { display: 'inline-block', flexShrink: 0, width: size, height: size } }) },
   'expo-router': { router: {} }, 'expo-image-picker': {}, 'expo-document-picker': {},
+  'expo-linear-gradient': { LinearGradient: ({ colors, style, children }) => React.createElement(native.View, { style: [{ backgroundColor: colors[0] }, style] }, children) },
   'expo-image': { Image: ({ source, style, ...props }) => React.createElement(native.Image, { ...props, style, source: typeof source === 'string' && source.endsWith('.svg') ? { uri: `data:image/svg+xml;base64,${fs.readFileSync(source).toString('base64')}` } : source }) },
   '@/features/market_reference/market_reference_dependencies': { useMarketReferences: () => ({ items: [research], loading: false, error: null }), marketReferenceStore: { retry() {} } },
   '@/features/profile/profile_store': { useAccount: () => ({ signedIn: false }) },
@@ -30,15 +32,30 @@ Module._resolveFilename = function (name, parent, ...args) { return originalReso
 for (const extension of ['.ts', '.tsx']) require.extensions[extension] = (module, filename) => {
   let source = fs.readFileSync(filename, 'utf8');
   if (filename.endsWith('market_price_editor_screen.tsx')) source = source.replace('useState<Selection | null>(null)', 'useState<Selection | null>({ market: previewRecord, price: previewRecord.prices[4] })');
+  if (filename.endsWith('address_select.tsx') && previewAddressDialog) source = source.replace('useState(false)', 'useState(true)');
   const compiled = ts.transpileModule(source, { fileName: filename, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
   module._compile(`const previewRecord = ${JSON.stringify(research)};\n${compiled}`, filename);
 };
 require.extensions['.svg'] = (module, filename) => { module.exports = filename; };
+require.extensions['.png'] = (module, filename) => { module.exports = { uri: `data:image/png;base64,${fs.readFileSync(filename).toString('base64')}` }; };
 const { MarketReferenceScreen } = require('../src/features/market_reference/presentation/market_reference_screen');
 const { MarketPriceEditorScreen } = require('../src/features/market_reference/presentation/market_price_editor_screen');
 const { PriceCalculatorScreen } = require('../src/features/price_calculator/presentation/price_calculator_screen');
 const { CreateListingScreen } = require('../src/features/marketplace/presentation/create_listing_screen');
 const { PublicProfileScreen } = require('../src/features/profile/presentation/public_profile_screen');
+const { RegisterScreen } = require('../src/features/auth/presentation/register_screen');
+const { OrderCheckoutScreen } = require('../src/features/orders/presentation/order_checkout_screen');
+const { emptyCheckoutForm, tomorrowKey } = require('../src/features/orders/domain/checkout');
+const { mockCheckoutItem } = require('./fixtures/mock_checkout_item');
+const { barangaysForLocality } = require('../src/constants/davao_del_norte_barangays');
+// Force one open dropdown only in this isolated layout preview.
+previewAddressDialog = true;
+const addressFile = require.resolve('../src/components/address_select');
+delete require.cache[addressFile];
+const { AddressSelect: OpenAddressSelect } = require('../src/components/address_select');
+previewAddressDialog = false;
+const originalModal = mocks['react-native'].Modal;
+const PreviewModal = ({ visible, children }) => visible ? React.createElement('div', { style: { position: 'fixed', inset: 0, display: 'flex' } }, children) : null;
 const output = path.join(root, '.expo/market-ui-preview'); fs.mkdirSync(output, { recursive: true });
 const props = { onBack() {}, onClose() {}, onSignOut() {}, onPublished() {}, onMarketReference() {}, onUsePrice() {} };
 const components = {
@@ -46,15 +63,19 @@ const components = {
   editor: () => React.createElement(MarketPriceEditorScreen, { onSignOut() {}, navigation: React.createElement(native.Text, { style: { fontSize: 16, color: '#12372a' } }, 'ID Reviews  /  Market Prices') }),
   calculator: () => React.createElement(PriceCalculatorScreen, { ...props, initialCategory: 'poultry', initialPriceId: 'poultry-4' }),
   listing: () => React.createElement(CreateListingScreen, { ...props, marketplace: {}, initialCategory: 'Chicken', initialReferencePriceId: 'poultry-4', initialWeight: '2' }),
-  profile: () => React.createElement(PublicProfileScreen, { profile: { id: 'layout-preview-only', fullName: 'Alexandra Marie Dela Cruz', city: 'Island Garden City of Samal', memberSince: '2026-10-01T00:00:00Z', verified: true, photoUrl: null, rating: { average: 4.5, count: 2 }, myRating: null, canRate: true }, loading: false, error: null, busy: false, onBack() {}, onRetry() {}, onRate: async () => false }),
+  register: () => React.createElement(RegisterScreen, { onBackToLogin() {}, onRegister: async () => null }),
+  checkout: () => React.createElement(OrderCheckoutScreen, { item: mockCheckoutItem, onBack() {}, onReview() {}, service: { getForm: () => ({ ...emptyCheckoutForm('Layout preview', '09123456789'), fulfillment: 'delivery', deliveryDate: tomorrowKey(), city: 'Island Garden City of Samal', barangay: 'San Isidro (Kaputian)' }) } }),
+  addresses: () => { mocks['react-native'].Modal = PreviewModal; return React.createElement(OpenAddressSelect, { label: 'Barangay', value: 'San Isidro (Kaputian)', options: barangaysForLocality('Island Garden City of Samal').map((name) => ({ label: name, value: name })), dialogTitle: 'Barangays in Island Garden City of Samal', onSelect() {} }); },
+  profile: () => React.createElement(PublicProfileScreen, { profile: { id: 'layout-preview-only', fullName: 'Alexandra Marie Dela Cruz', city: 'Island Garden City of Samal', phone: '09123456789', email: 'alexandra.marie.delacruz@example.com', memberSince: '2026-10-01T00:00:00Z', verified: true, photoUrl: null, rating: { average: 4.5, count: 2 }, myRating: null, canRate: true }, loading: false, error: null, busy: false, onBack() {}, onRetry() {}, onRate: async () => false }),
 };
 for (const size of [320, 390]) for (const [name, component] of Object.entries(components)) {
   width = size; native.AppRegistry.registerComponent('MarketLayoutPreview', () => component);
   const application = native.AppRegistry.getApplication('MarketLayoutPreview', { rootTag: 'root' });
   const markup = renderToStaticMarkup(application.element), styles = renderToStaticMarkup(application.getStyleElement());
   fs.writeFileSync(path.join(output, `${name}-${size}.html`), `<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>${name} · Read-only layout preview</title>${styles}<style>html,body,#root{height:100%;margin:0}body{font-family:Arial,sans-serif}#root{display:flex}</style></head><body><div id="root">${markup}</div></body></html>`);
+  mocks['react-native'].Modal = originalModal;
 }
-console.log('Generated ten read-only screen previews from the actual components at 320 and 390 px.');
+console.log('Generated read-only screen previews from the actual components at 320 and 390 px.');
 const escape = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 let portal = fs.readFileSync(path.join(root, 'admin_portal/index.html'), 'utf8')
   .replace('<script type="module" src="/app.js"></script>', '')
@@ -77,7 +98,7 @@ console.log('Generated two hosted admin layout previews with public research dat
 if (process.argv.includes('--serve')) {
   const server = http.createServer((request, response) => {
     const filename = (request.url ?? '').replace(/^\//, '');
-    if (!/^(market|editor|calculator|listing|portal|profile)-(320|390)\.html$/.test(filename)) { response.writeHead(404).end(); return; }
+    if (!/^(market|editor|calculator|listing|portal|profile|register|checkout|addresses)-(320|390)\.html$/.test(filename)) { response.writeHead(404).end(); return; }
     response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); response.end(fs.readFileSync(path.join(output, filename)));
   });
   server.listen(8093, '127.0.0.1', () => console.log('Read-only market layout previews available on http://127.0.0.1:8093/market-320.html'));

@@ -3,7 +3,7 @@ import { useCallback, useState, useSyncExternalStore } from 'react';
 
 import { ProfileScreen } from '@/features/profile/presentation/profile_screen';
 import { refreshAccount, signOut, useAccount } from '@/features/profile/profile_store';
-import type { PublicProfile } from '@/features/profile/domain/public_profile';
+import type { PublicProfile } from '@/features/profile/presentation/public_profile_screen';
 import { apiRequest } from '@/services/api';
 import { sellerListingsService } from '@/features/marketplace/marketplace_dependencies';
 import { useOrders } from '@/features/orders/orders_store';

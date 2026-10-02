@@ -55,7 +55,8 @@ try {
   const target = `/users/${second.uid}`;
   const { profile } = await first.request(target);
   assert.equal(profile.id, second.uid); assert.equal(profile.rating.average, null); assert.equal(profile.canRate, true);
-  for (const key of ['email', 'phone', 'personal', 'street', 'barangay', 'verification', 'photoPath']) assert.equal(Object.hasOwn(profile, key), false);
+  assert.equal(profile.email, users.find((person) => person.uid === second.uid)?.email); assert.equal(profile.phone, '09123456789');
+  for (const key of ['personal', 'street', 'barangay', 'verification', 'photoPath']) assert.equal(Object.hasOwn(profile, key), false);
   await assert.rejects(getDoc(doc(first.firestore, 'users', second.uid)), (error) => error.code === 'permission-denied');
   await assert.rejects(setDoc(doc(first.firestore, 'ratingSummaries', second.uid), { count: 100, sum: 500 }), (error) => error.code === 'permission-denied');
   const saved = (await first.request(`${target}/rating`, { stars: 5 })).profile;

@@ -1,6 +1,7 @@
 import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, signInWithEmailAndPassword, signOut, updatePassword, updateProfile, type User } from 'firebase/auth';
 import { doc, getDoc, writeBatch } from 'firebase/firestore';
 import { isDavaoDelNorteLocality } from '@/constants/davao_del_norte';
+import { isBarangayInLocality } from '@/constants/davao_del_norte_barangays';
 import { emailError, passwordError } from '@/features/auth/domain/credential_policy';
 import type { Account, AccountSession, PersonalInformation } from '@/features/profile/domain/account';
 import type { IdentityVerification } from '@/features/profile/domain/identity_verification';
@@ -71,6 +72,7 @@ async function register(body: Record<string, unknown>): Promise<AccountSession> 
     barangay: requireText(body.barangay ?? '', 'barangay', 100, true),
     postalCode: requireText(body.postalCode ?? '', 'postal code', 4, true),
   };
+  if (!isBarangayInLocality(personal.city, address.barangay)) throw new ApiError('Choose a barangay in the selected city or municipality.', 400);
   const { auth, firestore } = getFirebaseServices();
   let user: User;
   let existingAccount = auth.currentUser?.email?.toLowerCase() === personal.email;

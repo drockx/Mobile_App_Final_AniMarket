@@ -6,6 +6,8 @@ import { DataFeedback } from '@/components/data_feedback';
 import type { PublicProfile } from '../domain/public_profile';
 import { AccountScreenLayout, accountColors as color } from './components/account_screen_layout';
 
+export type { PublicProfile } from '../domain/public_profile';
+
 export function PublicProfileScreen({ profile, loading, error, busy, onBack, onRetry, onRate }: {
   profile: PublicProfile | null;
   loading: boolean;
@@ -39,6 +41,17 @@ export function PublicProfileScreen({ profile, loading, error, busy, onBack, onR
         {joinedText && <Text style={styles.body}>Member since {joinedText}</Text>}
       </View>
       <View style={styles.card}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>Contact</Text>
+        <View style={styles.contactField}>
+          <Text style={styles.contactLabel}>Contact number</Text>
+          <Text selectable style={styles.contactValue}>{profile.phone || 'Not provided'}</Text>
+        </View>
+        <View style={styles.contactField}>
+          <Text style={styles.contactLabel}>Email</Text>
+          <Text selectable style={styles.contactValue}>{profile.email || 'Not provided'}</Text>
+        </View>
+      </View>
+      <View style={styles.card}>
         <Text accessibilityRole="header" style={styles.sectionTitle}>Ratings</Text>
         <Text style={styles.average}>{profile.rating.average === null ? 'No ratings yet' : `★ ${profile.rating.average.toFixed(1)} / 5`}</Text>
         {!!profile.rating.count && <Text style={styles.body}>{profile.rating.count} {profile.rating.count === 1 ? 'rating' : 'ratings'}</Text>}
@@ -67,6 +80,9 @@ const styles = StyleSheet.create({
   initials: { color: color.forest, fontSize: 28, lineHeight: 36, fontWeight: '800' },
   name: { color: color.forest, fontSize: 22, lineHeight: 29, fontWeight: '800', textAlign: 'center' },
   body: { color: color.muted, fontSize: 15, lineHeight: 22, textAlign: 'center' },
+  contactField: { gap: 4 },
+  contactLabel: { color: color.muted, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  contactValue: { color: color.text, fontSize: 15, lineHeight: 22 },
   identity: { color: color.green, fontSize: 15, lineHeight: 22, fontWeight: '700', textAlign: 'center' },
   sectionTitle: { color: color.text, fontSize: 18, lineHeight: 25, fontWeight: '700', textAlign: 'center' },
   average: { color: color.forest, fontSize: 24, lineHeight: 32, fontWeight: '800', textAlign: 'center' },

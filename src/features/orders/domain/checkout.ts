@@ -1,5 +1,6 @@
 import type { ListingPriceUnit, LivestockCategory } from '@/features/marketplace/domain/listing';
-import { copyLocation, isCoordinate, locationIssue, sameCity, type Coordinate, type SelectedLocation } from '../../location/domain/location';
+import { copyLocation, isCoordinate, listingLocality, locationIssue, sameCity, type Coordinate, type SelectedLocation } from '../../location/domain/location';
+import { canonicalBarangay, isBarangayInLocality } from '../../../constants/davao_del_norte_barangays';
 
 export const PICKUP_TIMES = ['8:00 AM–10:00 AM', '10:00 AM–12:00 PM', '1:00 PM–3:00 PM', '3:00 PM–4:00 PM'] as const;
 export const DELIVERY_PROVINCES = ['Davao del Norte'] as const;
@@ -125,9 +126,12 @@ export function validateCheckout(form: CheckoutForm, item: CheckoutItem, now = n
   if (form.fulfillment === 'pickup') {
     if (!PICKUP_TIMES.some((time) => time === form.pickupTime)) errors.pickupTime = 'Select a preferred pickup time.';
   } else {
-    for (const [key, label] of [['receiver', 'receiver name'], ['street', 'purok or street'], ['barangay', 'barangay'], ['city', 'municipality or city']] as const) {
+    for (const [key, label] of [['receiver', 'receiver name'], ['street', 'purok or street']] as const) {
       if (!form[key].trim()) errors[key] = `Enter the ${label}.`;
     }
+    const city = listingLocality(form.city);
+    if (!city) errors.city = 'Choose a city or municipality in Davao del Norte.';
+    if (!isBarangayInLocality(city ?? '', form.barangay)) errors.barangay = 'Choose a barangay in the selected city or municipality.';
     if (!/^(?:09\d{9}|\+?639\d{9})$/.test(form.phone.replace(/[\s()-]/g, ''))) errors.phone = 'Enter a valid Philippine mobile number.';
     if (!DELIVERY_PROVINCES.some((province) => province === form.province)) errors.province = 'Select a delivery province.';
     if (!/^\d{4}$/.test(form.postal.trim())) errors.postal = 'Enter a four-digit postal code.';
@@ -149,15 +153,17 @@ export function updateCheckoutField<K extends keyof CheckoutForm>(form: Checkout
   const address = form.deliveryLocation?.address;
   const changedArea = (key === 'city' && address?.city && !sameCity(String(value), address.city, address.province ?? form.province))
     || (key === 'province' && address?.province && address.province !== value);
-  return { ...form, [key]: value, ...(changedArea ? { deliveryLocation: null } : {}) };
+  const changedCity = key === 'city' && value !== form.city;
+  return { ...form, [key]: value, ...(changedCity ? { barangay: '' } : {}), ...(changedArea ? { deliveryLocation: null } : {}) };
 }
 
 export function selectDeliveryLocation(form: CheckoutForm, location: SelectedLocation): CheckoutForm {
   const address = location.address;
+  const city = address?.city ? listingLocality(address.city) ?? '' : listingLocality(form.city) ?? '';
   const changedArea = !!((address?.city && form.city && !sameCity(address.city, form.city, address.province ?? form.province)) || (address?.province && form.province && address.province !== form.province));
   return { ...form, deliveryLocation: copyLocation(location),
-    street: address?.street ?? (changedArea ? '' : form.street), barangay: address?.barangay ?? (changedArea ? '' : form.barangay),
-    city: address?.city ?? form.city,
+    street: address?.street ?? (changedArea ? '' : form.street), barangay: canonicalBarangay(city, address?.barangay ?? (changedArea ? '' : form.barangay)),
+    city,
     province: address?.province && DELIVERY_PROVINCES.some((province) => province === address.province) ? address.province : form.province,
     postal: address?.postalCode && /^\d{4}$/.test(address.postalCode) ? address.postalCode : changedArea ? '' : form.postal,
     landmark: changedArea ? '' : form.landmark,

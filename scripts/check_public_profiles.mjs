@@ -30,9 +30,10 @@ function fixture() {
 
 test('Profiles expose only public fields, genuine verification, photos and rating summaries', async () => {
   const f = fixture(); const { profile } = await f.read('buyer');
-  assert.deepEqual(Object.keys(profile).sort(), ['canRate', 'city', 'fullName', 'id', 'memberSince', 'myRating', 'photoUrl', 'rating', 'verified'].sort());
+  assert.deepEqual(Object.keys(profile).sort(), ['canRate', 'city', 'email', 'fullName', 'id', 'memberSince', 'myRating', 'phone', 'photoUrl', 'rating', 'verified'].sort());
+  assert.equal(profile.email, 'seller@example.invalid'); assert.equal(profile.phone, '09123456789');
   assert.equal(profile.verified, true); assert.equal(profile.rating.average, null); assert.equal(profile.rating.count, 0);
-  for (const privateValue of ['example.invalid', '09123456789', 'Private street', 'Private barangay', 'private-metadata', 'private/id.jpg', 'National ID']) assert.equal(JSON.stringify(profile).includes(privateValue), false);
+  for (const privateValue of ['Private street', 'Private barangay', 'private-metadata', 'private/id.jpg', 'National ID']) assert.equal(JSON.stringify(profile).includes(privateValue), false);
   assert.equal((await f.read('seller', 'buyer')).profile.verified, false);
   f.rows.get('users/seller').personal.fullName = 'Changed name';
   assert.equal((await f.read('buyer')).profile.verified, false);

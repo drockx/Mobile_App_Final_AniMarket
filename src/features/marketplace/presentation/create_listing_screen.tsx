@@ -3,6 +3,8 @@ import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { CalendarPicker } from '@/components/calendar_picker';
 import { calendarDateKey, isCalendarDateSelectable } from '@/components/calendar_dates';
 import { NavigationIcon } from '@/components/navigation_icon';
+import { AddressSelect } from '@/components/address_select';
+import { barangaysForLocality, canonicalBarangay, isBarangayInLocality } from '@/constants/davao_del_norte_barangays';
 import { useMemo, useRef, useState } from 'react';
 import { createRecordId } from '@/services/development_data';
 import * as DocumentPicker from 'expo-document-picker';
@@ -147,7 +149,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
   const [proof, setProof] = useState<{ name: string; uri: string } | null>(initialDraft?.vaccinationProof ?? null);
   const [city, setCity] = useState<DavaoDelNorteLocality>(listingLocality(initialDraft?.location.split(',')[0]) ?? 'Tagum City');
   const [streetPurok, setStreetPurok] = useState(initialDraft?.streetPurok ?? '');
-  const [barangay, setBarangay] = useState(initialDraft?.barangay ?? '');
+  const [barangay, setBarangay] = useState(() => canonicalBarangay(city, initialDraft?.barangay));
   const [pickupLocation, setPickupLocation] = useState<SelectedLocation | null>(initialPickup ?? null);
   const pickupPin = pickupLocation?.coordinate;
   const [price, setPrice] = useState(initialDraft?.price ? String(initialDraft.price) : initialPrice);
@@ -201,7 +203,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
     setPickupLocation(location);
     if (locality) setCity(locality);
     if (location.address?.street || (locality && locality !== city)) setStreetPurok(location.address?.street ?? '');
-    if (location.address?.barangay || (locality && locality !== city)) setBarangay(location.address?.barangay ?? '');
+    if (location.address?.barangay || (locality && locality !== city)) setBarangay(canonicalBarangay(locality ?? city, location.address?.barangay));
     setError('');
   }
 
@@ -226,7 +228,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
     else if (vaccination === 'vaccinated' && !vaccineName.trim()) problem = 'Enter the vaccine or disease.';
     else if (vaccination === 'vaccinated' && !proof) problem = 'Attach vaccination proof.';
     else if (!streetPurok.trim()) problem = 'Enter the street or purok.';
-    else if (!barangay.trim()) problem = 'Enter the barangay.';
+    else if (!isBarangayInLocality(city, barangay)) problem = 'Choose a barangay in the selected municipality or city.';
     else if (locationIssue(pickupLocation, [DAVAO_DEL_NORTE])) problem = locationIssue(pickupLocation, [DAVAO_DEL_NORTE])!;
     else if (pickupLocation?.address?.city && listingLocality(pickupLocation.address.city) !== city) problem = 'Confirm a pickup pin in the selected municipality or city.';
     else if (!Number.isFinite(Number(price)) || Number(price) <= 0) problem = 'Enter a valid listing price.';
@@ -329,7 +331,8 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
           <Text style={styles.proofNote}>Proof applies only to this listing. It is shown as seller-provided unless reviewed by an authorized party.</Text>
         </View>
 
-        <SelectField label="Municipality / City" value={city} options={DAVAO_DEL_NORTE_LOCALITIES.map((name) => ({ label: davaoDelNorteLocalityLabel(name), value: name }))} onSelect={(value) => { if (value !== city) setPickupLocation(null); setCity(value as DavaoDelNorteLocality); }} />
+        <AddressSelect label="Municipality / City" value={city} options={DAVAO_DEL_NORTE_LOCALITIES.map((name) => ({ label: davaoDelNorteLocalityLabel(name), value: name }))} onSelect={(value) => { if (value !== city) { setPickupLocation(null); setBarangay(''); } setCity(value as DavaoDelNorteLocality); }} />
+        <AddressSelect label="Barangay" value={barangay} options={barangaysForLocality(city).map((name) => ({ label: name, value: name }))} onSelect={setBarangay} placeholder="Choose barangay" dialogTitle={`Barangays in ${city}`} />
         <View style={styles.field}>
           <Label>Province</Label>
           <View style={[styles.input, styles.fixedField]}>
@@ -339,7 +342,6 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
         <Text style={styles.locationHelp}>Select the Davao del Norte city or municipality where the livestock is located.</Text>
 
         <Field label="Street / Purok" required value={streetPurok} onChangeText={setStreetPurok} placeholder="House no., street, purok" />
-        <Field label="Barangay" required value={barangay} onChangeText={setBarangay} placeholder="Barangay" />
         <Text style={styles.publicAddress}>Shown on listings: {[streetPurok.trim(), barangay.trim(), davaoDelNorteLocation(city)].filter(Boolean).join(', ')}</Text>
 
         <View style={styles.pinCard}>

@@ -2,6 +2,8 @@ export type PublicProfile = {
   id: string;
   fullName: string;
   city: string;
+  phone: string;
+  email: string;
   memberSince: string;
   verified: boolean;
   photoUrl: string | null;

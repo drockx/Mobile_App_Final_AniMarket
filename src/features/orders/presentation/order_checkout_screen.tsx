@@ -1,5 +1,8 @@
 import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
 import { NavigationIcon } from '@/components/navigation_icon';
+import { AddressSelect } from '@/components/address_select';
+import { DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel } from '@/constants/davao_del_norte';
+import { barangaysForLocality, canonicalBarangay } from '@/constants/davao_del_norte_barangays';
 import { DataFeedback } from '@/components/data_feedback';
 import { useRef, useState } from 'react';
 import { Image } from 'expo-image';
@@ -9,7 +12,7 @@ import { SymbolView } from 'expo-symbols';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { SelectedLocation } from '@/features/location/domain/location';
+import { listingLocality, type SelectedLocation } from '@/features/location/domain/location';
 import { LocationPicker } from '@/features/location/presentation/location_picker';
 
 import type { OrderService as CheckoutService } from '../application/order_service';
@@ -28,7 +31,11 @@ export function OrderCheckoutScreen({ item, service, loading, error, onRetry, re
   const stackPrice = width < 420 || fontScale > 1.15;
   const stackAddress = width < 400 || fontScale > 1.15;
   const scroll = useRef<ScrollView>(null);
-  const [form, setForm] = useState<CheckoutForm>(() => (item && service.getForm(item.id)) || emptyCheckoutForm(receiverName, receiverPhone));
+  const [form, setForm] = useState<CheckoutForm>(() => {
+    const saved = (item && service.getForm(item.id)) || emptyCheckoutForm(receiverName, receiverPhone);
+    const city = listingLocality(saved.city) ?? '';
+    return { ...saved, city, barangay: canonicalBarangay(city, saved.barangay) };
+  });
   const [attempted, setAttempted] = useState(false);
   const errors = attempted && item ? validateCheckout(form, item) : {};
   const delivery = form.fulfillment === 'delivery';
@@ -98,11 +105,11 @@ export function OrderCheckoutScreen({ item, service, loading, error, onRetry, re
             <LocationPicker label="Delivery destination" value={form.deliveryLocation} onSelect={selectDestination} allowedProvinces={DELIVERY_PROVINCES} addressQuery={[form.street, form.barangay, form.city, form.province].filter(Boolean).join(', ')} error={errors.deliveryLocation} />
             <Text style={styles.helper}>Check the destination pin, then complete your house, purok, barangay, and landmark below.</Text>
             <View style={[styles.addressRow, stackAddress && styles.addressColumn]}>
-              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Purok/Street" required value={form.street} onChangeText={(value) => update('street', value)} placeholder="Purok 2" error={errors.street} /></View>
-              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Barangay" required value={form.barangay} onChangeText={(value) => update('barangay', value)} placeholder="Barangay name" error={errors.barangay} /></View>
+              <View style={[styles.addressCell, stackAddress && styles.stackedCell, styles.addressDropdown]}><AddressSelect label="Municipality/City" value={form.city} onSelect={(value) => update('city', value)} options={DAVAO_DEL_NORTE_LOCALITIES.map((city) => ({ label: davaoDelNorteLocalityLabel(city), value: city }))} placeholder="Choose city or municipality" error={errors.city} /></View>
+              <View style={[styles.addressCell, stackAddress && styles.stackedCell, styles.addressDropdown]}><AddressSelect label="Barangay" value={form.barangay} onSelect={(value) => update('barangay', value)} options={barangaysForLocality(form.city).map((name) => ({ label: name, value: name }))} placeholder={form.city ? 'Choose barangay' : 'Choose city or municipality first'} disabled={!form.city} dialogTitle={`Barangays in ${form.city}`} error={errors.barangay} /></View>
             </View>
             <View style={[styles.addressRow, stackAddress && styles.addressColumn]}>
-              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Municipality/City" required value={form.city} onChangeText={(value) => update('city', value)} placeholder="Tagum City" error={errors.city} /></View>
+              <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutField label="Purok/Street" required value={form.street} onChangeText={(value) => update('street', value)} placeholder="Purok 2" error={errors.street} /></View>
               <View style={[styles.addressCell, stackAddress && styles.stackedCell]}><CheckoutSelect label="Province" required value={form.province} onSelect={(value) => update('province', value)} options={DELIVERY_PROVINCES.map((province) => ({ label: province, value: province }))} placeholder="Select province" error={errors.province} /></View>
             </View>
             <View style={[styles.addressRow, stackAddress && styles.addressColumn]}>
@@ -144,6 +151,7 @@ export function OrderCheckoutScreen({ item, service, loading, error, onRetry, re
 }
 
 const styles = StyleSheet.create({
+  addressDropdown: { marginTop: 12 },
   background: { flex: 1, backgroundColor: '#eef3ef' },
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
   header: { minHeight: 58, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: color.line },
