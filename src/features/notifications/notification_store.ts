@@ -34,10 +34,10 @@ function refreshEvents() {
       side: conversation.side, unread: true, icon: 'message' });
   }
   for (const order of checkoutService.getSnapshot()) {
-    if (order.ownerId !== account.userId) continue;
+    if (order.ownerId !== account.userId && order.sellerId !== account.userId) continue;
     events.push({ id: `order:${order.id}:${order.status}`, category: 'order',
       section: new Date(order.createdAt).toLocaleDateString() === today ? 'today' : 'earlier',
-      title: orderStatusCopy(order).title,
+      title: order.sellerId === account.userId && order.status === 'awaiting-seller' ? `New order from ${order.buyerName ?? 'a buyer'}` : orderStatusCopy(order).title,
       description: order.draft.item.title, meta: order.id, action: 'View', destination: 'order', orderId: order.id, unread: true, icon: 'order' });
   }
   notificationStore.replaceEvents(events);

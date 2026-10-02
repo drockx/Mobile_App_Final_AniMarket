@@ -32,19 +32,25 @@ service cloud.firestore {
       allow get: if owner(uid);
       allow list, delete: if false;
       allow create: if owner(uid) && validProfile(uid, request.resource.data) && request.resource.data.avatar == null;
-      allow update: if owner(uid) && validProfile(uid, request.resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'personal', 'street', 'barangay', 'postalCode']);
+      allow update: if false;
+      match /notificationReads/{eventId} {
+        allow read: if owner(uid);
+        allow create, update: if owner(uid) && request.resource.data.keys().hasOnly(['id', 'ownerId', 'eventId'])
+          && request.resource.data.id == eventId && request.resource.data.ownerId == uid
+          && request.resource.data.eventId is string && request.resource.data.eventId.size() <= 500;
+        allow delete: if false;
+      }
     }
     match /directory/{uid} {
       allow read: if signedIn();
-      allow create, update: if owner(uid)
+      allow create: if owner(uid)
         && request.resource.data.keys().hasAll(['id', 'fullName', 'nameLower', 'city'])
         && request.resource.data.keys().hasOnly(['id', 'fullName', 'nameLower', 'city'])
         && request.resource.data.id == uid
         && request.resource.data.fullName == getAfter(/databases/$(database)/documents/users/$(uid)).data.personal.fullName
         && request.resource.data.nameLower == request.resource.data.fullName.lower()
         && request.resource.data.city == getAfter(/databases/$(database)/documents/users/$(uid)).data.personal.city;
-      allow delete: if false;
+      allow update, delete: if false;
     }
     match /roles/{uid} {
       allow get: if owner(uid);
@@ -55,7 +61,29 @@ service cloud.firestore {
       allow list: if reviewer();
       allow write: if false;
     }
-    // Other adapters are added in subsequent, independently tested connection steps.
+    function participant(value) { return signedIn() && request.auth.uid in value.participants; }
+    match /listings/{listingId} {
+      allow read: if resource.data.status == 'active' || (signedIn() && resource.data.seller.id == request.auth.uid);
+      allow write: if false;
+    }
+    match /marketReferences/{marketId} { allow read: if true; allow write: if false; }
+    match /orders/{orderId} { allow read: if participant(resource.data); allow write: if false; }
+    match /conversations/{conversationId} {
+      allow read: if participant(resource.data); allow write: if false;
+      match /messages/{messageId} {
+        allow read: if participant(get(/databases/$(database)/documents/conversations/$(conversationId)).data);
+        allow write: if false;
+      }
+    }
+    match /callState/{uid} { allow get: if owner(uid); allow list, write: if false; }
+    match /voiceCalls/{callId} {
+      allow read: if participant(resource.data); allow write: if false;
+      match /signals/{signalId} {
+        allow read: if signedIn() && resource.data.toUid == request.auth.uid
+          && participant(get(/databases/$(database)/documents/voiceCalls/$(callId)).data);
+        allow write: if false;
+      }
+    }
     match /{document=**} { allow read, write: if false; }
   }
 }

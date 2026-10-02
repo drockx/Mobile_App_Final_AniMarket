@@ -26,7 +26,10 @@ export function apiBaseUrl(): string {
 type RequestOptions = { method?: 'GET' | 'POST' | 'PATCH'; body?: unknown; signal?: AbortSignal; public?: boolean; token?: string | null; timeout?: number };
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const token = options.token === undefined ? accessToken : options.token;
-  if (firebaseEnabled) return await firebaseAccountRequest(path, { ...options, token }) as T;
+  if (firebaseEnabled) {
+    try { return await firebaseAccountRequest(path, { ...options, token }) as T; }
+    catch (error) { if (error instanceof ApiError && error.status === 401 && !options.public && token === accessToken) unauthorizedHandler?.(); throw error; }
+  }
   const controller = new AbortController();
   const abort = () => controller.abort();
   options.signal?.addEventListener('abort', abort);

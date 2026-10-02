@@ -24,7 +24,9 @@ require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileMo
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText, filename);
 const load = Module._load;
+let cloudRequest;
 Module._load = function (name, ...args) {
+  if (name === './supabase' && args[0]?.filename?.endsWith('firebase_account.ts')) return { cloudBackendRequest: (...values) => cloudRequest(...values) };
   if (name === 'react-native') return { Platform: { OS: 'web' } };
   if (name === 'expo-constants') return { expoConfig: {} };
   if (name === 'expo-secure-store') {
@@ -53,6 +55,15 @@ async function denied(promise) { await assertFails(promise); checks++; }
   const [host, port] = process.env.FIRESTORE_EMULATOR_HOST.split(':');
   connectFirestoreEmulator(firestore, host, Number(port));
   connectAuthEmulator(auth, `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}`, { disableWarnings: true });
+  const { createFirestore } = await import('../supabase/functions/animarket/firestore.mjs');
+  const { createAccounts } = await import('../supabase/functions/animarket/records.mjs');
+  const { createAccountActions } = await import('../supabase/functions/animarket/account_actions.mjs');
+  const store = createFirestore({ project: 'demo-animarket', origin: `http://${process.env.FIRESTORE_EMULATOR_HOST}`, accessToken: async () => 'owner' });
+  const accountActions = createAccountActions({ store, accounts: createAccounts({ store }), media: { privateDelete: async () => {} }, authAdmin: async (_action, body) => {
+    const response = await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/projects/demo-animarket/accounts:update`, { method: 'POST', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!response.ok) throw new Error('Emulator email update failed.'); return response.json();
+  } });
+  cloudRequest = async (path, body, _signal, method = body ? 'POST' : 'GET') => accountActions({ uid: auth.currentUser.uid, record: { email: auth.currentUser.email }, authTime: (await auth.currentUser.getIdTokenResult()).claims.auth_time }, path, body, method);
   try {
     const owner = env.authenticatedContext('owner', { email: 'owner@example.com' }).firestore();
     const other = env.authenticatedContext('other', { email: 'other@example.com' }).firestore();
@@ -92,8 +103,29 @@ async function denied(promise) { await assertFails(promise); checks++; }
     const batch = writeBatch(owner); const edited = { ...profile('owner', 'Updated Owner'), createdAt: (await getDoc(doc(owner, 'users', 'owner'))).data().createdAt };
     batch.set(doc(owner, 'users', 'owner'), edited);
     batch.set(doc(owner, 'directory', 'owner'), { id: 'owner', fullName: 'Updated Owner', nameLower: 'updated owner', city: 'Tagum City' });
-    await allowed(batch.commit());
+    await denied(batch.commit());
     await denied(setDoc(doc(owner, 'unknown_collection', 'record'), { ownerId: 'owner' }));
+    await env.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, 'listings', 'active'), { id: 'active', status: 'active', seller: { id: 'owner' } });
+      await setDoc(doc(db, 'listings', 'paused'), { id: 'paused', status: 'paused', seller: { id: 'owner' } });
+      await setDoc(doc(db, 'listingPrivate', 'active'), { pin: { latitude: 7, longitude: 125 } });
+      await setDoc(doc(db, 'orders', 'one'), { participants: ['owner', 'other'] });
+      await setDoc(doc(db, 'conversations', 'one'), { participants: ['owner', 'other'] });
+      await setDoc(doc(db, 'conversations', 'one', 'messages', 'one'), { text: 'Private message' });
+      await setDoc(doc(db, 'voiceCalls', 'one'), { participants: ['owner', 'other'] });
+      await setDoc(doc(db, 'voiceCalls', 'one', 'signals', 'one'), { toUid: 'other', payload: 'Private signal' });
+    });
+    await allowed(getDoc(doc(anonymous, 'listings', 'active'))); await denied(getDoc(doc(anonymous, 'listings', 'paused')));
+    await allowed(getDoc(doc(owner, 'listings', 'paused'))); await denied(getDoc(doc(other, 'listings', 'paused')));
+    await denied(getDoc(doc(owner, 'listingPrivate', 'active'))); await denied(setDoc(doc(owner, 'listings', 'forged'), { status: 'active' }));
+    await allowed(getDoc(doc(owner, 'orders', 'one'))); await denied(getDoc(doc(reviewer, 'orders', 'one')));
+    await allowed(getDoc(doc(other, 'conversations', 'one', 'messages', 'one'))); await denied(getDoc(doc(reviewer, 'conversations', 'one', 'messages', 'one')));
+    await denied(setDoc(doc(owner, 'conversations', 'one', 'messages', 'forged'), { text: 'Forged' }));
+    await allowed(getDoc(doc(other, 'voiceCalls', 'one', 'signals', 'one'))); await denied(getDoc(doc(owner, 'voiceCalls', 'one', 'signals', 'one')));
+    await denied(getDoc(doc(reviewer, 'voiceCalls', 'one'))); await denied(setDoc(doc(owner, 'callState', 'owner'), { callId: 'forged' }));
+    await allowed(setDoc(doc(owner, 'users', 'owner', 'notificationReads', 'event'), { id: 'event', eventId: 'event', ownerId: 'owner' }));
+    await denied(getDoc(doc(other, 'users', 'owner', 'notificationReads', 'event')));
     console.log(`Account security rules: ${checks} access checks passed.`);
 
     const body = { fullName: 'Actual SDK User', email: `sdk-${Date.now()}@example.com`, phone: '09123456789', city: 'Tagum City', acceptedTerms: true, password: 'StrongPass1!' };
@@ -113,6 +145,9 @@ async function denied(promise) { await assertFails(promise); checks++; }
     const personal = { ...body, fullName: 'Updated SDK User', phone: '09987654321' };
     const updated = await request('/auth/me', { method: 'PATCH', token, body: personal });
     assert.equal(updated.account.personal.fullName, personal.fullName); assert.equal(updated.account.personal.phone, personal.phone);
+    const nextEmail = `changed-${Date.now()}@example.com`;
+    const changedEmail = await request('/auth/me', { method: 'PATCH', token, body: { ...personal, email: nextEmail, currentPassword: body.password } });
+    assert.equal(changedEmail.account.personal.email, nextEmail); body.email = nextEmail; personal.email = nextEmail;
     await env.withSecurityRulesDisabled(async (context) => setDoc(doc(context.firestore(), 'verifications', session.account.id), { status: 'verified', fullName: personal.fullName }));
     assert.equal((await readFirebaseAccount()).verification.status, 'verified');
     const renamed = await request('/auth/me', { method: 'PATCH', token, body: { ...personal, fullName: 'Changed After Review' } });

@@ -1,0 +1,14 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const allowed = ['EXPO_PUBLIC_FIREBASE_API_KEY', 'EXPO_PUBLIC_FIREBASE_PROJECT_ID', 'EXPO_PUBLIC_FIREBASE_APP_ID', 'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN', 'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', 'EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME'];
+const values = Object.fromEntries(fs.readFileSync(path.join(root, '.env.local'), 'utf8').split(/\r?\n/).filter((line) => allowed.some((name) => line.startsWith(`${name}=`))).map((line) => { const split = line.indexOf('='); return [line.slice(0, split), line.slice(split + 1).replace(/^['"]|['"]$/g, '')]; }));
+if (allowed.some((name) => !values[name])) throw new Error('A required public build setting is missing.');
+if (values.EXPO_PUBLIC_FIREBASE_PROJECT_ID !== 'animarket-87354') throw new Error('Unexpected Firebase project.');
+const filename = path.join(root, 'eas.json'); const config = JSON.parse(fs.readFileSync(filename, 'utf8'));
+config.cli = { ...config.cli, appVersionSource: 'local' };
+config.build.cloud = { env: { ...values, EXPO_PUBLIC_BACKEND: 'firebase' } };
+for (const name of ['development', 'preview', 'production']) config.build[name].extends = 'cloud';
+config.build.apk = { extends: 'preview', environment: 'production', android: { buildType: 'apk' } };
+fs.writeFileSync(filename, JSON.stringify(config, null, 2) + '\n');
+console.log('APK, preview and production profiles configured with public cloud settings only. Private server credentials excluded.');

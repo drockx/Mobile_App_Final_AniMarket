@@ -8,7 +8,8 @@ const project = 'animarket-87354';
 const email = `animarket-edge@${project}.iam.gserviceaccount.com`;
 const roleId = 'animarketStorageSession';
 const roleName = `projects/${project}/roles/${roleId}`;
-const permissions = ['firebaseauth.users.get', 'firebaseauth.users.update'];
+const previousPermissions = ['firebaseauth.users.get', 'firebaseauth.users.update'];
+const permissions = [...previousPermissions, 'datastore.databases.get', 'datastore.entities.get', 'datastore.entities.list', 'datastore.entities.create', 'datastore.entities.update', 'datastore.entities.delete'];
 const root = path.resolve(__dirname, '..');
 const secretFile = path.join(root, '.env.backend-secrets.local');
 
@@ -41,7 +42,11 @@ async function main() {
     if (error.status !== 404) throw error;
     role = await google(`${iam}/projects/${project}/roles`, 'POST', { roleId, role: { title: 'AniMarket storage session', description: 'Read account status and set the authenticated storage claim. No database, billing or IAM administration.', includedPermissions: permissions, stage: 'GA' } });
   }
-  if (role.deleted || !permissions.every((permission) => role.includedPermissions?.includes(permission)) || role.includedPermissions.some((permission) => !permissions.includes(permission))) throw new Error('The existing session role does not match the intended limited permissions.');
+  if (role.deleted || role.includedPermissions.some((permission) => !permissions.includes(permission))) throw new Error('The existing role has unexpected permissions.');
+  if (!permissions.every((permission) => role.includedPermissions?.includes(permission))) {
+    if (!previousPermissions.every((permission) => role.includedPermissions?.includes(permission))) throw new Error('The existing account permissions do not match.');
+    await google(`${iam}/${roleName}`, 'PATCH', { ...role, title: 'AniMarket trusted records', description: 'Account session and application records only. No billing or IAM administration.', includedPermissions: permissions });
+  }
   const policyUrl = `https://cloudresourcemanager.googleapis.com/v1/projects/${project}`;
   const policy = await google(`${policyUrl}:getIamPolicy`, 'POST', { options: { requestedPolicyVersion: 3 } });
   const member = `serviceAccount:${email}`;

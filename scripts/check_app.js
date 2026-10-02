@@ -7,6 +7,7 @@ const checks = [
   ['TypeScript', 'node_modules/typescript/bin/tsc', '--noEmit'],
   ...['architecture', 'data', 'orders', 'navigation', 'location', 'inputs', 'auth', 'messages', 'calls', 'verification', 'profile_photos', 'backend_bootstrap']
     .map((name) => [name, `scripts/check_${name}.js`]),
+  ['Cloud records', 'scripts/check_cloud.mjs'],
 ];
 for (const [label, script, ...args] of checks) {
   console.log(`\nChecking ${label}`);

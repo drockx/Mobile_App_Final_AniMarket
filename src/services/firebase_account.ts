@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, signInWithEmailAndPassword, signOut, updateEmail, updatePassword, updateProfile, type User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, signInWithEmailAndPassword, signOut, updatePassword, updateProfile, type User } from 'firebase/auth';
 import { doc, getDoc, writeBatch } from 'firebase/firestore';
 import { isDavaoDelNorteLocality } from '@/constants/davao_del_norte';
 import { emailError, passwordError } from '@/features/auth/domain/credential_policy';
@@ -8,6 +8,7 @@ import { ApiError } from './api_error';
 import { getFirebaseServices } from './firebase';
 import { firebaseError } from './firebase_errors';
 import { requireFirebaseUser } from './firebase_identity';
+import { cloudBackendRequest } from './supabase';
 export { requireFirebaseUser } from './firebase_identity';
 
 type Profile = { id: string; username: string; personal: PersonalInformation; acceptedTerms: true; createdAt: string; street?: string; barangay?: string; postalCode?: string; avatar?: { version: string; url: string } | null };
@@ -88,21 +89,18 @@ async function changePersonal(body: Record<string, unknown>, user: User) {
   const { firestore } = getFirebaseServices();
   const current = await getDoc(doc(firestore, 'users', user.uid));
   if (!current.exists()) throw new ApiError('Finish your account registration first.', 409);
-  const before = current.data() as Profile;
   const previousEmail = user.email;
   const emailChanged = personal.email !== previousEmail?.toLowerCase();
   if (emailChanged) {
     const password = requireText(body.currentPassword, 'current password', 4096);
     await reauthenticateWithCredential(user, EmailAuthProvider.credential(previousEmail!, password));
-    await updateEmail(user, personal.email); await user.getIdToken(true);
+    await user.getIdToken(true);
+    await cloudBackendRequest('/auth/email', { email: personal.email });
+    const refreshed = (await signInWithEmailAndPassword(getFirebaseServices().auth, personal.email, password)).user;
+    if (refreshed.uid !== user.uid) throw new ApiError('Your account changed. Sign in again.', 401);
+    user = refreshed;
   }
-  try { await saveProfile({ ...before, username: personal.fullName, personal }); }
-  catch (error) {
-    if (emailChanged && previousEmail) {
-      try { await updateEmail(user, previousEmail); await user.getIdToken(true); } catch { /* The next profile read uses the actual Auth email. */ }
-    }
-    throw error;
-  }
+  await cloudBackendRequest('/auth/me', personal, undefined, 'PATCH');
   if (user.displayName !== personal.fullName) await updateProfile(user, { displayName: personal.fullName });
   return { account: await readFirebaseAccount(user) };
 }
@@ -139,6 +137,6 @@ export async function firebaseAccountRequest(path: string, options: Options = {}
       if (account.verification.status !== 'verified') throw new ApiError('Submit a valid government photo ID and wait for approval before publishing livestock.', 403);
       return { account };
     }
-    throw new ApiError('This feature is waiting for the next backend connection step. Your account has not been changed.', 503);
+    return await cloudBackendRequest(path, options.body, options.signal, method);
   } catch (error) { throw firebaseError(error); }
 }

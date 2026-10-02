@@ -32,6 +32,9 @@ yarn-error.*
 
 # local env files
 .env*.local
+/*.local.sql
+/*.local.txt
+/admin_portal/
 
 # typescript
 *.tsbuildinfo

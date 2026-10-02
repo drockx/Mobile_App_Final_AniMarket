@@ -41,7 +41,7 @@ export function getSupabaseClient() {
   return client;
 }
 
-export async function cloudBackendRequest<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+export async function cloudBackendRequest<T>(path: string, body?: unknown, signal?: AbortSignal, method: 'GET' | 'POST' | 'PATCH' = body ? 'POST' : 'GET'): Promise<T> {
   const user = requireFirebaseUser();
   const token = await user.getIdToken();
   if (requireFirebaseUser().uid !== user.uid) throw new ApiError('Your account changed. Please retry.', 401);
@@ -55,7 +55,7 @@ export async function cloudBackendRequest<T>(path: string, body?: unknown, signa
     const response = await fetch(`${base}/functions/v1/animarket`, {
       method: 'POST', signal: controller.signal,
       headers: { apikey: key, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path, body }),
+      body: JSON.stringify({ path, body, method }),
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new ApiError(result.error || (response.status === 404

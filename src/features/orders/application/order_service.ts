@@ -8,7 +8,7 @@ export type OwnedOrder = OrderRequest & { ownerId: string };
 
 export function createOrderService(repository: CollectionRepository<OwnedOrder>) {
   let ownerId = '';
-  const records = createCollectionStore(repository, (order) => isOrderRecord(order) && order.ownerId === ownerId);
+  const records = createCollectionStore(repository, (order) => isOrderRecord(order) && (order.ownerId === ownerId || order.sellerId === ownerId));
   const sessions = new Map<string, ReturnType<typeof createCheckoutService>>();
   let drafts = createCheckoutService();
   const pending = new Map<string, Promise<SaveOrderResult>>();
@@ -26,6 +26,11 @@ export function createOrderService(repository: CollectionRepository<OwnedOrder>)
     getRequest: (id: string) => [...records.getSnapshot()].reverse().find((item) => item.draft.item.id === id && !['cancelled', 'rejected', 'completed'].includes(item.status)),
     getOrder: (id: string) => records.getSnapshot().find((item) => item.id === id),
     review: (...args: Parameters<typeof drafts.review>) => drafts.review(...args),
+    async updateStatus(id: string, status: OrderRequest['status']): Promise<SaveOrderResult> {
+      const request = records.getSnapshot().find((entry) => entry.id === id);
+      if (!request) return issue(new Error('This order is no longer available.'));
+      try { return { request: await records.save({ ...request, status }), error: null }; } catch (error) { return issue(error); }
+    },
     saveRequest(item: CheckoutItem | undefined, reviewed: boolean, now = new Date(), pickupPin?: Coordinate): Promise<SaveOrderResult> {
       if (!ownerId) return Promise.resolve(issue(new Error('Sign in before placing an order.')));
       if (records.getState().loading) return Promise.resolve(issue(new Error('Your orders are still loading. Please try again shortly.')));
@@ -46,6 +51,7 @@ export function createOrderService(repository: CollectionRepository<OwnedOrder>)
     async cancelRequest(id: string, now = new Date()): Promise<SaveOrderResult> {
       const request = records.getSnapshot().find((entry) => entry.id === id);
       if (!request) return issue(new Error('This order is no longer available for your account.'));
+      if (request.ownerId !== ownerId) return issue(new Error('Only the buyer can cancel this request.'));
       if (request.status === 'cancelled') return { request, error: null };
       if (!canCancelOrder(request)) return issue(new Error('This order can no longer be cancelled. Contact the seller.'));
       const currentDrafts = drafts;

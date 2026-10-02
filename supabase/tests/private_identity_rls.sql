@@ -20,7 +20,10 @@ do $$ declare changed integer; begin
     and name in ('animarket-policy-owner/probe-owner.jpg', 'animarket-policy-other/probe-other.jpg')) <> 1 then
     raise exception 'Owner isolation failed';
   end if;
-  insert into storage.objects(bucket_id, name) values ('animarket-ids', 'animarket-policy-owner/probe-upload.jpg');
+  begin
+    insert into storage.objects(bucket_id, name) values ('animarket-ids', 'animarket-policy-owner/probe-upload.jpg');
+    raise exception 'A client bypassed the trusted ID upload endpoint';
+  exception when insufficient_privilege then null; end;
   begin
     insert into storage.objects(bucket_id, name) values ('animarket-ids', 'animarket-policy-other/probe-forbidden.jpg');
     raise exception 'Cross-account upload was allowed';
@@ -64,4 +67,4 @@ do $$ begin
 end $$;
 reset role;
 rollback;
-select 'Private ID policies passed: bucket privacy/limits, owner read/upload, other-owner isolation, immutable files, project/audience checks and anonymous denial. Test rows rolled back.' as result;
+select 'Private ID policies passed: privacy/limits, owner read, server-only upload, account isolation, immutable files, project/audience checks and anonymous denial. Test rows rolled back.' as result;

@@ -32,7 +32,7 @@ export function orderProgress(request: OrderRequest) {
       : ['Order request sent', 'Waiting for the seller to confirm livestock availability.'];
   const next = request.draft.fulfillment === 'delivery' ? [
     ['Seller confirmation', 'Seller confirms availability, the price, and requested delivery.'],
-    ['Transport quote confirmed', 'Buyer approves the final delivery fee and schedule.'],
+    ['Delivery scheduled', 'Coordinate the final delivery fee and schedule in your conversation.'],
     ['Livestock in transit', 'Transporter shares departure and arrival updates.'],
     ['Delivered', 'Buyer confirms the livestock was received.'],
   ] : [

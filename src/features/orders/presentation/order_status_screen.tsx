@@ -14,11 +14,12 @@ import { CheckoutButton, checkoutColors as color, checkoutIcons as icons, Checko
 import { OrderBadge, OrderCard, OrderConfirmation, OrderItem } from './order_cards';
 import { amountRange, money, OrderNotice, OrderSummaryRow, readableDate } from './order_components';
 
-export function OrderStatusScreen({ order, loading, error: loadError, onRetry, example = false, onBack, onMarketplace, onViewListing, onMessage, onCall, onCancel }: {
+export function OrderStatusScreen({ order, loading, error: loadError, onRetry, example = false, onBack, onMarketplace, onViewListing, onMessage, onCall, onCancel, userId, onUpdateStatus }: {
   loading?: boolean; error?: string | null; onRetry?: () => void;
   order?: OrderRequest; example?: boolean; onBack: () => void; onMarketplace: () => void;
   onViewListing?: () => void; onMessage?: () => void; onCancel: (orderId: string) => SaveOrderResult | Promise<SaveOrderResult>;
   onCall?: () => void;
+  userId?: string; onUpdateStatus?: (id: string, status: OrderRequest['status']) => Promise<SaveOrderResult>;
 }) {
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
@@ -54,6 +55,20 @@ export function OrderStatusScreen({ order, loading, error: loadError, onRetry, e
 
   const { item, delivery, pickup } = request.draft;
   const cancelled = request.status === 'cancelled';
+  const selling = !!userId && request.sellerId === userId;
+  const statusActions: { label: string; status: OrderRequest['status'] }[] = selling
+    ? request.status === 'awaiting-seller' ? [{ label: 'Accept Order', status: 'accepted' }, { label: 'Decline Request', status: 'rejected' }]
+      : request.status === 'accepted' ? [{ label: 'Confirm Schedule', status: 'scheduled' }]
+        : request.status === 'scheduled' ? [{ label: 'Mark Ready', status: 'ready' }]
+          : request.status === 'ready' && request.draft.fulfillment === 'delivery' ? [{ label: 'Mark In Transit', status: 'in-transit' }] : []
+    : ['ready', 'in-transit'].includes(request.status) ? [{ label: 'Confirm Livestock Received', status: 'completed' }] : [];
+  async function updateStatus(status: OrderRequest['status']) {
+    if (!request || !onUpdateStatus || saving.current) return;
+    saving.current = true; setBusy(true); setError(undefined);
+    try { const result = await onUpdateStatus(request.id, status); setError(result.error ?? undefined); }
+    catch (failure) { setError(failure instanceof Error ? failure.message : 'Unable to update the order.'); }
+    finally { saving.current = false; setBusy(false); }
+  }
   const copy = orderStatusCopy(request);
   const steps = orderProgress(request);
   const livestock = livestockAmount(item);
@@ -85,7 +100,11 @@ export function OrderStatusScreen({ order, loading, error: loadError, onRetry, e
         </LinearGradient>
 
         <OrderCard title="Order item (1)" meta={`Listing ${item.listingReference ?? item.id} • Quantity 1`}><OrderItem item={item} /></OrderCard>
-        <OrderCard title="Order Progress" meta={cancelled ? 'Cancelled' : 'Step 1 of 5'}>
+        {selling && <OrderNotice>{`Order from ${request.buyerName ?? 'your buyer'}. Confirm the final schedule and any transport fee in your conversation before proceeding.`}</OrderNotice>}
+        {!!statusActions.length && onUpdateStatus && <OrderCard title={selling ? 'Manage Order' : 'Confirm Handover'}>
+          <View style={{ gap: 10 }}>{statusActions.map((action) => <CheckoutButton key={action.status} label={busy ? 'Updating…' : action.label} secondary={action.status === 'rejected'} disabled={busy} onPress={() => void updateStatus(action.status)} />)}</View>
+        </OrderCard>}
+        <OrderCard title="Order Progress" meta={cancelled ? 'Cancelled' : `Step ${Math.max(1, steps.findIndex((step) => step.state === 'current') + 1, request.status === 'completed' ? 5 : 1)} of 5`}>
           <View style={styles.timeline}>{steps.map((step, index) => <View key={step.title} accessible accessibilityLabel={`${step.state === 'future' ? 'Upcoming' : step.state === 'cancelled' ? 'Cancelled' : step.state === 'complete' ? 'Completed' : 'Current'}: ${step.title}. ${step.description}`} style={styles.event}>
             <View style={styles.eventRail}><View style={[styles.dot, (step.state === 'current' || step.state === 'complete') && styles.currentDot, step.state === 'cancelled' && styles.cancelledDot]} />{index < steps.length - 1 && <View style={styles.connector} />}</View>
             <View style={[styles.eventCopy, index === steps.length - 1 && styles.lastEvent]}><Text style={[styles.eventTitle, step.state === 'future' && styles.futureTitle, step.state === 'cancelled' && styles.cancelledText]}>{step.title}</Text><Text style={styles.body}>{step.description}</Text></View>
@@ -121,22 +140,22 @@ export function OrderStatusScreen({ order, loading, error: loadError, onRetry, e
           <View style={styles.confirmations}>
             <OrderConfirmation title="Vaccination proof" description={item.vaccinationProofName ? `Attached: ${item.vaccinationProofName}` : item.healthVerified ? 'Health records are noted in the listing. Review them with the seller.' : 'Ask the seller for vaccination and health records.'} status={item.vaccinationProofName ? 'Ready' : 'Pending'} ready={!!item.vaccinationProofName} />
             <OrderConfirmation title={delivery ? 'Buyer receiver details' : 'Buyer pickup details'} description={delivery ? 'Receiver and destination provided.' : 'Preferred pickup date, time, and location provided.'} status="Ready" ready />
-            <OrderConfirmation title="Seller confirmation" description="Livestock availability and handover terms." status="Pending" />
+            <OrderConfirmation title="Seller confirmation" description="Livestock availability and handover terms." status={['accepted', 'scheduled', 'ready', 'in-transit', 'completed'].includes(request.status) ? 'Ready' : 'Pending'} ready={['accepted', 'scheduled', 'ready', 'in-transit', 'completed'].includes(request.status)} />
             <OrderConfirmation title={delivery ? 'Transport requirements' : 'Pickup arrangement'} description={delivery ? 'Vehicle, permits, and final quote, when required.' : 'Confirm the meeting point and schedule.'} status="Pending" />
           </View>
         </OrderCard>
 
-        <OrderCard title="Seller" meta={item.verified ? 'Verified Raiser' : 'Verification to confirm'}>
-          <View style={styles.contact}><View accessible={false} style={[styles.avatar, { width: avatarDiameter, height: avatarDiameter, borderRadius: avatarDiameter / 2 }]}><Text style={styles.avatarText}>{initials || '?'}</Text></View><View style={styles.contactCopy}><Text style={styles.sellerName}>{item.seller}</Text><Text style={styles.body}>{item.sellerAddress}</Text>{compact && contactButtons}</View>{!compact && contactButtons}</View>
+        <OrderCard title={selling ? 'Buyer' : 'Seller'} meta={selling ? 'Order contact' : item.verified ? 'Verified Raiser' : 'Verification to confirm'}>
+          <View style={styles.contact}><View accessible={false} style={[styles.avatar, { width: avatarDiameter, height: avatarDiameter, borderRadius: avatarDiameter / 2 }]}><Text style={styles.avatarText}>{selling ? (request.buyerName ?? 'B')[0].toUpperCase() : initials || '?'}</Text></View><View style={styles.contactCopy}><Text style={styles.sellerName}>{selling ? request.buyerName ?? 'Buyer' : item.seller}</Text>{!selling && <Text style={styles.body}>{item.sellerAddress}</Text>}{compact && contactButtons}</View>{!compact && contactButtons}</View>
         </OrderCard>
         <OrderNotice>{cancelled ? 'This request is cancelled. You can return to the listing to review availability before making a new request.' : delivery ? 'Delivery remains optional until the seller accepts and the buyer approves the final transport quote. Confirm pickup or delivery with the seller before payment.' : 'Bring suitable livestock transport and any documents agreed with the seller. Both parties must confirm the handover.'}</OrderNotice>
-        <View style={[styles.actions, stackActions && styles.column]}><View style={[styles.actionCell, stackActions && styles.noFlex]}><CheckoutButton secondary label="View Listing" onPress={onViewListing ?? (() => setListingOpen(true))} /></View><View style={[styles.actionCell, stackActions && styles.noFlex]}><CheckoutButton label="Message Seller" onPress={messageSeller} /></View></View>
-        {canCancelOrder(request) && <Pressable accessibilityRole="button" onPress={() => { setError(undefined); setCancelOpen(true); }} style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}><Text style={styles.cancelledText}>Cancel order request</Text></Pressable>}
+        <View style={[styles.actions, stackActions && styles.column]}><View style={[styles.actionCell, stackActions && styles.noFlex]}><CheckoutButton secondary label="View Listing" onPress={onViewListing ?? (() => setListingOpen(true))} /></View><View style={[styles.actionCell, stackActions && styles.noFlex]}><CheckoutButton label={selling ? 'Message Buyer' : 'Message Seller'} onPress={messageSeller} /></View></View>
+        {!selling && canCancelOrder(request) && <Pressable accessibilityRole="button" onPress={() => { setError(undefined); setCancelOpen(true); }} style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}><Text style={styles.cancelledText}>Cancel order request</Text></Pressable>}
         {!cancelOpen && <FieldError message={error} />}
       </ScrollView>
 
       <CheckoutSheet title="Cancel order request?" visible={cancelOpen} onClose={() => { if (!busy) setCancelOpen(false); }}>
-        <Text style={styles.body}>Cancel {request.id}? The order details will remain available in this session. No seller notification or payment will be sent.</Text><FieldError message={error} />
+        <Text style={styles.body}>Cancel {request.id}? The order remains in your history, and its status updates for the seller. No payment is collected by the app.</Text><FieldError message={error} />
         <Pressable accessibilityRole="button" disabled={busy} accessibilityState={{ disabled: busy }} onPress={cancelRequest} style={({ pressed }) => [styles.dangerButton, pressed && styles.pressed]}><Text style={styles.dangerButtonText}>{busy ? 'Cancelling…' : 'Cancel Request'}</Text></Pressable><CheckoutButton secondary label="Keep Request" disabled={busy} onPress={() => setCancelOpen(false)} />
       </CheckoutSheet>
       <CheckoutSheet title={contactAction === 'phone' ? 'Call Seller' : 'Message Seller'} visible={contactAction !== null} onClose={() => setContactAction(null)}>

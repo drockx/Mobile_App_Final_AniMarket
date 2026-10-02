@@ -49,4 +49,6 @@ example
 *-debug.log
 .firebase/
 /backend-probe.local.json
+/*.local.sql
+/*.local.txt
 /supabase/.temp/

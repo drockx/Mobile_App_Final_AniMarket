@@ -4,16 +4,48 @@
       "developmentClient": true,
       "distribution": "internal",
       "environment": "development",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      },
+      "extends": "cloud"
     },
     "preview": {
       "distribution": "internal",
       "environment": "preview",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      },
+      "extends": "cloud"
     },
     "production": {
       "environment": "production",
-      "android": { "buildType": "app-bundle" }
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "extends": "cloud"
+    },
+    "cloud": {
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyAhZIUbXYCrmaQSytYX_t8ubBMnzugsd_E",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "animarket-87354.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "animarket-87354",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:144256379000:web:ec46e106870561cb1e658d",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "144256379000",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://yvamvsbfbknnasfvqdto.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_UQaNRAivn0O1jI8L9lRrCg__2RDOPM_",
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dnbmd5qhj",
+        "EXPO_PUBLIC_BACKEND": "firebase"
+      }
+    },
+    "apk": {
+      "extends": "preview",
+      "environment": "production",
+      "android": {
+        "buildType": "apk"
+      }
     }
+  },
+  "cli": {
+    "appVersionSource": "local"
   }
 }

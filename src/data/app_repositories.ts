@@ -7,6 +7,8 @@ import type { ListingRepository } from '@/features/marketplace/domain/listing_re
 import type { LocalMarket } from '@/features/market_reference/domain/market_reference';
 import type { OrderRequest } from '@/features/orders/domain/checkout';
 import type { NotificationRead } from '@/features/notifications/notification_store';
+import { firebaseEnabled } from '@/services/firebase_config';
+import { createFirebaseAppRepositories } from './firebase_repositories';
 
 export type AppRepositories = {
   listings: ListingRepository;
@@ -27,4 +29,4 @@ export function createLocalAppRepositories(samples = useSampleData): AppReposito
 
 // Keep these local providers during the authorized, staged cloud rollout.
 // Replace them only when the listing/order adapters and access rules are tested.
-export const appRepositories = createLocalAppRepositories();
+export const appRepositories = firebaseEnabled ? createFirebaseAppRepositories() : createLocalAppRepositories();

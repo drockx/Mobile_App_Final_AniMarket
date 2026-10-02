@@ -1,6 +1,5 @@
-// Set EXPO_PUBLIC_SAMPLE_DATA=false to exercise the app with no sample records.
-// Production builds start empty. Connecting a remote provider is a separate, explicit step.
-export const useSampleData = typeof __DEV__ !== 'undefined' && __DEV__ && process.env.EXPO_PUBLIC_SAMPLE_DATA !== 'false';
+// The app always starts with actual user records. Tests may inject their own fixtures.
+export const useSampleData = false;
 
 export function createRecordId() {
   // IDs are opaque: routes and ownership never depend on their format.

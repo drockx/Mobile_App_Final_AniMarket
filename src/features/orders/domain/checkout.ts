@@ -55,6 +55,8 @@ export type CheckoutDraft = {
 export type OrderRequest = {
   id: string;
   ownerId?: string;
+  sellerId?: string;
+  buyerName?: string;
   createdAt: string;
   status: 'saved-locally' | 'awaiting-seller' | 'accepted' | 'scheduled' | 'ready' | 'in-transit' | 'completed' | 'rejected' | 'cancelled';
   cancelledAt?: string;
