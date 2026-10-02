@@ -1,6 +1,7 @@
 import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type TextInputProps } from 'react-native';
+import { appFormStyles } from '@/constants/app_theme';
 
 type AuthFieldProps = Pick<
   TextInputProps,
@@ -29,7 +30,7 @@ export function AuthField({
   return (
     <View style={styles.container}>
       <Text style={[styles.label, compact && styles.compactLabel]}>{label}</Text>
-      <View style={styles.inputWrap}>
+      <View style={[styles.inputWrap, compact && styles.compactWrap, error && styles.inputError]}>
         <TextInput
           {...inputProps}
           editable={editable}
@@ -46,8 +47,6 @@ export function AuthField({
           style={[
             styles.input,
             compact && styles.compactInput,
-            secure && styles.secureInput,
-            error && styles.inputError,
           ]}
         />
         {secure && (
@@ -74,33 +73,32 @@ export function AuthField({
 }
 
 const styles = StyleSheet.create({
-  container: { position: 'relative' },
-  label: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '600', marginBottom: 7 },
-  compactLabel: { marginBottom: 5 },
-  inputWrap: { position: 'relative' },
+  container: { minWidth: 0 },
+  label: { ...appFormStyles.label, color: '#fff', marginBottom: 8 },
+  compactLabel: { marginBottom: 8 },
+  inputWrap: { minHeight: 60, borderRadius: 17, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.78)', backgroundColor: 'rgba(0,0,0,0.24)', flexDirection: 'row', alignItems: 'center' },
+  compactWrap: { minHeight: 52, borderRadius: 15 },
   input: {
-    width: '100%',
-    minHeight: 60,
-    borderRadius: 17,
-    paddingHorizontal: 19,
-    fontSize: 16, lineHeight: 22,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.78)',
+    ...appFormStyles.value,
+    flex: 1,
+    minWidth: 0,
+    minHeight: 57,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     color: '#fff',
-    backgroundColor: 'rgba(0,0,0,0.24)',
+    backgroundColor: 'transparent',
   },
-  compactInput: { minHeight: 52, borderRadius: 15, paddingHorizontal: 16, fontSize: 16, lineHeight: 22 },
+  compactInput: { minHeight: 49 },
   inputError: { borderColor: '#ffb4a8' },
-  secureInput: { paddingRight: 68 },
   toggle: {
-    position: 'absolute',
-    right: 12,
-    top: 0,
-    bottom: 0,
+    flexShrink: 0,
+    minWidth: 60,
     minHeight: 44,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  toggleText: { color: '#fff', fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  toggleText: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'center', includeFontPadding: false },
   errorText: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 5, paddingHorizontal: 2 },
 });

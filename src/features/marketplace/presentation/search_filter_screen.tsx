@@ -3,8 +3,9 @@ import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { appFormStyles } from '@/constants/app_theme';
 
 import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel, davaoDelNorteLocation } from '@/constants/davao_del_norte';
 
@@ -79,6 +80,8 @@ type SearchFilterScreenProps = {
 
 export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFilterScreenProps) {
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
+  const headerActionWidth = Math.max(52, Math.ceil(48 * fontScale));
   const [filters, setFilters] = useState<SearchFilters>(initialFilters);
   const [openMenu, setOpenMenu] = useState<'location' | 'sort' | null>(null);
   const minimum = numericPrice(filters.minPrice);
@@ -105,11 +108,11 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
     >
       <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top + 8, minHeight: insets.top + 64 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.backButton}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={[styles.backButton, { width: headerActionWidth }]}>
           <NavigationIcon name="back" />
         </Pressable>
         <Text style={styles.headerTitle}>Filters</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Reset filters" onPress={() => { setFilters(resetFilterOptions(filters)); setOpenMenu(null); }} style={styles.resetButton}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Reset filters" onPress={() => { setFilters(resetFilterOptions(filters)); setOpenMenu(null); }} style={[styles.resetButton, { width: headerActionWidth }]}>
           <Text style={styles.resetText}>Reset</Text>
         </Pressable>
       </View>
@@ -150,7 +153,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
           accessibilityRole="button"
           accessibilityLabel="Location"
           accessibilityState={{ expanded: openMenu === 'location' }}
-          onPress={() => setOpenMenu(openMenu === 'location' ? null : 'location')}
+          onPress={() => { Keyboard.dismiss(); setOpenMenu(openMenu === 'location' ? null : 'location'); }}
           style={styles.selectField}
         >
           <Text style={styles.selectText}>{locations.find((item) => item.value === filters.location)?.label ?? locations[0].label}</Text>
@@ -205,7 +208,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
           accessibilityRole="button"
           accessibilityLabel="Sort by"
           accessibilityState={{ expanded: openMenu === 'sort' }}
-          onPress={() => setOpenMenu(openMenu === 'sort' ? null : 'sort')}
+          onPress={() => { Keyboard.dismiss(); setOpenMenu(openMenu === 'sort' ? null : 'sort'); }}
           style={styles.selectField}
         >
           <Text style={styles.selectText}>{sortOptions.find((item) => item.value === filters.sort)?.label}</Text>
@@ -263,15 +266,15 @@ const styles = StyleSheet.create({
   categoryChipSelected: { backgroundColor: green, borderColor: green },
   categoryText: { color: ink, fontSize: 15, lineHeight: 21, fontWeight: '600', textAlign: 'center' },
   categoryTextSelected: { color: '#fff', fontWeight: '700' },
-  selectField: { minHeight: 50, paddingVertical: 12, gap: 12, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fbf9', paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center' },
-  selectText: { flex: 1, minWidth: 0, color: ink, fontSize: 16, lineHeight: 22 },
+  selectField: { ...appFormStyles.control, gap: 12, borderColor: border, backgroundColor: '#f8fbf9', flexDirection: 'row', alignItems: 'center' },
+  selectText: { ...appFormStyles.value, flex: 1, minWidth: 0, color: ink },
   menu: { borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#fff', marginTop: 5, overflow: 'hidden' },
   menuItem: { minHeight: 48, paddingHorizontal: 14, paddingVertical: 12, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border },
   menuText: { color: ink, fontSize: 16, lineHeight: 22 },
   priceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   priceField: { flexGrow: 1, flexShrink: 1, flexBasis: 140, minWidth: 0 },
-  priceLabel: { color: secondary, fontSize: 14, lineHeight: 20, fontWeight: '600', marginBottom: 6 },
-  priceInput: { minHeight: 50, width: '100%', borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fbf9', paddingHorizontal: 12, paddingVertical: 12, color: ink, fontSize: 16, lineHeight: 22 },
+  priceLabel: { ...appFormStyles.label, color: secondary, marginBottom: 8 },
+  priceInput: { ...appFormStyles.control, ...appFormStyles.value, width: '100%', borderColor: border, backgroundColor: '#f8fbf9', color: ink },
   error: { color: '#b42318', fontSize: 14, lineHeight: 20, marginTop: 5 },
   preferencesLabel: { marginTop: 22, marginBottom: 8 },
   preference: { minHeight: 76, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },

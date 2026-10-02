@@ -5,6 +5,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, St
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NavigationIcon } from '@/components/navigation_icon';
+import { appFormStyles } from '@/constants/app_theme';
 import type { MessageService } from '../application/message_service';
 import type { Conversation } from '../domain/conversation';
 import type { ChatUser } from '../domain/message_repository';
@@ -62,10 +63,10 @@ export function NewMessageDialog({ service, visible, onClose, onOpen }: { servic
 const styles = StyleSheet.create({
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 18, backgroundColor: '#fff' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
-  title: { flex: 1, color: '#12372a', fontSize: 22, lineHeight: 29, fontWeight: '700' },
+  title: { flex: 1, minWidth: 0, color: '#12372a', fontSize: 22, lineHeight: 29, fontWeight: '700' },
   close: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   hint: { color: '#5b6d63', fontSize: 14, lineHeight: 21, marginBottom: 16 },
-  input: { minHeight: 50, paddingHorizontal: 14, borderRadius: 13, borderWidth: 1, borderColor: '#cfdfd5', backgroundColor: '#f8fbf9', color: '#182b20', fontSize: 15, lineHeight: 21 },
+  input: { ...appFormStyles.control, ...appFormStyles.value, borderColor: '#cfdfd5', backgroundColor: '#f8fbf9', color: '#182b20' },
   loader: { padding: 16 },
   error: { color: '#a1322c', fontSize: 14, lineHeight: 20, paddingVertical: 12 },
   results: { paddingTop: 16 },

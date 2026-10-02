@@ -48,7 +48,6 @@ export default function CreateListingRoute() {
       initialTitle={suggestedTitle}
       initialPriceUnit={suggestedUnit === 'per kg' || suggestedUnit === 'total' ? suggestedUnit : 'per head'}
       onClose={() => backOrReplace('/home')}
-      onSavedDraft={() => router.replace('/my_listings')}
       onPublished={(id) => {
         router.replace({ pathname: '/listings/id', params: { id } });
       }}

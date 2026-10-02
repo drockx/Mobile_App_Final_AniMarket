@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { appFormStyles } from '@/constants/app_theme';
 
 import { coordinateLabel, copyLocation, DEFAULT_MAP_CENTER, isCoordinate, locationIssue, type Coordinate, type LocationResult, type SelectedLocation } from '../domain/location';
 import { LocationFailure } from '../domain/location_provider';
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   back: { width: 44, minHeight: 58, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   title: { flex: 1, minWidth: 0, paddingVertical: 12, color: colors.forest, fontSize: 22, lineHeight: 28, fontWeight: '700', textAlign: 'center' },
   content: { padding: 16, gap: 12 },
-  input: { minHeight: 50, paddingVertical: 12, paddingHorizontal: 13, borderWidth: 1, borderColor: colors.line, borderRadius: 12, color: colors.text, backgroundColor: '#f8fbf9', fontSize: 14, lineHeight: 20 },
+  input: { ...appFormStyles.control, ...appFormStyles.value, borderColor: colors.line, color: colors.text, backgroundColor: '#f8fbf9' },
   button: { minHeight: 50, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: colors.forest, backgroundColor: colors.forest, alignItems: 'center', justifyContent: 'center' },
   buttonText: { color: '#fff', fontSize: 15, lineHeight: 21, fontWeight: '800', textAlign: 'center' },
   secondary: { backgroundColor: '#fff' },

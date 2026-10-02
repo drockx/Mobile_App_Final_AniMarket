@@ -1,6 +1,7 @@
 import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, type TextInputProps } from 'react-native';
+import { appFormStyles } from '@/constants/app_theme';
 
 import { accountColors } from './account_screen_layout';
 
@@ -23,7 +24,7 @@ export function AccountField({ label, value, onChangeText, required = false, sec
           secureTextEntry={secureTextEntry && !visible}
           autoCapitalize={secureTextEntry ? 'none' : props.autoCapitalize}
           autoCorrect={secureTextEntry || props.keyboardType === 'email-address' ? false : undefined}
-          style={[styles.input, secureTextEntry && styles.secureInput]}
+          style={styles.input}
           value={value}
           onChangeText={onChangeText}
         />
@@ -36,12 +37,11 @@ export function AccountField({ label, value, onChangeText, required = false, sec
 }
 
 const styles = StyleSheet.create({
-  field: { gap: 7 },
-  label: { color: accountColors.text, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  field: { ...appFormStyles.field },
+  label: { ...appFormStyles.label, color: accountColors.text },
   required: { color: accountColors.red },
-  inputWrap: { position: 'relative' },
-  secureInput: { paddingRight: 72 },
-  toggle: { position: 'absolute', right: 4, top: 0, bottom: 0, minWidth: 60, minHeight: 48, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
-  toggleText: { color: accountColors.forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
-  input: { minHeight: 50, paddingHorizontal: 13, borderWidth: 1, borderColor: accountColors.line, borderRadius: 11, backgroundColor: '#fff', color: accountColors.text, fontSize: 16, lineHeight: 22 },
+  inputWrap: { minHeight: 52, borderWidth: 1, borderColor: accountColors.line, borderRadius: 12, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center' },
+  toggle: { flexShrink: 0, minWidth: 60, minHeight: 44, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
+  toggleText: { color: accountColors.forest, fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'center', includeFontPadding: false },
+  input: { ...appFormStyles.value, flex: 1, minWidth: 0, minHeight: 50, paddingHorizontal: 14, paddingVertical: 12, color: accountColors.text },
 });

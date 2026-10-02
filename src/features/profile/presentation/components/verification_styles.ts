@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { appFormStyles } from '@/constants/app_theme';
 import { accountColors as c } from './account_screen_layout';
 
 export const verificationStyles = StyleSheet.create({
@@ -6,7 +7,7 @@ export const verificationStyles = StyleSheet.create({
   title: { color: c.forest, fontSize: 16, lineHeight: 23, fontWeight: '800' },
   body: { color: c.text, fontSize: 14, lineHeight: 21 },
   note: { color: c.muted, fontSize: 13, lineHeight: 20 },
-  label: { color: c.forest, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  label: { ...appFormStyles.label, color: c.forest },
   status: { padding: 13, borderRadius: 12, backgroundColor: '#eaf5ed', gap: 5 },
   error: { color: c.red, backgroundColor: '#fff1ef', padding: 12, borderRadius: 10, fontSize: 13, lineHeight: 20 },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -16,8 +17,8 @@ export const verificationStyles = StyleSheet.create({
   secondaryText: { color: c.forest, fontSize: 14, lineHeight: 21, fontWeight: '700', textAlign: 'center' },
   flexButton: { flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0 },
   disabled: { opacity: 0.5 },
-  select: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: c.line, borderRadius: 11, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.surface },
-  selectText: { flex: 1, minWidth: 0, color: c.text, fontSize: 16, lineHeight: 22 },
+  select: { ...appFormStyles.control, borderColor: c.line, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.surface },
+  selectText: { ...appFormStyles.value, flex: 1, minWidth: 0, color: c.text },
   options: { borderWidth: 1, borderColor: c.line, borderRadius: 11, overflow: 'hidden' },
   option: { minHeight: 48, padding: 12, justifyContent: 'center' },
   selectedOption: { backgroundColor: '#eaf5ed' },
@@ -27,5 +28,5 @@ export const verificationStyles = StyleSheet.create({
   checked: { backgroundColor: c.forest },
   checkmark: { color: '#fff', fontSize: 16, lineHeight: 20, fontWeight: '800' },
   consentText: { flex: 1, minWidth: 0, color: c.text, fontSize: 13, lineHeight: 20 },
-  input: { minHeight: 88, padding: 12, borderWidth: 1, borderColor: c.line, borderRadius: 11, color: c.text, backgroundColor: c.surface, fontSize: 16, lineHeight: 22, textAlignVertical: 'top' },
+  input: { ...appFormStyles.control, ...appFormStyles.value, minHeight: 96, borderColor: c.line, color: c.text, backgroundColor: c.surface, textAlignVertical: 'top' },
 });

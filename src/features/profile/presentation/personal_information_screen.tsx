@@ -1,6 +1,7 @@
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { appFormStyles } from '@/constants/app_theme';
 
 import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel } from '@/constants/davao_del_norte';
 
@@ -89,13 +90,13 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
 const styles = StyleSheet.create({
   card: { padding: 15, gap: 16, borderWidth: 1, borderColor: accountColors.line, borderRadius: 16, backgroundColor: '#fff' },
   photoCard: { alignItems: 'center' },
-  field: { gap: 7 },
-  label: { color: accountColors.text, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  field: { ...appFormStyles.field },
+  label: { ...appFormStyles.label, color: accountColors.text },
   required: { color: accountColors.red },
-  select: { minHeight: 48, gap: 8, paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: accountColors.line, borderRadius: 11, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
-  selectText: { flex: 1, minWidth: 0, color: accountColors.text, fontSize: 16, lineHeight: 22 },
-  readonlyField: { minHeight: 48, paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: accountColors.line, borderRadius: 11, justifyContent: 'center', backgroundColor: accountColors.surface },
-  readonlyText: { color: accountColors.muted, fontSize: 14, lineHeight: 20 },
+  select: { ...appFormStyles.control, gap: 8, borderColor: accountColors.line, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
+  selectText: { ...appFormStyles.value, flex: 1, minWidth: 0, color: accountColors.text },
+  readonlyField: { ...appFormStyles.control, borderColor: accountColors.line, justifyContent: 'center', backgroundColor: accountColors.surface },
+  readonlyText: { ...appFormStyles.value, color: accountColors.muted },
   message: { padding: 11, borderRadius: 10, fontSize: 13, lineHeight: 18 },
   success: { color: '#166534', backgroundColor: '#e8f5eb' },
   error: { color: accountColors.red, backgroundColor: '#fff1ef' },

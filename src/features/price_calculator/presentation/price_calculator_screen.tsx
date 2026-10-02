@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMarketReferences, marketReferenceStore } from '@/features/market_reference/market_reference_dependencies';
 import { DataFeedback } from '@/components/data_feedback';
 import { isDavaoDelNorteLocality, davaoDelNorteLocation } from '@/constants/davao_del_norte';
-import { appColors, appTypography } from '@/constants/app_theme';
+import { appColors, appFormStyles, appTypography } from '@/constants/app_theme';
 
 import { adjustment, categories, estimatePrice, peso, type Category, type Condition, type Province, type Purpose, type ReferenceRates } from '../calculator';
 
@@ -53,7 +53,7 @@ function SelectField({ label, value, options, onPress }: {
   return (
     <View style={styles.formGroup}>
       <Label>{label}</Label>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${options.find((option) => option.value === value)?.label ?? value}`} onPress={onPress} style={styles.selectField}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${options.find((option) => option.value === value)?.label ?? value}`} onPress={() => { Keyboard.dismiss(); onPress(); }} style={styles.selectField}>
         <Text style={styles.inputText}>{options.find((option) => option.value === value)?.label ?? value}</Text>
         <NavigationIcon name="down" />
       </Pressable>
@@ -258,11 +258,11 @@ const styles = StyleSheet.create({
   sectionTitle: { ...appTypography.section, color: forest, marginBottom: 12 },
   marketTitle: { marginTop: 1 },
   formGroup: { marginBottom: 16 },
-  label: { color: ink, fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 7 },
+  label: { ...appFormStyles.label, color: ink, marginBottom: 8 },
   required: { color: '#c53030' },
-  input: { ...appTypography.input, minHeight: 50, width: '100%', paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', color: '#2d3748' },
-  selectField: { minHeight: 50, paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', flexDirection: 'row', alignItems: 'center', gap: 8 },
-  inputText: { ...appTypography.input, flex: 1, minWidth: 0, color: '#2d3748' },
+  input: { ...appFormStyles.control, ...appFormStyles.value, width: '100%', borderColor: border, backgroundColor: '#f8fafc', color: '#2d3748' },
+  selectField: { ...appFormStyles.control, borderColor: border, backgroundColor: '#f8fafc', flexDirection: 'row', alignItems: 'center', gap: 8 },
+  inputText: { ...appFormStyles.value, flex: 1, minWidth: 0, color: '#2d3748' },
   row: { flexDirection: 'row', gap: 10 },
   stackedRow: { flexDirection: 'column' },
   rowItem: { flex: 1, minWidth: 0 },

@@ -5,10 +5,11 @@ import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { DataFeedback } from '@/components/data_feedback';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
-import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { animalIcons } from '@/constants/animal_icons';
+import { appFormStyles } from '@/constants/app_theme';
 
 import type { SellerListingsService } from '../application/seller_listings_service';
 import type { ListingStatus, SellerListing } from '../domain/seller_listing';
@@ -115,11 +116,11 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
       </View>)}
     </View>
     <View style={[styles.searchRow, stackSearch && styles.searchRowCompact]}>
-      <View style={styles.search}>
+      <View style={[styles.search, stackSearch && styles.searchCompact]}>
         <SymbolView name={icons.search} size={17} tintColor={color.muted} />
         <TextInput accessibilityLabel="Search livestock or listing ID" value={query} onChangeText={setQuery} placeholder="Search livestock or ID" placeholderTextColor={color.muted} autoCapitalize="none" autoCorrect={false} returnKeyType="search" style={styles.searchInput} />
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel={`Sort listings: ${sorts.find((x) => x.value === sort)?.label}`} onPress={() => setDialog({ kind: 'sort' })} style={[styles.sort, stackSearch && styles.sortCompact]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Sort listings: ${sorts.find((x) => x.value === sort)?.label}`} onPress={() => { Keyboard.dismiss(); setDialog({ kind: 'sort' }); }} style={[styles.sort, stackSearch && styles.sortCompact]}>
         <Text style={styles.sortText}>{sorts.find((x) => x.value === sort)?.label}</Text><NavigationIcon name={dialog?.kind === 'sort' ? 'up' : 'down'} />
       </Pressable>
     </View>
@@ -206,8 +207,9 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 15, paddingTop: 13 }, summary: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   summaryCard: { flex: 1, minWidth: 0, borderWidth: 1, borderColor: color.line, borderRadius: 12, padding: 10, backgroundColor: '#fff' }, attentionCard: { backgroundColor: color.amberBg, borderColor: color.amberLine },
   summaryValue: { fontSize: 20, lineHeight: 27, fontWeight: '700', color: color.forest }, amberText: { color: color.amber }, summaryLabel: { fontSize: 13, lineHeight: 18, color: color.muted, marginTop: 2 },
-  searchRow: { flexDirection: 'row', gap: 8 }, searchRowCompact: { flexDirection: 'column' }, search: { flex: 1, minWidth: 0, minHeight: 44, borderWidth: 1, borderColor: color.line, borderRadius: 11, backgroundColor: '#fbfdfb', flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 10 },
-  searchInput: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 20, color: color.text, paddingVertical: 10 }, sort: { minHeight: 44, width: 124, borderWidth: 1, borderColor: color.line, borderRadius: 11, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 }, sortCompact: { width: '100%' }, sortText: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18, fontWeight: '700', color: color.forest },
+  searchRow: { flexDirection: 'row', gap: 8 }, searchRowCompact: { flexDirection: 'column' }, search: { flex: 1, minWidth: 0, minHeight: 52, borderWidth: 1, borderColor: color.line, borderRadius: 12, backgroundColor: '#fbfdfb', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 },
+  searchCompact: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
+  searchInput: { ...appFormStyles.value, flex: 1, minWidth: 0, minHeight: 50, color: color.text, paddingVertical: 12 }, sort: { ...appFormStyles.control, width: 136, borderColor: color.line, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }, sortCompact: { width: '100%' }, sortText: { ...appFormStyles.value, flex: 1, minWidth: 0, color: color.forest },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 9, paddingBottom: 11 }, tab: { minHeight: 44, maxWidth: '100%', paddingHorizontal: 10, paddingVertical: 7, borderWidth: 1, borderColor: color.line, borderRadius: 99, justifyContent: 'center' }, tabSelected: { backgroundColor: color.forest, borderColor: color.forest }, tabText: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: color.muted }, tabSelectedText: { color: '#fff' },
   listHeading: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }, listTitle: { fontSize: 15, lineHeight: 21, color: color.forest, fontWeight: '700' }, resultCount: { fontSize: 13, lineHeight: 18, color: color.muted }, separator: { height: 11 },
   card: { borderWidth: 1, borderColor: color.line, borderRadius: 16, padding: 12, backgroundColor: '#fff', shadowColor: color.forest, shadowOpacity: 0.04, shadowOffset: { width: 0, height: 3 }, shadowRadius: 12, elevation: 1 },
@@ -220,5 +222,5 @@ const styles = StyleSheet.create({
   button: { minHeight: 44, borderRadius: 10, backgroundColor: color.forest, alignItems: 'center', justifyContent: 'center', paddingVertical: 9, paddingHorizontal: 8 }, secondaryButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: color.forest }, buttonText: { color: '#fff', fontSize: 13, lineHeight: 18, fontWeight: '700', textAlign: 'center' }, secondaryText: { color: color.forest }, pressed: { opacity: 0.75 }, destructiveButton: { backgroundColor: '#fff1ef', borderWidth: 1, borderColor: '#efc5bf' }, destructiveText: { color: '#a33b34' },
   empty: { alignItems: 'center', borderWidth: 1, borderStyle: 'dashed', borderColor: '#cbd7cf', borderRadius: 15, padding: 24, gap: 10 }, emptyTitle: { color: color.forest, fontWeight: '700', fontSize: 15, lineHeight: 21 }, emptyCopy: { color: color.muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
   feedback: { flexDirection: 'row', alignItems: 'center', paddingLeft: 10, marginBottom: 10, backgroundColor: color.mint, borderRadius: 9 }, feedbackText: { flex: 1, color: color.green, fontSize: 13, lineHeight: 18 }, dismiss: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  modalBackdrop: { flex: 1, backgroundColor: '#12372a70', justifyContent: 'center', alignItems: 'center', padding: 20 }, dialog: { width: '100%', maxWidth: 360, maxHeight: '85%', borderRadius: 17, backgroundColor: '#fff' }, dialogContent: { padding: 18, gap: 10 }, dialogTitle: { fontSize: 18, lineHeight: 25, fontWeight: '700', color: color.forest }, dialogCopy: { fontSize: 13, lineHeight: 18, color: color.muted }, dialogActions: { flexDirection: 'row', gap: 8, marginTop: 4 }, flex: { flex: 1 }, inputLabel: { color: color.text, fontSize: 13, lineHeight: 18, fontWeight: '700' }, priceInput: { minHeight: 44, borderWidth: 1, borderColor: color.line, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 10, color: color.text, fontSize: 16, lineHeight: 22 }, error: { fontSize: 13, lineHeight: 18, color: '#a33b34' }, option: { minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: color.line }, optionText: { fontSize: 14, lineHeight: 19, color: color.text }, selectedOption: { fontWeight: '700', color: color.green },
+  modalBackdrop: { flex: 1, backgroundColor: '#12372a70', justifyContent: 'center', alignItems: 'center', padding: 20 }, dialog: { width: '100%', maxWidth: 360, maxHeight: '85%', borderRadius: 17, backgroundColor: '#fff' }, dialogContent: { padding: 18, gap: 10 }, dialogTitle: { fontSize: 18, lineHeight: 25, fontWeight: '700', color: color.forest }, dialogCopy: { fontSize: 13, lineHeight: 18, color: color.muted }, dialogActions: { flexDirection: 'row', gap: 8, marginTop: 4 }, flex: { flex: 1 }, inputLabel: { ...appFormStyles.label, color: color.text }, priceInput: { ...appFormStyles.control, ...appFormStyles.value, borderColor: color.line, color: color.text }, error: { fontSize: 13, lineHeight: 18, color: '#a33b34' }, option: { minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: color.line }, optionText: { fontSize: 14, lineHeight: 19, color: color.text }, selectedOption: { fontWeight: '700', color: color.green },
 });

@@ -42,5 +42,5 @@ export const AppTextInput = forwardRef<TextInput, TextInputProps>(function AppTe
 });
 
 const styles = StyleSheet.create({
-  input: { ...appTypography.input, minWidth: 0, color: '#17221d', paddingVertical: 10 },
+  input: { ...appTypography.input, minWidth: 0, color: '#17221d', paddingVertical: 10, includeFontPadding: false, textAlign: 'left' },
 });

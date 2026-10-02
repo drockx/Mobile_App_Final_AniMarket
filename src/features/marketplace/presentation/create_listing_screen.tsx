@@ -1,5 +1,7 @@
 import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
 import { AppTextInput as TextInput } from '@/components/app_text_input';
+import { CalendarPicker } from '@/components/calendar_picker';
+import { calendarDateKey, isCalendarDateSelectable } from '@/components/calendar_dates';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useMemo, useRef, useState } from 'react';
 import { createRecordId } from '@/services/development_data';
@@ -8,9 +10,9 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { appTypography } from '@/constants/app_theme';
+import { appFormStyles, appTypography } from '@/constants/app_theme';
 
 import {
   DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel, davaoDelNorteLocation,
@@ -66,7 +68,7 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#8290a4"
+        placeholderTextColor="#52645a"
         keyboardType={keyboardType}
         multiline={multiline}
         textAlignVertical={multiline ? 'top' : 'center'}
@@ -85,7 +87,7 @@ function SelectField({ label, value, options, onSelect }: {
   return (
     <View style={styles.field}>
       <Label required>{label}</Label>
-      <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${selected}`} accessibilityState={{ expanded: open }} onPress={() => setOpen(true)} style={[styles.input, styles.select]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`${label}, ${selected}`} accessibilityState={{ expanded: open }} onPress={() => { Keyboard.dismiss(); setOpen(true); }} style={[styles.input, styles.select]}>
         <Text style={styles.inputText}>{selected}</Text>
         <NavigationIcon name={open ? 'up' : 'down'} />
       </Pressable>
@@ -112,12 +114,10 @@ function peso(value: number) {
 }
 
 function validDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value && date.getTime() <= Date.now();
+  return isCalendarDateSelectable(value, { maxDate: calendarDateKey(new Date()) });
 }
 
-export function CreateListingScreen({ marketplace, initialDraft, initialPickup, initialPrice = '', initialCategory = 'Cow', initialWeight = '', initialTitle = '', initialPriceUnit = 'per head', onClose, onSavedDraft, onPublished, onMarketReference }: {
+export function CreateListingScreen({ marketplace, initialDraft, initialPickup, initialPrice = '', initialCategory = 'Cow', initialWeight = '', initialTitle = '', initialPriceUnit = 'per head', onClose, onPublished, onMarketReference }: {
   marketplace: MarketplaceService;
   initialDraft?: Listing;
   initialPickup?: SelectedLocation | null;
@@ -128,10 +128,11 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
   initialPriceUnit?: ListingPriceUnit;
   onClose: () => void;
   onPublished: (id: string) => void;
-  onSavedDraft: () => void;
   onMarketReference: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const stackedFields = width < 360 || fontScale > 1.1;
   const [photos, setPhotos] = useState<string[]>(initialDraft?.imageUris ?? (initialDraft?.imageUri ? [initialDraft.imageUri] : []));
   const [title, setTitle] = useState(initialDraft?.title ?? initialTitle);
   const [category, setCategory] = useState<LivestockCategory>(initialDraft?.category ?? initialCategory);
@@ -139,6 +140,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
   const [weight, setWeight] = useState(initialDraft?.weight.replace(/\s*kg$/i, '') ?? initialWeight);
   const [vaccination, setVaccination] = useState<VaccinationStatus>(initialDraft ? initialDraft.health === 'Vaccinated' ? 'vaccinated' : initialDraft.health === 'Not vaccinated' ? 'not-vaccinated' : 'unknown' : 'vaccinated');
   const [vaccinationDate, setVaccinationDate] = useState(initialDraft?.vaccinationDate ?? '');
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [vaccineName, setVaccineName] = useState(initialDraft?.vaccineName ?? '');
   const [proof, setProof] = useState<{ name: string; uri: string } | null>(initialDraft?.vaccinationProof ?? null);
   const [city, setCity] = useState<DavaoDelNorteLocality>(listingLocality(initialDraft?.location.split(',')[0]) ?? 'Tagum City');
@@ -210,21 +212,13 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
       imageUri: photos[0], imageUris: photos, vaccinationProof: proof ?? undefined, vaccinationDate, vaccineName,
     };
   }
-  async function saveDraft() {
-    if (publishingRef.current) return;
-    publishingRef.current = true; setPublishing(true); setError('');
-    try { await marketplace.saveDraft(listingInput(), pickupPin, initialDraft?.id, operationId); onSavedDraft(); }
-    catch (issue) { setError(issue instanceof Error ? issue.message : 'Unable to save your draft. Please retry.'); }
-    finally { publishingRef.current = false; setPublishing(false); }
-  }
-
   async function publish() {
     if (publishingRef.current) return;
     let problem = '';
     if (!photos.length) problem = 'Add at least one livestock photo.';
     else if (!title.trim()) problem = 'Enter a listing title.';
     else if (!Number.isFinite(Number(weight)) || Number(weight) <= 0) problem = 'Enter a valid weight in kilograms.';
-    else if (vaccination === 'vaccinated' && !validDate(vaccinationDate)) problem = 'Enter a valid vaccination date in YYYY-MM-DD format.';
+    else if (vaccination === 'vaccinated' && !validDate(vaccinationDate)) problem = 'Choose a valid vaccination date on or before today.';
     else if (vaccination === 'vaccinated' && !vaccineName.trim()) problem = 'Enter the vaccine or disease.';
     else if (vaccination === 'vaccinated' && !proof) problem = 'Attach vaccination proof.';
     else if (!streetPurok.trim()) problem = 'Enter the street or purok.';
@@ -273,7 +267,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
             )}
             {photos.map((uri, index) => (
               <View key={`${uri}-${index}`} style={styles.photoThumb}>
-                <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} />
+                <Image source={{ uri }} contentFit="cover" style={styles.photoImage} />
                 <Pressable accessibilityRole="button" accessibilityLabel={`Remove photo ${index + 1}`} hitSlop={10} onPress={() => setPhotos((current) => current.filter((_, photoIndex) => photoIndex !== index))} style={styles.removePhoto}>
                   <NavigationIcon name="close" size={16} color="#fff" />
                 </Pressable>
@@ -285,9 +279,9 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
 
         <Field label="Listing Title" required value={title} onChangeText={setTitle} placeholder="e.g. Brahman Bull (Pure Breed)" />
         <SelectField label="Category" value={category} options={categories} onSelect={(value) => setCategory(value as LivestockCategory)} />
-        <View style={styles.row}>
-          <View style={styles.rowItem}><Field label="Age / Stage" value={age} onChangeText={setAge} placeholder="e.g. 2 Yrs" /></View>
-          <View style={styles.rowItem}><Field label="Weight (kg)" required value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="e.g. 450" /></View>
+        <View style={[styles.row, stackedFields && styles.stackedRow]}>
+          <View style={[styles.rowItem, stackedFields && styles.stackedItem]}><Field label="Age / Stage" value={age} onChangeText={setAge} placeholder="e.g. 2 Yrs" /></View>
+          <View style={[styles.rowItem, stackedFields && styles.stackedItem]}><Field label="Weight (kg)" required value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="e.g. 450" /></View>
         </View>
 
         <View style={styles.vaccinationCard}>
@@ -307,24 +301,24 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
           </View>
           {vaccination === 'vaccinated' && (
             <>
-              <View style={styles.row}>
-                <View style={styles.rowItem}>
+              <View style={[styles.row, styles.stackedRow]}>
+                <View style={[styles.rowItem, styles.stackedItem]}>
                   <View style={styles.field}>
                     <Label required>Vaccination Date</Label>
-                    <View style={[styles.input, styles.dateInput]}>
-                      <TextInput accessibilityLabel="Vaccination Date" value={vaccinationDate} onChangeText={setVaccinationDate} placeholder="YYYY-MM-DD" placeholderTextColor="#8290a4" keyboardType="numbers-and-punctuation" maxLength={10} style={styles.dateText} />
-                      <Icon name={icons.calendar} size={15} color="#718096" />
-                    </View>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Vaccination Date, ${vaccinationDate || 'choose date'}`} onPress={() => { Keyboard.dismiss(); setCalendarOpen(true); }} style={[styles.input, styles.dateInput]}>
+                      <Text style={styles.inputText}>{vaccinationDate || 'Select date'}</Text>
+                      <Icon name={icons.calendar} size={20} />
+                    </Pressable>
                   </View>
                 </View>
-                <View style={styles.rowItem}><Field label="Vaccine / Disease" required value={vaccineName} onChangeText={setVaccineName} placeholder="e.g. FMD Vaccine" /></View>
+                <View style={[styles.rowItem, styles.stackedItem]}><Field label="Vaccine / Disease" required value={vaccineName} onChangeText={setVaccineName} placeholder="e.g. FMD Vaccine" /></View>
               </View>
               <View style={styles.field}>
                 <Label required>Vaccination Proof</Label>
                 <Pressable accessibilityRole="button" accessibilityLabel="Upload vaccination proof" onPress={addProof} style={styles.proofUpload}>
                   <Text style={styles.proofUploadText}>Upload proof — PDF, JPG or PNG</Text>
                 </Pressable>
-                {proof && <View style={styles.proofAttached}><Text numberOfLines={1} style={styles.proofName}>{proof.name}</Text><Text style={styles.attachedBadge}>Attached</Text></View>}
+                {proof && <View style={styles.proofAttached}><Text style={styles.proofName}>{proof.name}</Text><Text style={styles.attachedBadge}>Attached</Text></View>}
               </View>
             </>
           )}
@@ -359,15 +353,15 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
             <Text style={styles.marketBadge}>Market reference</Text>
           </View>
           <Text style={styles.referenceLocation}>{reference.market ? `${categories.find((item) => item.value === category)?.label} ${reference.market.sample ? 'sample' : 'reference'} from ${reference.market.location}` : 'No Davao del Norte market reference available'}</Text>
-          <View style={styles.referenceRow}>
-            <View style={styles.referenceStat}><Text style={styles.statLabel}>REFERENCE RATE</Text><Text style={styles.statValue}>{reference.rate ? `${peso(reference.rate.min)}–${peso(reference.rate.max)}${reference.perKg ? '/kg' : '/head'}` : 'Unavailable'}</Text></View>
-            <View style={styles.referenceStat}><Text style={styles.statLabel}>ESTIMATED VALUE</Text><Text style={styles.statValue}>{reference.suggested !== null && reference.rate ? `${peso(reference.kg * reference.rate.min)}–${peso(reference.kg * reference.rate.max)}` : reference.perKg ? 'Enter live weight' : 'Set manually'}</Text></View>
+          <View style={[styles.referenceRow, stackedFields && styles.stackedRow]}>
+            <View style={[styles.referenceStat, stackedFields && styles.stackedItem]}><Text style={styles.statLabel}>REFERENCE RATE</Text><Text style={styles.statValue}>{reference.rate ? `${peso(reference.rate.min)}–${peso(reference.rate.max)}${reference.perKg ? '/kg' : '/head'}` : 'Unavailable'}</Text></View>
+            <View style={[styles.referenceStat, stackedFields && styles.stackedItem]}><Text style={styles.statLabel}>ESTIMATED VALUE</Text><Text style={styles.statValue}>{reference.suggested !== null && reference.rate ? `${peso(reference.kg * reference.rate.min)}–${peso(reference.kg * reference.rate.max)}` : reference.perKg ? 'Enter live weight' : 'Set manually'}</Text></View>
           </View>
-          <View style={styles.priceActions}>
-            <Pressable accessibilityRole="button" accessibilityState={{ disabled: reference.suggested === null }} disabled={reference.suggested === null} onPress={() => { setPrice(String(reference.suggested)); setPriceUnit('per head'); }} style={[styles.suggestionButton, reference.suggested === null && styles.suggestionDisabled]}>
+          <View style={[styles.priceActions, stackedFields && styles.stackedRow]}>
+            <Pressable accessibilityRole="button" accessibilityState={{ disabled: reference.suggested === null }} disabled={reference.suggested === null} onPress={() => { setPrice(String(reference.suggested)); setPriceUnit('per head'); }} style={[styles.suggestionButton, stackedFields && styles.stackedItem, reference.suggested === null && styles.suggestionDisabled]}>
               <Text style={styles.suggestionText}>{reference.suggested === null ? 'No suggestion' : `Use ${peso(reference.suggested)}`}</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={onMarketReference} style={styles.marketButton}><Text style={styles.marketButtonText}>View market prices</Text></Pressable>
+            <Pressable accessibilityRole="button" onPress={onMarketReference} style={[styles.marketButton, stackedFields && styles.stackedItem]}><Text style={styles.marketButtonText}>View market prices</Text></Pressable>
           </View>
           <Text style={styles.basis}>{reference.suggested !== null ? `Based on ${reference.kg.toLocaleString()} kg live weight and local ${reference.market?.sample ? 'sample' : 'market'} prices.` : 'Enter a live weight for a price estimate where per-kg data is available.'}</Text>
           <Text style={styles.disclaimer}>Advisory estimate. Breed, age, health, transport, and local demand may affect the final price.</Text>
@@ -384,7 +378,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
             value={description}
             onChangeText={setDescription}
             placeholder="Describe breed, diet, health, and temperament..."
-            placeholderTextColor="#8290a4"
+            placeholderTextColor="#52645a"
             multiline
             textAlignVertical="top"
             scrollEnabled
@@ -395,11 +389,11 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
       </KeyboardScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Save listing draft" disabled={publishing} accessibilityState={{ disabled: publishing }} onPress={saveDraft} style={[styles.suggestionButton, { marginBottom: 8 }]}><Text style={styles.suggestionText}>{publishing ? 'Saving…' : 'Save Draft'}</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Publish listing" accessibilityState={{ disabled: publishing }} disabled={publishing} onPress={publish} style={[styles.publishButton, publishing && { opacity: 0.6 }]}>
           <Text style={styles.publishText}>{publishing ? 'Publishing…' : 'Publish Listing'}</Text>
         </Pressable>
       </View>
+      {calendarOpen && <CalendarPicker title="Vaccination Date" value={vaccinationDate} onSelect={setVaccinationDate} onClose={() => setCalendarOpen(false)} maxDate={calendarDateKey(new Date())} helper="Choose the date the vaccination was given. Future dates are unavailable." />}
     </KeyboardAvoidingView>
   );
 }
@@ -410,42 +404,44 @@ const styles = StyleSheet.create({
   closeButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { ...appTypography.title, flex: 1, minWidth: 0, textAlign: 'center', color: colors.forest },
   content: { padding: 20, paddingBottom: 28, gap: 17 },
-  field: { flex: 1, minWidth: 0, gap: 7 },
-  label: { color: colors.ink, fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  field: { ...appFormStyles.field },
+  label: { ...appFormStyles.label, color: colors.ink },
   required: { color: colors.red },
-  input: { ...appTypography.input, minHeight: 50, width: '100%', paddingHorizontal: 13, paddingVertical: 12, borderWidth: 1, borderColor: colors.line, borderRadius: 11, backgroundColor: colors.input, color: '#2d3748' },
-  inputText: { ...appTypography.input, flex: 1, minWidth: 0, color: '#2d3748' },
+  input: { ...appFormStyles.control, ...appFormStyles.value, width: '100%', borderColor: colors.line, backgroundColor: colors.input, color: '#2d3748' },
+  inputText: { ...appFormStyles.value, flexShrink: 1, minWidth: 0, color: '#2d3748' },
   select: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 7 },
   fixedField: { justifyContent: 'center' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 10 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: 12 },
   rowItem: { flexGrow: 1, flexShrink: 1, flexBasis: 140, minWidth: 0 },
+  stackedRow: { flexDirection: 'column', flexWrap: 'nowrap' },
+  stackedItem: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
   textArea: { minHeight: 120, paddingTop: 12, color: colors.ink },
   photoRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   addPhoto: { width: 72, height: 72, borderRadius: 11, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#bccfc2', backgroundColor: '#f7faf7', alignItems: 'center', justifyContent: 'center' },
   addPhotoText: { color: '#4a5568', fontSize: 13, lineHeight: 18, fontWeight: '700', marginTop: 3 },
   photoPlaceholder: { width: 72, height: 72, borderRadius: 11, borderWidth: 1, borderColor: '#c7e5c4', backgroundColor: '#e2efe0', alignItems: 'center', justifyContent: 'center' },
   photoThumb: { width: 72, height: 72, borderRadius: 11, borderWidth: 1, borderColor: '#c7e5c4', backgroundColor: '#e2efe0' },
+  photoImage: { ...StyleSheet.absoluteFill, borderRadius: 10 },
   removePhoto: { position: 'absolute', right: -8, top: -8, width: 24, height: 24, borderRadius: 12, backgroundColor: '#e53e3e', borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   vaccinationCard: { padding: 14, gap: 11, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 14, backgroundColor: '#fbfdfb' },
-  sectionHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  sectionHead: { flexDirection: 'column', alignItems: 'flex-start', gap: 6 },
   cardTitle: { color: colors.forest, fontSize: 15, lineHeight: 21, fontWeight: '800', flexShrink: 1 },
   requiredBadge: { color: colors.red, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   intro: { color: '#52645a', fontSize: 14, lineHeight: 21 },
-  statusRow: { flexDirection: 'row', borderWidth: 1, borderColor: '#d8e2dc', borderRadius: 10, overflow: 'hidden' },
-  statusButton: { flex: 1, minHeight: 44, paddingHorizontal: 4, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  statusRow: { gap: 8 },
+  statusButton: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: '#d8e2dc', borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
   statusSelected: { backgroundColor: colors.forest },
   statusText: { color: '#4a5568', fontSize: 13, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
   statusTextSelected: { color: '#fff' },
-  dateInput: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  dateText: { ...appTypography.input, flex: 1, minWidth: 0, padding: 0, color: '#2d3748' },
+  dateInput: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   proofUpload: { minHeight: 48, padding: 11, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9fc7ad', borderRadius: 11, backgroundColor: '#f4faf6', alignItems: 'center', justifyContent: 'center' },
   proofUploadText: { color: colors.forest, fontSize: 13, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
   proofAttached: { minHeight: 44, marginTop: 3, paddingHorizontal: 9, paddingVertical: 8, borderWidth: 1, borderColor: '#dfe8e2', borderRadius: 9, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, backgroundColor: '#fff' },
-  proofName: { flex: 1, color: '#2d3748', fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  proofName: { flexGrow: 1, flexShrink: 1, flexBasis: 150, minWidth: 0, color: '#2d3748', fontSize: 13, lineHeight: 18, fontWeight: '600' },
   attachedBadge: { color: '#166534', fontSize: 13, lineHeight: 18, fontWeight: '700', backgroundColor: '#dff2e5', borderRadius: 10, paddingHorizontal: 7, paddingVertical: 4 },
   proofNote: { color: '#52647a', fontSize: 13, lineHeight: 19 },
-  locationHelp: { marginTop: -10, color: '#52647a', fontSize: 13, lineHeight: 19 },
-  publicAddress: { marginTop: -9, color: '#52647a', fontSize: 13, lineHeight: 19 },
+  locationHelp: { color: '#52647a', fontSize: 13, lineHeight: 19 },
+  publicAddress: { color: '#52647a', fontSize: 13, lineHeight: 19 },
   pinCard: { padding: 14, gap: 11, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 14, backgroundColor: '#fbfdfb' },
   privateBadge: { color: '#276749', backgroundColor: '#e4f3e8', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   mapHelp: { color: '#52647a', fontSize: 13, lineHeight: 19 },
@@ -468,7 +464,7 @@ const styles = StyleSheet.create({
   error: { color: '#9b1c1c', backgroundColor: '#fff1f0', padding: 10, borderRadius: 9, fontSize: 13, lineHeight: 18 },
   footer: { paddingHorizontal: 20, paddingTop: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#edf2f7' },
   publishButton: { minHeight: 50, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 11, backgroundColor: colors.forest, alignItems: 'center', justifyContent: 'center' },
-  publishText: { color: '#fff', fontSize: 15, lineHeight: 21, fontWeight: '700' },
+  publishText: { color: '#fff', fontSize: 15, lineHeight: 21, fontWeight: '700', textAlign: 'center', includeFontPadding: false },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(10,28,20,0.4)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   optionSheet: { width: '100%', maxWidth: 360, maxHeight: '85%', padding: 12, borderRadius: 16, backgroundColor: '#fff' },
   optionList: { maxHeight: 430, flexShrink: 1 },
