@@ -1,3 +1,4 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { DataFeedback } from '@/components/data_feedback';
 import { useRef, useState } from 'react';
@@ -64,7 +65,7 @@ export function OrderCheckoutScreen({ item, service, loading, error, onRetry, re
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={styles.back}><NavigationIcon name="back" /></Pressable>
         <Text accessibilityRole="header" style={styles.headerTitle}>Order Checkout</Text><View style={styles.back} />
       </View>
-      <ScrollView ref={scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
+      <KeyboardScrollView ref={scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.content}>
         <OrderSteps current={0} />
         {Object.keys(errors).length > 0 && <View style={styles.errorBanner}><Text accessibilityRole="alert" style={styles.errorText}>Please complete the required details below.</Text><FieldError message={errors.listing} /></View>}
         <View style={[styles.card, styles.product]}>
@@ -137,7 +138,7 @@ export function OrderCheckoutScreen({ item, service, loading, error, onRetry, re
           {item.priceUnit === 'per kg' && <Text style={styles.helper}>Based on {item.weight} at {money(item.price)} per kg. Final live weight requires seller confirmation.</Text>}
           <Text style={styles.helper}>Delivery fees are estimates and require transporter confirmation.</Text>
         </View>
-      </ScrollView>
+      </KeyboardScrollView>
       <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 20) }]}><CheckoutButton label="Review Order" onPress={reviewOrder} /></View>
     </KeyboardAvoidingView>
   </View>;

@@ -1,6 +1,6 @@
 # Data readiness
 
-Firebase is **not connected**. No Firebase package, credentials, project configuration, initialization, or data migration was added.
+The Firebase/Supabase connection is **staged**. Account adapters/rules and private ID storage are deployed and tested, while the app still selects its existing backend. See [connection status and completed work](backend_connection.md). Main feature adapters and migration remain pending; do not switch the app backend until those are ready.
 
 The app can run with zero sample records. In development set `EXPO_PUBLIC_SAMPLE_DATA=false` before starting Expo; production builds already disable samples. The optional sample catalog and market references are loaded only in `src/data/app_repositories.ts`. Personal listings, orders, notifications, ratings, and unread badges no longer use invented account activity.
 
@@ -21,7 +21,7 @@ Local marketplace repositories remain **session-only** until an authorized persi
 
 ## Future adapter contract
 
-After authorization, implement the contracts in `src/services/collection.ts` and `src/features/marketplace/domain/listing_repository.ts`, then replace providers in `src/data/app_repositories.ts`. Feature screens should continue using the same services. The existing account and message APIs need their own deliberate migration if Firebase Auth or Firestore replaces the current server; changing the catalog provider does not migrate authentication.
+The backend rollout is authorized. Implement the contracts in `src/services/collection.ts` and `src/features/marketplace/domain/listing_repository.ts`, then replace providers in `src/data/app_repositories.ts`. Feature screens should continue using the same services. The account adapter is prepared, while messaging and the existing account records still need their deliberate migration; changing the catalog provider does not migrate authentication.
 
 - `watch(scope, receive, fail)` must deliver an initial snapshot, including an empty array, report failures, and unsubscribe. Public listing feeds expose only active public records; owner feeds expose only that seller's records; order/read-state feeds expose only authorized account records. Deliver ordered authoritative snapshots and normalize backend timestamps to ISO strings.
 - `save`, `remove`, and listing `publish` must resolve only after a confirmed write. Return the canonical saved record with its actual document ID. Reject authorization failures, deleted records, stale updates, and invalid status transitions. Opaque IDs are preserved through navigation.

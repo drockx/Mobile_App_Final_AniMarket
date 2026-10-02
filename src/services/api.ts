@@ -1,9 +1,10 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { firebaseEnabled } from './firebase_config';
+import { firebaseAccountRequest } from './firebase_account';
+import { ApiError } from './api_error';
 
-export class ApiError extends Error {
-  constructor(message: string, public readonly status = 0) { super(message); }
-}
+export { ApiError } from './api_error';
 let accessToken: string | null = null;
 let unauthorizedHandler: (() => void) | undefined;
 export function setAccessToken(token: string | null) { accessToken = token; }
@@ -25,6 +26,7 @@ export function apiBaseUrl(): string {
 type RequestOptions = { method?: 'GET' | 'POST' | 'PATCH'; body?: unknown; signal?: AbortSignal; public?: boolean; token?: string | null; timeout?: number };
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const token = options.token === undefined ? accessToken : options.token;
+  if (firebaseEnabled) return await firebaseAccountRequest(path, { ...options, token }) as T;
   const controller = new AbortController();
   const abort = () => controller.abort();
   options.signal?.addEventListener('abort', abort);

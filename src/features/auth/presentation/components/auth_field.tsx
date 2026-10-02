@@ -1,9 +1,10 @@
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type TextInputProps } from 'react-native';
 
 type AuthFieldProps = Pick<
   TextInputProps,
-  'autoCapitalize' | 'autoComplete' | 'keyboardType' | 'maxLength' | 'returnKeyType'
+  'autoCapitalize' | 'autoComplete' | 'keyboardType' | 'maxLength' | 'returnKeyType' | 'onSubmitEditing' | 'editable'
 > & {
   label: string;
   value: string;
@@ -19,6 +20,7 @@ export function AuthField({
   onChangeText,
   secure = false,
   compact = false,
+  editable = true,
   error,
   ...inputProps
 }: AuthFieldProps) {
@@ -30,12 +32,14 @@ export function AuthField({
       <View style={styles.inputWrap}>
         <TextInput
           {...inputProps}
+          editable={editable}
           autoCapitalize={secure ? 'none' : inputProps.autoCapitalize}
           autoCorrect={secure || inputProps.keyboardType === 'email-address' ? false : undefined}
           accessibilityLabel={label}
           placeholder={label}
           placeholderTextColor="rgba(255,255,255,0.72)"
-          selectionColor="#fff"
+          selectionColor={Platform.OS === 'android' ? '#477f60' : '#fff'}
+          keyboardAppearance="dark"
           secureTextEntry={secure && !visible}
           value={value}
           onChangeText={onChangeText}
@@ -50,9 +54,11 @@ export function AuthField({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${visible ? 'Hide' : 'Show'} ${label.toLowerCase()}`}
+            accessibilityState={{ disabled: !editable, selected: visible }}
+            disabled={!editable}
             hitSlop={6}
             onPress={() => setVisible((current) => !current)}
-            style={[styles.toggle, compact && styles.compactToggle]}
+            style={styles.toggle}
           >
             <Text style={styles.toggleText}>{visible ? 'Hide' : 'Show'}</Text>
           </Pressable>
@@ -74,7 +80,7 @@ const styles = StyleSheet.create({
   inputWrap: { position: 'relative' },
   input: {
     width: '100%',
-    height: 60,
+    minHeight: 60,
     borderRadius: 17,
     paddingHorizontal: 19,
     fontSize: 16,
@@ -83,18 +89,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     backgroundColor: 'rgba(0,0,0,0.24)',
   },
-  compactInput: { height: 52, borderRadius: 15, paddingHorizontal: 16, fontSize: 15 },
+  compactInput: { minHeight: 52, borderRadius: 15, paddingHorizontal: 16, fontSize: 15 },
   inputError: { borderColor: '#ffb4a8' },
   secureInput: { paddingRight: 68 },
   toggle: {
     position: 'absolute',
     right: 12,
     top: 0,
-    height: 60,
+    bottom: 0,
+    minHeight: 44,
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  compactToggle: { height: 52 },
   toggleText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   errorText: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 5, paddingHorizontal: 2 },
 });

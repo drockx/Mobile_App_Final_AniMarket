@@ -1,19 +1,11 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { useState, useSyncExternalStore } from 'react';
 import { DataFeedback } from '@/components/data_feedback';
-import { AnimalPlaceholder } from '@/components/animal_placeholder';
 import { NavigationIcon } from '@/components/navigation_icon';
-import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView, Platform, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
@@ -23,12 +15,14 @@ import type { MarketplaceService } from '../application/marketplace_service';
 import { formatListingAddress, type Listing, type LivestockCategory } from '../domain/listing';
 import { hasActiveFilterOptions, toListingCriteria, type SearchFilters } from './search_filters';
 import { getListingImage } from './listing_images';
+import { ListingPhoto } from './listing_photo';
+import { appColors } from '@/constants/app_theme';
 
 const palette = {
-  green: '#123f32',
+  green: appColors.forest,
   greenSoft: '#296a52',
   ink: '#1d2b27',
-  muted: '#8491a6',
+  muted: appColors.muted,
   border: '#dde5ee',
   surface: '#f9fcf9',
 };
@@ -54,12 +48,10 @@ const icons = {
   filter: { ios: 'slider.horizontal.3', android: 'tune', web: 'tune' },
 } as const;
 
-function ListingCard({ listing, onPress }: { listing: Listing; onPress: () => void }) {
+function ListingCard({ listing, onPress, wide }: { listing: Listing; onPress: () => void; wide: boolean }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.title} details`} onPress={onPress} style={styles.card}>
-      <View style={styles.cardImage}>{listing.imageUri || getListingImage(listing.id)
-        ? <Image source={listing.imageUri ? { uri: listing.imageUri } : getListingImage(listing.id)} contentFit="cover" style={StyleSheet.absoluteFill} />
-        : <AnimalPlaceholder category={listing.category} />}</View>
+    <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.title} details`} onPress={onPress} style={({ pressed }) => [styles.card, wide && styles.wideCard, pressed && styles.pressed]}>
+      <View style={styles.cardImage}><ListingPhoto source={listing.imageUri || getListingImage(listing.id)} category={listing.category} label={listing.title} /></View>
       <View style={styles.cardBody}>
         <Text numberOfLines={2} style={styles.cardTitle}>{listing.title}</Text>
         <Text numberOfLines={2} style={styles.cardDetails}>{listing.details}</Text>
@@ -92,6 +84,9 @@ export function MarketplaceHomeScreen({
   onOpenFilters,
 }: MarketplaceHomeScreenProps) {
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const columns = width < 360 || fontScale > 1.2 ? 1 : 2;
+  const [verificationInfo, setVerificationInfo] = useState(false);
   const data = useSyncExternalStore(marketplace.subscribe, marketplace.getState, marketplace.getState);
   const notifications = useSyncExternalStore(notificationStore.subscribe, notificationStore.getSnapshot, notificationStore.getSnapshot);
   const [categoryDraft, setCategoryDraft] = useState<{ routeKey: string; value: LivestockCategory | null } | null>(null);
@@ -108,14 +103,7 @@ export function MarketplaceHomeScreen({
     onOpenFilters(filters);
   }
 
-  return (
-    <View style={styles.screen}>
-      <StatusBar style="dark" />
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 10 }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+  const header = <>
         <View style={styles.locationRow}>
           <Icon name={icons.location} size={19} />
           <View style={styles.locationText}>
@@ -144,7 +132,6 @@ export function MarketplaceHomeScreen({
             placeholder="Search livestock..."
             placeholderTextColor="#52647a"
             returnKeyType="search"
-            selectionColor={palette.green}
             style={styles.searchInput}
             value={query}
           />
@@ -191,13 +178,13 @@ export function MarketplaceHomeScreen({
 
         <View style={styles.sellerBanner}>
           <View style={styles.bannerCopy}>
-            <Text style={styles.bannerTitle}>Verified Sellers Only</Text>
+            <Text style={styles.bannerTitle}>Buy from verified sellers</Text>
             <Text style={styles.bannerSubtitle}>Trade with confidence in your local area.</Text>
           </View>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Learn more about verified sellers"
-            onPress={() => Alert.alert('Verified sellers', 'Verified sellers have completed identity checks.')}
+            onPress={() => setVerificationInfo(true)}
             style={styles.learnButton}
           >
             <Text style={styles.learnText}>Learn More</Text>
@@ -218,19 +205,41 @@ export function MarketplaceHomeScreen({
         </View>
 
         <DataFeedback loading={data.loading} error={data.error} onRetry={marketplace.retry} />
-        {visibleListings.length ? (
-          <View style={styles.grid}>
-            {visibleListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} onPress={() => onOpenListing(listing.id)} />
-            ))}
-          </View>
-        ) : (
-          !data.loading && !data.error && <Text style={styles.emptyState}>{data.items.length ? 'No listings match your search or filters.' : 'No livestock listings yet. New listings will appear here.'}</Text>
-        )}
-      </ScrollView>
-
+      </>;
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
+      <StatusBar style="dark" />
+      <FlatList
+        key={columns}
+        data={visibleListings}
+        numColumns={columns}
+        keyExtractor={(listing) => listing.id}
+        renderScrollComponent={(props) => <KeyboardScrollView {...props} />}
+        renderItem={({ item }) => <ListingCard listing={item} wide={columns === 1} onPress={() => onOpenListing(item.id)} />}
+        columnWrapperStyle={columns === 2 ? styles.gridRow : undefined}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 10 }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        ListHeaderComponent={header}
+        ListHeaderComponentStyle={styles.listHeader}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListEmptyComponent={!data.loading && !data.error ? <Text style={styles.emptyState}>{data.items.length ? 'No listings match your search or filters.' : 'No livestock listings yet. New listings will appear here.'}</Text> : null}
+      />
       <MarketplaceBottomBar activeTab="home" bottomInset={insets.bottom} />
-    </View>
+      <Modal visible={verificationInfo} transparent animationType="fade" onRequestClose={() => setVerificationInfo(false)}>
+        <View style={styles.modalBackdrop}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close seller information" onPress={() => setVerificationInfo(false)} style={StyleSheet.absoluteFill} />
+          <View accessibilityViewIsModal style={styles.infoCard}>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>Verified sellers</Text>
+            <Text style={styles.infoText}>A verified seller has completed an identity check. Review the livestock details and documents, and agree on payment and transport before placing an order.</Text>
+            <Pressable accessibilityRole="button" onPress={() => setVerificationInfo(false)} style={styles.infoButton}><Text style={styles.infoButtonText}>Got It</Text></Pressable>
+          </View>
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -244,7 +253,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 15,
-    paddingBottom: 96,
+    paddingBottom: 24,
   },
 
   locationRow: {
@@ -342,7 +351,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   chip: {
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
@@ -398,7 +407,7 @@ const styles = StyleSheet.create({
     maxWidth: 190,
   },
   learnButton: {
-    minHeight: 34,
+    minHeight: 44,
     paddingHorizontal: 11,
     borderRadius: 8,
     backgroundColor: '#fff',
@@ -437,13 +446,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  grid: {
-    marginTop: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 14,
-  },
+  listHeader: { marginBottom: 12 },
+  gridRow: { justifyContent: 'space-between' },
+  separator: { height: 14 },
+  wideCard: { width: '100%' },
+  pressed: { opacity: 0.8 },
   card: {
     width: '48%',
     borderRadius: 13,
@@ -478,7 +485,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 1,
   },
-  cardAddress: { color: '#718096', fontSize: 11, lineHeight: 15, marginTop: 4 },
+  cardAddress: { color: '#52647a', fontSize: 13, lineHeight: 18, marginTop: 4 },
   price: {
     color: palette.green,
     fontSize: 15,
@@ -491,6 +498,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 36,
     fontSize: 14,
+    lineHeight: 21,
   },
-
+  modalBackdrop: { flex: 1, backgroundColor: '#12372a70', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  infoCard: { width: '100%', maxWidth: 380, gap: 16, borderRadius: 18, padding: 20, backgroundColor: '#fff' },
+  infoText: { color: palette.muted, fontSize: 14, lineHeight: 21 },
+  infoButton: { minHeight: 48, padding: 12, borderRadius: 12, backgroundColor: palette.green, alignItems: 'center', justifyContent: 'center' },
+  infoButtonText: { color: '#fff', fontSize: 15, lineHeight: 21, fontWeight: '700' },
 });

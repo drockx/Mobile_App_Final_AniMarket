@@ -1,0 +1,13 @@
+project_id = "animarket"
+
+# This integration was enabled in the dashboard and verified with real tokens.
+# CLI 2.119 did not apply this section through config push.
+[auth.third_party.firebase]
+enabled = true
+project_id = "animarket-87354"
+
+[functions.animarket]
+# Firebase JWTs are checked against Google's keys inside the handler.
+# Supabase's legacy JWT gateway does not understand Firebase ID tokens.
+verify_jwt = false
+entrypoint = "./functions/animarket/index.mjs"

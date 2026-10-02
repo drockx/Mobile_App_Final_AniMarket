@@ -1,8 +1,10 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useState, useSyncExternalStore } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
@@ -78,7 +80,7 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
   const conversations = filterConversations(snapshot.conversations, side, query);
 
   return (
-    <View style={styles.background}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.background}>
       <StatusBar style="dark" />
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 9 }]}>
@@ -86,7 +88,7 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
           <Pressable accessibilityRole="button" onPress={() => setNewMessageOpen(true)} style={styles.newButton}><Text style={styles.newButtonText}>New message</Text></Pressable>
         </View>
 
-        <ScrollView
+        <KeyboardScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -152,12 +154,12 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
             <Text style={styles.emptyState}>{query ? 'No conversations match your search.' : 'No conversations yet. Tap New message to contact another user.'}</Text>
           )}
 
-        </ScrollView>
+        </KeyboardScrollView>
 
         <MarketplaceBottomBar activeTab="messages" bottomInset={insets.bottom} />
         {newMessageOpen && <NewMessageDialog service={service} visible onClose={() => setNewMessageOpen(false)} onOpen={onOpenConversation} />}
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

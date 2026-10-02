@@ -1,14 +1,14 @@
 import { NavigationIcon } from '@/components/navigation_icon';
 import type { ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { checkoutColors as color } from './checkout_controls';
 
 export function OrderPage({ title, onBack, children }: { title: string; onBack: () => void; children: ReactNode }) {
   const insets = useSafeAreaInsets();
-  return <View style={styles.background}>
+  return <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.background}>
     <StatusBar style="dark" />
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
@@ -19,7 +19,7 @@ export function OrderPage({ title, onBack, children }: { title: string; onBack: 
       </View>
       {children}
     </View>
-  </View>;
+  </KeyboardAvoidingView>;
 }
 
 const styles = StyleSheet.create({

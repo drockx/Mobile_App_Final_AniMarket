@@ -44,3 +44,9 @@ example
 
 # Private messaging database, including SQLite journals
 /server/data/
+
+# Local Firebase tools; these files do not form part of the app.
+*-debug.log
+.firebase/
+/backend-probe.local.json
+/supabase/.temp/

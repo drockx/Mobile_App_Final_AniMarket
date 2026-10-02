@@ -1,5 +1,6 @@
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { apiRequest } from '@/services/api';
 import type { IdReview } from '../domain/identity_verification';

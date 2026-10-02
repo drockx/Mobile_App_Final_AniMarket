@@ -2,7 +2,7 @@
 
 Expo SDK 57 and Expo Router power the Android, iOS, and web app.
 
-The app now supports an empty data source and replaceable asynchronous repositories. Firebase remains disconnected. See [data readiness and the future backend contract](docs/backend_readiness.md). Use `EXPO_PUBLIC_SAMPLE_DATA=false` in development to disable optional sample listings and prices.
+The app supports an empty data source and replaceable asynchronous repositories. Firebase/Supabase connection is staged: account rules and private storage are deployed and tested; the app still uses its existing backend until the remaining cloud feature adapters are ready. See [backend connection status](docs/backend_connection.md) and [data readiness](docs/backend_readiness.md). Use `EXPO_PUBLIC_SAMPLE_DATA=false` in development to disable optional sample listings and prices.
 
 ## Architecture
 
@@ -66,6 +66,8 @@ Run `npm run check:messages` for real HTTP tests covering two-way live delivery,
 
 ## Account verification
 
+Text fields share readable text, a visible cursor and consistent keyboard behavior. Scrollable forms bring the focused field above the keyboard; multiline fields fit the visible form area and scroll within the box. Password fields in registration, login, Edit Profile and Account & Security have Show/Hide controls. Run `npm run check:inputs` to check input visibility across viewport and keyboard sizes.
+
 The Profile header has no settings shortcut; **Account & Security** remains in the ACCOUNT menu. Verification status is immediately below **ACCOUNT**, above **Personal Information**. Open **Profile → Edit Profile → Add Photo** (or **Change Photo**) to choose or take a profile photo, preview it, then save it. The main Profile page displays the saved photo. Photos are cropped to a square and resized to at most 512 × 512 before upload. The server stores each account’s photo separately, so it survives sign-out, app restarts and switching devices. Only its small version identifier is saved with the session; the signed-in owner fetches the image separately. Removing the photo restores initials and does not affect ID verification. Run `npm run check:profile` to check uploads, ownership, replacement, removal and persistence. Expo Go already includes ImageManipulator; rebuild an existing development/standalone app to include the added module and updated permission text.
 
 Open **Profile → Account Verification**. The account already collects full name, contact number and Davao del Norte locality. Verification requires one clear photo of a valid photo ID, such as a National ID, passport, driver’s license or UMID. No DTI or business-registration document is requested. Users choose a photo or take one, inspect it with zoom, and consent before submitting. JPEG/PNG uploads are limited to 5 MB. Submissions remain pending until a trusted reviewer approves them; rejection includes feedback and permits resubmission. Name changes and withdrawing verification revoke approval. Publishing a local livestock listing checks the current server approval, including when a cached profile says verified. Sample listings and orders remain sample/session data.
@@ -84,7 +86,7 @@ Run `npm run check:verification` for HTTP tests covering consent, supported IDs,
 
 ## In-app voice calls
 
-In-app voice calling is available from conversations. See [voice call setup and device checks](docs/voice_calls.md) for the required native development build, foreground incoming calls, and TURN configuration for calls across networks. Firebase remains disconnected.
+In-app voice calling is available from conversations using the current shared server. See [voice call setup and device checks](docs/voice_calls.md) for the required native development build, foreground incoming calls, and TURN configuration for calls across networks. Firestore call signaling remains a later rollout step.
 
 ## Location selection and maps
 

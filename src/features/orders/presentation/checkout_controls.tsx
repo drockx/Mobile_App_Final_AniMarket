@@ -1,7 +1,8 @@
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { dateKey, parseDate, tomorrowKey } from '../domain/checkout';
 

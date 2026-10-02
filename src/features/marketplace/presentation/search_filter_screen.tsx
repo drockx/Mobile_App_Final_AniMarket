@@ -1,16 +1,9 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel, davaoDelNorteLocation } from '@/constants/davao_del_norte';
@@ -88,6 +81,9 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
   const insets = useSafeAreaInsets();
   const [filters, setFilters] = useState<SearchFilters>(initialFilters);
   const [openMenu, setOpenMenu] = useState<'location' | 'sort' | null>(null);
+  const minimum = numericPrice(filters.minPrice);
+  const maximum = numericPrice(filters.maxPrice);
+  const invalidRange = minimum !== undefined && maximum !== undefined && minimum > maximum;
 
   function update<K extends keyof SearchFilters>(key: K, value: SearchFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -104,7 +100,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.screen}
     >
       <StatusBar style="dark" />
@@ -118,7 +114,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
         </Pressable>
       </View>
 
-      <ScrollView
+      <KeyboardScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
@@ -163,7 +159,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
         {openMenu === 'location' && (
           <View style={styles.menu}>
             {locations.map((location) => (
-              <Pressable key={location.value} onPress={() => { update('location', location.value); setOpenMenu(null); }} style={styles.menuItem}>
+              <Pressable key={location.value} accessibilityRole="radio" accessibilityState={{ checked: filters.location === location.value }} onPress={() => { update('location', location.value); setOpenMenu(null); }} style={styles.menuItem}>
                 <Text style={styles.menuText}>{location.label}</Text>
               </Pressable>
             ))}
@@ -177,6 +173,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
             <TextInput
               accessibilityLabel="Minimum price"
               keyboardType="numeric"
+              maxLength={12}
               onChangeText={(value) => update('minPrice', value.replace(/[^0-9]/g, ''))}
               placeholder="Any"
               placeholderTextColor={secondary}
@@ -189,6 +186,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
             <TextInput
               accessibilityLabel="Maximum price"
               keyboardType="numeric"
+              maxLength={12}
               onChangeText={(value) => update('maxPrice', value.replace(/[^0-9]/g, ''))}
               placeholder="Any"
               placeholderTextColor={secondary}
@@ -199,7 +197,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
         </View>
         {numericPrice(filters.minPrice) !== undefined && numericPrice(filters.maxPrice) !== undefined
           && Number(filters.minPrice) > Number(filters.maxPrice) && (
-          <Text style={styles.error}>Minimum price must be at most the maximum price.</Text>
+          <Text accessibilityRole="alert" style={styles.error}>Minimum price must be at most the maximum price.</Text>
         )}
 
         <Text style={styles.label}>Sort By</Text>
@@ -216,7 +214,7 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
         {openMenu === 'sort' && (
           <View style={styles.menu}>
             {sortOptions.map((option) => (
-              <Pressable key={option.value} onPress={() => { update('sort', option.value); setOpenMenu(null); }} style={styles.menuItem}>
+              <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ checked: filters.sort === option.value }} onPress={() => { update('sort', option.value); setOpenMenu(null); }} style={styles.menuItem}>
                 <Text style={styles.menuText}>{option.label}</Text>
               </Pressable>
             ))}
@@ -236,10 +234,10 @@ export function SearchFilterScreen({ initialFilters, onBack, onApply }: SearchFi
           value={filters.vaccinatedOnly}
           onChange={() => update('vaccinatedOnly', !filters.vaccinatedOnly)}
         />
-      </ScrollView>
+      </KeyboardScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-        <Pressable accessibilityRole="button" onPress={applyFilters} style={styles.applyButton}>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: invalidRange }} disabled={invalidRange} onPress={applyFilters} style={[styles.applyButton, invalidRange && { opacity: 0.5 }]}>
           <Text style={styles.applyText}>Apply Filters</Text>
         </Pressable>
       </View>

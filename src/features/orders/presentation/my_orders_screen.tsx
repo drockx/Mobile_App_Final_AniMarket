@@ -1,8 +1,10 @@
+import { AppTextInput as TextInput } from '@/components/app_text_input';
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { DataFeedback } from '@/components/data_feedback';
 import { useState } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { OrderRequest } from '../domain/checkout';
@@ -32,6 +34,7 @@ export function MyOrdersScreen({ orders, loading, error, onRetry, onBack, onOpen
 
   return <OrderPage title="My Orders" onBack={onBack}>
     <FlatList
+      renderScrollComponent={(props) => <KeyboardScrollView {...props} />}
       data={visibleOrders}
       keyExtractor={(order) => order.id}
       keyboardShouldPersistTaps="handled"

@@ -25,6 +25,6 @@ export function createLocalAppRepositories(samples = useSampleData): AppReposito
   };
 }
 
-// This app still uses local, session-only marketplace storage. No Firebase SDK or connection exists.
-// Replace these providers only after the user authorizes a backend integration.
+// Keep these local providers during the authorized, staged cloud rollout.
+// Replace them only when the listing/order adapters and access rules are tested.
 export const appRepositories = createLocalAppRepositories();

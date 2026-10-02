@@ -1,3 +1,5 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useMemo, useRef, useState } from 'react';
 import { createRecordId } from '@/services/development_data';
@@ -6,9 +8,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
-import {
-  Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
-} from 'react-native';
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -148,9 +148,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
   const [price, setPrice] = useState(initialDraft?.price ? String(initialDraft.price) : initialPrice);
   const [priceUnit, setPriceUnit] = useState<ListingPriceUnit>(initialDraft?.priceUnit ?? initialPriceUnit);
   const [description, setDescription] = useState(initialDraft?.description ?? '');
-  const [descriptionFocused, setDescriptionFocused] = useState(false);
   const [descriptionHeight, setDescriptionHeight] = useState(120);
-  const scroll = useRef<ScrollView>(null);
   const [error, setError] = useState('');
   const [publishing, setPublishing] = useState(false);
   const publishingRef = useRef(false);
@@ -251,7 +249,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
   }
 
   return (
-    <KeyboardAvoidingView enabled={descriptionFocused} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
       <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Close create listing" hitSlop={8} onPress={onClose} style={styles.closeButton}>
@@ -261,10 +259,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
         <View style={styles.closeButton} />
       </View>
 
-      <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}
-        onLayout={() => { if (descriptionFocused) scroll.current?.scrollToEnd({ animated: false }); }}
-        onContentSizeChange={() => { if (descriptionFocused) scroll.current?.scrollToEnd({ animated: false }); }}
-      >
+      <KeyboardScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         <View style={styles.field}>
           <Label required>Photos</Label>
@@ -392,14 +387,11 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
             multiline
             textAlignVertical="top"
             scrollEnabled
-            selectionColor={colors.forest}
-            onFocus={() => { setDescriptionFocused(true); scroll.current?.scrollToEnd({ animated: true }); }}
-            onBlur={() => setDescriptionFocused(false)}
             onContentSizeChange={({ nativeEvent }) => setDescriptionHeight(Math.min(180, Math.max(120, Math.ceil(nativeEvent.contentSize.height))))}
             style={[styles.input, styles.textArea, { height: descriptionHeight }]}
           />
         </View>
-      </ScrollView>
+      </KeyboardScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Save listing draft" disabled={publishing} accessibilityState={{ disabled: publishing }} onPress={saveDraft} style={[styles.suggestionButton, { marginBottom: 8 }]}><Text style={styles.suggestionText}>{publishing ? 'Saving…' : 'Save Draft'}</Text></Pressable>

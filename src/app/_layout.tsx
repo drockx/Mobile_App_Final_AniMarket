@@ -1,11 +1,17 @@
-import { router, Stack, usePathname } from 'expo-router';
+import { router, Stack, usePathname, type ErrorBoundaryProps } from 'expo-router';
 import { useEffect } from 'react';
-import { ActivityIndicator, AppState, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, Text, View } from 'react-native';
 
-import { initializeAccount, useAccount } from '@/features/profile/profile_store';
+import { dismissAccountError, initializeAccount, retryInitializeAccount, useAccount } from '@/features/profile/profile_store';
+import { DataFeedback } from '@/components/data_feedback';
 import { messageService } from '@/features/messages/messages_dependencies';
 import { voiceService } from '@/features/calls/calls_dependencies';
 import { CallNotice } from '@/features/calls/presentation/call_notice';
+import { RecoveryScreen } from '@/components/recovery_screen';
+
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+  return <RecoveryScreen title="Unable to open this screen" message="Please try again. If the problem continues, close and reopen AniMarket." action="Try Again" onAction={() => { void retry(); }} />;
+}
 
 export default function RootLayout() {
   const account = useAccount();
@@ -41,6 +47,10 @@ export default function RootLayout() {
         </Stack.Protected>
       </Stack>
       <CallNotice service={voiceService} hidden={pathname === '/voice_call' || !account.signedIn} onOpen={() => router.push('/voice_call')} />
+      {account.error && !account.signedIn && <View style={{ position: 'absolute', inset: 0, justifyContent: 'center', padding: 24, backgroundColor: '#fff' }}>
+        <DataFeedback error={account.error} onRetry={() => { void retryInitializeAccount(); }} />
+        <Pressable accessibilityRole="button" onPress={() => { dismissAccountError(); router.replace('/login'); }} style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: '#12372a', borderRadius: 12 }}><Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Open sign-in</Text></Pressable>
+      </View>}
     </View>
   );
 }

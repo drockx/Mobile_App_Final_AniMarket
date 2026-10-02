@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { validateLogin, type LoginValues } from '../domain/validation';
@@ -15,18 +15,19 @@ export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
   const [values, setValues] = useState<LoginValues>({ username: '', password: '' });
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
 
   async function submit() {
-    if (busy) return;
+    if (submitting.current) return;
     const error = validateLogin(values);
     if (error) {
       setMessage(error);
       return;
     }
-    setBusy(true);
+    submitting.current = true; setBusy(true);
     try { setMessage(await onLogin(values.username, values.password)); }
     catch { setMessage('Unable to sign in. Please try again.'); }
-    finally { setBusy(false); }
+    finally { submitting.current = false; setBusy(false); }
   }
 
   return (
@@ -41,14 +42,18 @@ export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
           keyboardType="email-address"
           autoCapitalize="none"
           value={values.username}
-          onChangeText={(username) => setValues((current) => ({ ...current, username }))}
+          editable={!busy}
+          onChangeText={(username) => { setValues((current) => ({ ...current, username })); setMessage(null); }}
         />
         <AuthField
           label="Password"
           autoComplete="current-password"
           secure
+          editable={!busy}
+          returnKeyType="done"
+          onSubmitEditing={() => { void submit(); }}
           value={values.password}
-          onChangeText={(password) => setValues((current) => ({ ...current, password }))}
+          onChangeText={(password) => { setValues((current) => ({ ...current, password })); setMessage(null); }}
         />
       </View>
 
@@ -57,7 +62,7 @@ export function LoginScreen({ onSignup, onLogin }: LoginScreenProps) {
 
       <View style={styles.switchRow}>
         <Text style={styles.switchText}>Don&apos;t have an account? </Text>
-        <Pressable accessibilityRole="link" onPress={onSignup}>
+        <Pressable accessibilityRole="link" disabled={busy} onPress={onSignup} style={styles.switchButton}>
           <Text style={styles.switchLink}>Sign up</Text>
         </Pressable>
       </View>
@@ -74,5 +79,6 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 15 },
   switchText: { color: '#fff', fontSize: 15 },
   switchLink: { color: '#fff', fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },
+  switchButton: { minHeight: 44, justifyContent: 'center' },
   credit: { color: '#fff', textAlign: 'center', fontSize: 13, fontWeight: '700', marginTop: 38 },
 });

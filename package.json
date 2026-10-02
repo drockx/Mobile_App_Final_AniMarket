@@ -5,6 +5,8 @@
   "dependencies": {
     "@config-plugins/react-native-webrtc": "^15.0.2",
     "@expo/ui": "~57.0.21",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@supabase/supabase-js": "^2.117.2",
     "expo": "~57.0.26",
     "expo-constants": "~57.0.19",
     "expo-dev-client": "~57.0.19",
@@ -25,6 +27,7 @@
     "expo-symbols": "~57.0.3",
     "expo-system-ui": "~57.0.4",
     "expo-web-browser": "~57.0.3",
+    "firebase": "^12.19.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -39,9 +42,12 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
+    "firebase-tools": "^15.32.1",
+    "supabase": "^2.119.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -51,18 +57,25 @@
     "ios": "expo start --go --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "check:app": "node ./scripts/check_app.js",
     "server": "node ./server/server.js",
     "check:messages": "node --test ./scripts/check_messages.js",
     "check:calls": "node ./scripts/check_calls.js",
     "check:auth": "node ./scripts/check_auth.js",
     "check:verification": "node --test ./scripts/check_verification.js",
     "check:profile": "node --test ./scripts/check_profile_photos.js",
+    "check:inputs": "node ./scripts/check_inputs.js",
     "verification:reviewer": "node ./server/grant_reviewer.js",
     "check:architecture": "node ./scripts/check_architecture.js",
     "check:data": "node ./scripts/check_data.js",
     "check:orders": "node ./scripts/check_orders.js",
     "check:navigation": "node ./scripts/check_navigation.js",
-    "check:location": "node ./scripts/check_location.js"
+    "check:location": "node ./scripts/check_location.js",
+    "check:firebase": "firebase emulators:exec --only auth,firestore --project demo-animarket \"node scripts/check_firebase.js\"",
+    "firebase:check": "node ./scripts/firebase_project.js --check",
+    "check:backend": "node --test ./scripts/check_backend_bootstrap.js",
+    "firebase:password-policy": "node ./scripts/firebase_project.js --password-policy",
+    "firebase:deploy": "node ./scripts/firebase_project.js --deploy"
   },
   "private": true
 }

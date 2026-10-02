@@ -1,9 +1,11 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { DataFeedback } from '@/components/data_feedback';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
-import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { animalIcons } from '@/constants/animal_icons';
@@ -130,7 +132,7 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
     <View style={styles.listHeading}><Text accessibilityRole="header" style={styles.listTitle}>{capitalize(filter)} Listings</Text><Text style={styles.resultCount}>{items.length} result{items.length === 1 ? '' : 's'}</Text></View>
   </View>;
 
-  return <View style={styles.background}>
+  return <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.background}>
     <StatusBar style="dark" />
     <View style={styles.screen}>
       <View style={[styles.header, compact && styles.headerStacked, { paddingTop: insets.top + 9 }]}>
@@ -141,6 +143,7 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
         <Pressable accessibilityRole="button" onPress={() => onCreate()} style={({ pressed }) => [styles.newButton, compact && styles.newButtonStacked, pressed && styles.pressed]}><Text style={styles.newText}>+ New Listing</Text></Pressable>
       </View>
       <FlatList
+        renderScrollComponent={(props) => <KeyboardScrollView {...props} />}
         data={items} keyExtractor={(item) => item.id} showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
         contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 16) + 10 }]}
@@ -175,7 +178,7 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
         <Pressable accessibilityLabel="Close dialog" disabled={busy} onPress={() => setDialog(null)} style={StyleSheet.absoluteFill} />
         <View accessibilityViewIsModal style={styles.dialog}>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.dialogContent} pointerEvents={busy ? 'none' : 'auto'}>
+          <KeyboardScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.dialogContent} pointerEvents={busy ? 'none' : 'auto'}>
             <DataFeedback loading={busy} error={error} />
             {dialog?.kind === 'sort' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Sort listings</Text>{sorts.map((option) => <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ checked: sort === option.value }} onPress={() => { setSort(option.value); setDialog(null); }} style={styles.option}><Text style={[styles.optionText, sort === option.value && styles.selectedOption]}>{option.label}</Text>{sort === option.value && <Text style={styles.selectedOption}>✓</Text>}</Pressable>)}<Button secondary label="Cancel" onPress={() => setDialog(null)} /></>}
             {dialog?.kind === 'price' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Update listing price</Text><Text style={styles.dialogCopy}>Update {dialog.listing.title}. The new price applies {dialog.listing.unit}.</Text><Text style={styles.inputLabel}>Price (₱)</Text><TextInput accessibilityLabel="Price in pesos" autoFocus value={price} onChangeText={(value) => { setPrice(value); setError(''); }} keyboardType="decimal-pad" onSubmitEditing={savePrice} style={styles.priceInput} />{!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}<View style={styles.dialogActions}><View style={styles.flex}><Button secondary label="Cancel" onPress={() => setDialog(null)} /></View><View style={styles.flex}><Button label="Save Price" onPress={savePrice} /></View></View></>}
@@ -183,11 +186,11 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
             {dialog?.kind === 'delete' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Delete listing?</Text><Text style={styles.dialogCopy}>{dialog.listing.title} will be removed from My Listings. This cannot be undone during this session.</Text><Button destructive label="Delete Listing" onPress={() => { const id = dialog.listing.id; void mutate(() => service.remove(id), 'Listing deleted.'); }} /><Button secondary label="Cancel" onPress={() => setDialog(null)} /></>}
             {dialog?.kind === 'preview' && <><Text accessibilityRole="header" style={styles.dialogTitle}>{dialog.listing.title}</Text><Badge status={dialog.listing.status} /><Text style={styles.price}>{money(dialog.listing.price)} {dialog.listing.unit}</Text><Text style={styles.dialogCopy}>{dialog.listing.details}{'\n'}{dialog.listing.location}</Text><View style={styles.notice}><Text style={styles.noticeText}>{dialog.listing.notice}</Text></View><Button label="Continue Draft" onPress={() => { const listing = dialog.listing; setDialog(null); onCreate(listing, true); }} /><Button secondary label="Close" onPress={() => setDialog(null)} /></>}
             {dialog?.kind === 'order' && <><Text accessibilityRole="header" style={styles.dialogTitle}>Completed order</Text><Text style={styles.dialogCopy}>{dialog.listing.orderId}{'\n'}{dialog.listing.title}{'\n'}{money(dialog.listing.price)} {dialog.listing.unit}</Text><Text style={styles.dialogCopy}>View the order associated with this livestock in My Orders.</Text><Button label="My Orders" onPress={() => { setDialog(null); onOrders(); }} /><Button secondary label="Close" onPress={() => setDialog(null)} /></>}
-          </ScrollView>
+          </KeyboardScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
-  </View>;
+  </KeyboardAvoidingView>;
 }
 
 const styles = StyleSheet.create({

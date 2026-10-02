@@ -1,5 +1,7 @@
+import { AppTextInput as TextInput } from '@/components/app_text_input';
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NavigationIcon } from '@/components/navigation_icon';
@@ -35,24 +37,26 @@ export function NewMessageDialog({ service, visible, onClose, onOpen }: { servic
     finally { setOpening(''); }
   }
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-    <View style={[styles.screen, { paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 16) }]}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.screen, { paddingTop: insets.top + 8, paddingBottom: Math.max(insets.bottom, 16) }]}>
       <View style={styles.header}>
         <Text accessibilityRole="header" style={styles.title}>New message</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Close new message" onPress={onClose} style={styles.close}><NavigationIcon name="close" /></Pressable>
       </View>
+      <KeyboardScrollView>
       <Text style={styles.hint}>Find a user by name or enter their full email address.</Text>
       <TextInput accessibilityLabel="Find another user" value={query} onChangeText={(value) => { setQuery(value); setUsers([]); setLoading(value.trim().length >= 2); setError(''); }} autoCapitalize="none" autoCorrect={false} maxLength={120} placeholder="Search users…" placeholderTextColor="#5b6d63" style={styles.input} />
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {loading && <ActivityIndicator color="#12372a" style={styles.loader} accessibilityLabel="Finding users" />}
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.results}>
+      <View style={styles.results}>
         {users.map((user) => <Pressable key={user.id} accessibilityRole="button" accessibilityLabel={`Message ${user.fullName}, ${user.city}`} disabled={!!opening} onPress={() => { void open(user); }} style={styles.user}>
           <View style={styles.avatar}><Text style={styles.initials}>{user.fullName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</Text></View>
           <View style={styles.copy}><Text style={styles.name}>{user.fullName}</Text><Text style={styles.city}>{user.city}</Text></View>
           {opening === user.id ? <ActivityIndicator color="#12372a" /> : <NavigationIcon name="next" />}
         </Pressable>)}
         {!loading && !error && !users.length && <Text style={styles.hint}>{query.trim().length < 2 ? 'Type at least 2 characters. Both users need AniMarket accounts.' : 'No registered users found. Try a name or full email address.'}</Text>}
-      </ScrollView>
-    </View>
+      </View>
+      </KeyboardScrollView>
+    </KeyboardAvoidingView>
   </Modal>;
 }
 const styles = StyleSheet.create({

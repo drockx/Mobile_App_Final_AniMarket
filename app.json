@@ -1,27 +1,25 @@
 {
   "expo": {
-    "name": "Mobile_App_Final_AniMarket",
+    "name": "AniMarket",
     "slug": "Mobile_App_Final_AniMarket",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/branding/animarket_logo.png",
     "scheme": "mobileappfinalanimarket",
-    "userInterfaceStyle": "automatic",
-    "ios": {
-      "icon": "./assets/expo.icon"
-    },
+    "userInterfaceStyle": "light",
+    "ios": {},
     "android": {
+      "package": "com.example.animarket_final",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android_icon_foreground.png",
-        "backgroundImage": "./assets/images/android_icon_background.png",
-        "monochromeImage": "./assets/images/android_icon_monochrome.png"
+        "backgroundColor": "#eaf5ed",
+        "foregroundImage": "./assets/images/branding/animarket_logo.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/branding/animarket_logo.png"
     },
     "plugins": [
       "expo-router",

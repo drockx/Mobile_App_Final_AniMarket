@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function reviewer() {
+      return signedIn() && exists(/databases/$(database)/documents/roles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.reviewer == true;
+    }
+    function locality(city) {
+      return city in ['Asuncion', 'Braulio E. Dujali', 'Carmen', 'Kapalong', 'New Corella', 'Panabo City',
+        'Island Garden City of Samal', 'Sawata', 'Santo Tomas', 'Tagum City', 'Talaingod'];
+    }
+    function validProfile(uid, value) {
+      return value.keys().hasAll(['id', 'username', 'personal', 'acceptedTerms', 'createdAt', 'avatar'])
+        && value.keys().hasOnly(['id', 'username', 'personal', 'acceptedTerms', 'createdAt', 'avatar', 'street', 'barangay', 'postalCode'])
+        && value.id == uid && value.acceptedTerms == true
+        && value.username is string && value.username.size() > 0 && value.username.size() <= 100
+        && value.createdAt is string
+        && value.personal.keys().hasAll(['fullName', 'email', 'phone', 'city'])
+        && value.personal.keys().hasOnly(['fullName', 'email', 'phone', 'city'])
+        && value.personal.fullName is string && value.personal.fullName.size() > 0 && value.personal.fullName.size() <= 100
+        && value.username == value.personal.fullName
+        && value.personal.email is string && value.personal.email == request.auth.token.email
+        && value.personal.phone is string && value.personal.phone.matches('[+0-9 ()-]{7,20}')
+        && locality(value.personal.city)
+        && (!('street' in value) || (value.street is string && value.street.size() <= 150))
+        && (!('barangay' in value) || (value.barangay is string && value.barangay.size() <= 100))
+        && (!('postalCode' in value) || (value.postalCode is string && value.postalCode.size() <= 4));
+    }
+    match /users/{uid} {
+      allow get: if owner(uid);
+      allow list, delete: if false;
+      allow create: if owner(uid) && validProfile(uid, request.resource.data) && request.resource.data.avatar == null;
+      allow update: if owner(uid) && validProfile(uid, request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username', 'personal', 'street', 'barangay', 'postalCode']);
+    }
+    match /directory/{uid} {
+      allow read: if signedIn();
+      allow create, update: if owner(uid)
+        && request.resource.data.keys().hasAll(['id', 'fullName', 'nameLower', 'city'])
+        && request.resource.data.keys().hasOnly(['id', 'fullName', 'nameLower', 'city'])
+        && request.resource.data.id == uid
+        && request.resource.data.fullName == getAfter(/databases/$(database)/documents/users/$(uid)).data.personal.fullName
+        && request.resource.data.nameLower == request.resource.data.fullName.lower()
+        && request.resource.data.city == getAfter(/databases/$(database)/documents/users/$(uid)).data.personal.city;
+      allow delete: if false;
+    }
+    match /roles/{uid} {
+      allow get: if owner(uid);
+      allow list, write: if false;
+    }
+    match /verifications/{uid} {
+      allow get: if owner(uid) || reviewer();
+      allow list: if reviewer();
+      allow write: if false;
+    }
+    // Other adapters are added in subsequent, independently tested connection steps.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

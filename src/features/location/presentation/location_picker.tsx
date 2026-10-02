@@ -1,7 +1,9 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useEffect, useRef, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { coordinateLabel, copyLocation, DEFAULT_MAP_CENTER, isCoordinate, locationIssue, type Coordinate, type LocationResult, type SelectedLocation } from '../domain/location';
@@ -125,10 +127,10 @@ export function LocationPicker({ label, value, onSelect, addressQuery = '', allo
     </Pressable>
     {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     {open && <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={close}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackground}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackground}>
         <View style={styles.screen}>
           <View style={[styles.header, { paddingTop: insets.top }]}><Pressable accessibilityRole="button" accessibilityLabel="Cancel location selection" onPress={close} style={styles.back}><NavigationIcon name="back" /></Pressable><Text accessibilityRole="header" style={styles.title}>{label}</Text><View style={styles.back} /></View>
-          <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} scrollEnabled={!moving && !interacting}>
+          <KeyboardScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} scrollEnabled={!moving && !interacting}>
             <Text style={styles.body}>Choose a location in Davao del Norte. Search your address, use your current location, or move the map to your entrance or pickup point.</Text>
             <TextInput accessibilityLabel="Search street, barangay, city, or landmark" value={query} onChangeText={(text) => { action.current++; searchAbort.current?.abort(); setBusy(null); setQuery(text); setResults([]); setMessage(''); }} placeholder="Street, barangay, city, or landmark" placeholderTextColor={colors.muted} returnKeyType="search" onSubmitEditing={search} autoCorrect={false} style={styles.input} />
             <Button label={busy === 'search' ? 'Searching…' : 'Search Address'} disabled={!!busy} secondary onPress={search} />
@@ -139,7 +141,7 @@ export function LocationPicker({ label, value, onSelect, addressQuery = '', allo
             <View style={styles.selected}><Text style={styles.label}>{draft ? 'Selected location' : 'Choose a location'}</Text>{resolving && <View style={styles.loading}><ActivityIndicator color={colors.forest} /><Text style={styles.body}>Finding the nearby address…</Text></View>}<Text style={styles.selectedAddress}>{draft?.address?.label || (draft ? coordinateLabel(draft.coordinate) : 'Move the map, search an address, or use your current location.')}</Text>{draft && <Text style={styles.body}>The address is approximate. Check the pin and add your house, purok, or landmark in the form.</Text>}{draft?.accuracyMeters !== undefined && draft.accuracyMeters > 75 && <Text style={styles.warning}>GPS accuracy is about {Math.round(draft.accuracyMeters)} metres. Adjust the pin before confirming.</Text>}{draft && issue && <Text accessibilityRole="alert" style={styles.error}>{issue}</Text>}</View>
             {!!message && <View style={styles.notice}><Text accessibilityLiveRegion="polite" style={styles.body}>{message}</Text>{settings && <Button secondary label="Open Location Settings" onPress={() => { Linking.openSettings().catch(() => setMessage('Open your device settings and allow location for AniMarket.')); }} />}{draft && !draft.address && !resolving && <Button secondary label="Retry Address Lookup" onPress={() => { setResolving(true); setLookupAttempt((attempt) => attempt + 1); }} />}</View>}
             <Text style={styles.attribution}>Address search © OpenStreetMap contributors · Photon</Text>
-          </ScrollView>
+          </KeyboardScrollView>
           <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}><Button label="Confirm Location" onPress={confirm} disabled={confirmDisabled} /></View>
         </View>
       </KeyboardAvoidingView>

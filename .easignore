@@ -1,0 +1,64 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android
+
+# Private messaging database, including SQLite journals
+/server/data/
+
+# Local Firebase tools; these files do not form part of the app.
+*-debug.log
+.firebase/
+/backend-probe.local.json
+/supabase/.temp/
+
+# Server-only code, credentials, and local checks are not app build assets.
+/server/
+/supabase/
+/scripts/
+/docs/
+/.firebaserc
+/firebase.json
+/firebase.password-policy.json
+/firestore.rules
+/firestore.indexes.json
+/.git/

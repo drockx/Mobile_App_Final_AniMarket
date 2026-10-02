@@ -1,18 +1,9 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useRef, useState, type ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMarketReferences, marketReferenceStore } from '@/features/market_reference/market_reference_dependencies';
 import { DataFeedback } from '@/components/data_feedback';
@@ -146,7 +137,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
       <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top, height: insets.top + 58 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={10} style={styles.backButton}><NavigationIcon name="back" /></Pressable>
@@ -154,7 +145,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
         <View style={styles.backButton} />
       </View>
 
-      <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 12 }]}>
+      <KeyboardScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 12 }]}>
         <Text style={styles.intro}>Estimate a livestock price from live weight, condition and the available regional market reference.</Text>
 
         <Text style={styles.sectionTitle}>Livestock Information</Text>
@@ -232,7 +223,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
             <Text style={styles.disclaimer}>This is an advisory market estimate, not a guaranteed selling price. Actual value may vary after inspection, negotiation, documentation review, transport arrangements and changes in local demand.</Text>
           </View>
         )}
-      </ScrollView>
+      </KeyboardScrollView>
 
       <Modal visible={picker !== null} transparent animationType="fade" onRequestClose={() => setPicker(null)}>
         <View style={styles.modalBackdrop}>
@@ -264,7 +255,7 @@ const styles = StyleSheet.create({
   formGroup: { marginBottom: 16 },
   label: { color: ink, fontSize: 12, lineHeight: 16, fontWeight: '700', marginBottom: 7 },
   required: { color: '#c53030' },
-  input: { minHeight: 44, width: '100%', paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', color: '#2d3748', fontSize: 12, lineHeight: 18 },
+  input: { minHeight: 44, width: '100%', paddingHorizontal: 13, paddingVertical: 10, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', color: '#2d3748', fontSize: 14, lineHeight: 20 },
   selectField: { minHeight: 44, paddingHorizontal: 13, borderWidth: 1, borderColor: border, borderRadius: 11, backgroundColor: '#f8fafc', flexDirection: 'row', alignItems: 'center', gap: 5 },
   inputText: { flex: 1, minWidth: 0, color: '#2d3748', fontSize: 12, lineHeight: 18 },
   row: { flexDirection: 'row', gap: 10 },

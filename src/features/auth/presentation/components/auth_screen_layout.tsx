@@ -1,8 +1,9 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
 import type { ReactNode } from 'react';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type AuthScreenLayoutProps = {
@@ -27,8 +28,8 @@ export function AuthScreenLayout({ children, compact = false }: AuthScreenLayout
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
+      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardScrollView
           contentContainerStyle={[
             styles.scrollContent,
             { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 },
@@ -42,7 +43,7 @@ export function AuthScreenLayout({ children, compact = false }: AuthScreenLayout
           >
             {children}
           </LinearGradient>
-        </ScrollView>
+        </KeyboardScrollView>
       </KeyboardAvoidingView>
     </View>
   );

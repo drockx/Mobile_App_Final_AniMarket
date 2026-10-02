@@ -1,9 +1,11 @@
+import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { DataFeedback } from '@/components/data_feedback';
 import { useMemo, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
@@ -122,13 +124,13 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
   </View>;
 
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
       <StatusBar style="dark" />
       <View style={[styles.header, { paddingTop: insets.top + 9 }]}>
         <Text style={styles.headerTitle}>Market Reference</Text>
       </View>
 
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+      <KeyboardScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <DataFeedback loading={loading} error={error} onRetry={onRetry} />
         <View style={styles.regionCard}>
           <Text style={styles.eyebrow}>DAVAO DEL NORTE MARKET</Text>
@@ -201,7 +203,7 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
           <PriceCard key={item.id} item={item} onCalculator={onOpenCalculator ? () => onOpenCalculator(item.category, market.location.split(',')[0]) : undefined} onHistory={() => openPriceModal(item)} />
         )) : <Text style={styles.emptyState}>No market references match this search and category.</Text>}
 
-      </ScrollView>
+      </KeyboardScrollView>
 
       <MarketplaceBottomBar activeTab="market" bottomInset={insets.bottom} />
 
@@ -233,7 +235,7 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

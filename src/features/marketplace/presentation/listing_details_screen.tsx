@@ -1,16 +1,15 @@
 import { NavigationIcon } from '@/components/navigation_icon';
 import { useState, useSyncExternalStore } from 'react';
 import { DataFeedback } from '@/components/data_feedback';
-import { AnimalPlaceholder } from '@/components/animal_placeholder';
-import { Image } from 'expo-image';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { MarketplaceService } from '../application/marketplace_service';
 import { formatListingAddress } from '../domain/listing';
 import { getListingImage } from './listing_images';
+import { ListingPhoto } from './listing_photo';
 
 const green = '#12372a';
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
@@ -32,7 +31,7 @@ function Spec({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.spec}>
       <Text style={styles.specLabel}>{label}</Text>
-      <Text numberOfLines={2} style={styles.specValue}>{value}</Text>
+      <Text style={styles.specValue}>{value}</Text>
     </View>
   );
 }
@@ -61,6 +60,9 @@ export function ListingDetailsScreen({
   orderNotice?: string;
 }) {
   const insets = useSafeAreaInsets();
+  const { width, fontScale } = useWindowDimensions();
+  const stackTitle = width < 430 || fontScale > 1.15;
+  const compact = width < 360 || fontScale > 1.2;
   const data = useSyncExternalStore(marketplace.subscribe, marketplace.getState, marketplace.getState);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
   const listing = marketplace.getListing(listingId ?? '');
@@ -85,7 +87,7 @@ export function ListingDetailsScreen({
   ];
   const photos = listing.imageUris?.length ? listing.imageUris : listing.imageUri ? [listing.imageUri] : [];
   const activePhoto = photos[selectedPhoto] ?? photos[0];
-  const imageSource = activePhoto ? { uri: activePhoto } : getListingImage(listing.id);
+  const imageSource = activePhoto || getListingImage(listing.id);
 
   const share = async () => {
     try {
@@ -101,7 +103,7 @@ export function ListingDetailsScreen({
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={{ paddingTop: insets.top, backgroundColor: '#1a1a1a' }}>
           <View style={styles.hero}>
-            {imageSource ? <Image source={imageSource} contentFit="cover" style={StyleSheet.absoluteFill} /> : <AnimalPlaceholder category={listing.category} />}
+            <ListingPhoto source={imageSource} category={listing.category} label={listing.title} />
             <View style={styles.heroActions}>
               <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} style={styles.heroButton}>
                 <NavigationIcon name="back" color="#fff" />
@@ -114,7 +116,7 @@ export function ListingDetailsScreen({
         </View>
 
         <View style={styles.details}>
-          <View style={styles.titleRow}>
+          <View style={[styles.titleRow, stackTitle && styles.titleColumn]}>
             <View style={styles.titleBlock}>
               <Text style={styles.title}>{listing.title}{listing.subtitle ? `\n${listing.subtitle}` : ''}</Text>
             </View>
@@ -129,12 +131,12 @@ export function ListingDetailsScreen({
           <View style={styles.thumbnails}>
             {(photos.length ? photos : [null]).map((uri, index) => (
               <Pressable key={`${uri ?? listing.id}-${index}`} accessibilityRole="button" accessibilityLabel={`View photo ${index + 1}`} accessibilityState={{ selected: selectedPhoto === index }} onPress={() => setSelectedPhoto(index)} style={[styles.thumbnail, selectedPhoto === index && styles.thumbnailActive]}>
-                <Image source={uri ? { uri } : getListingImage(listing.id)} contentFit="cover" style={styles.thumbnailImage} />
+                <ListingPhoto source={uri || getListingImage(listing.id)} category={listing.category} label={`${listing.title}, photo ${index + 1}`} />
               </Pressable>
             ))}
           </View>
 
-          <View style={styles.specRow}>
+          <View style={[styles.specRow, compact && styles.titleColumn]}>
             {specs.map((spec) => <Spec key={spec.label} {...spec} />)}
           </View>
 
@@ -160,7 +162,7 @@ export function ListingDetailsScreen({
                 {listing.seller ? listing.seller.name.split(' ').map((name) => name[0]).slice(0, 2).join('') : '?'}
               </Text>
             </View>
-            <View>
+            <View style={styles.sellerCopy}>
               <Text style={styles.sellerName}>{listing.seller?.name ?? 'Seller profile pending'}</Text>
               <Text style={styles.sellerMeta}>
                 {listing.seller?.memberSince ? `Member since ${listing.seller.memberSince}` : 'AniMarket seller'}
@@ -172,7 +174,7 @@ export function ListingDetailsScreen({
         </View>
       </ScrollView>
 
-      <View style={[styles.dock, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[styles.dock, compact && styles.dockCompact, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         {onCall && <Pressable onPress={onCall} accessibilityRole="button" accessibilityLabel="Call seller" style={styles.callButton}>
           <Icon name={icons.phone} size={20} />
         </Pressable>}
@@ -180,7 +182,7 @@ export function ListingDetailsScreen({
           <Icon name={icons.chat} color="#fff" size={18} />
           <Text style={styles.chatText}>Chat Seller</Text>
         </Pressable>
-        <Pressable disabled={!orderEnabled} accessibilityState={{ disabled: !orderEnabled }} onPress={() => onOrder(listing.id)} accessibilityRole="button" style={[styles.orderButton, !orderEnabled && { opacity: 0.5 }]}>
+        <Pressable disabled={!orderEnabled} accessibilityState={{ disabled: !orderEnabled }} onPress={() => onOrder(listing.id)} accessibilityRole="button" style={[styles.orderButton, compact && styles.orderButtonCompact, !orderEnabled && { opacity: 0.5 }]}>
           <Icon name={icons.cart} size={18} />
           <Text style={styles.orderText}>Order</Text>
         </Pressable>
@@ -190,21 +192,21 @@ export function ListingDetailsScreen({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff' },
+  screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
   scrollContent: { paddingBottom: 20 },
   hero: { width: '100%', aspectRatio: 192 / 118, backgroundColor: '#263028' },
   heroActions: { position: 'absolute', top: 12, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between' },
   heroButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#26382f', alignItems: 'center', justifyContent: 'center' },
   details: { marginTop: -20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#fff' },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-  titleBlock: { flex: 1 },
-  title: { color: green, fontSize: 20, lineHeight: 23, fontWeight: '800' },
+  titleBlock: { flex: 1, minWidth: 0 },
+  titleColumn: { flexDirection: 'column' },
+  title: { color: green, fontSize: 22, lineHeight: 28, fontWeight: '700' },
   price: { color: green, fontSize: 21, lineHeight: 25, fontWeight: '800' },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
-  location: { color: '#52647a', fontSize: 14, lineHeight: 20 },
-  thumbnails: { flexDirection: 'row', gap: 10, marginTop: 17, marginBottom: 16 },
+  location: { flex: 1, minWidth: 0, color: '#52647a', fontSize: 14, lineHeight: 20 },
+  thumbnails: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 17, marginBottom: 16 },
   thumbnail: { width: 52, height: 52, borderRadius: 10, borderWidth: 2, borderColor: 'transparent', backgroundColor: '#f7faf7', overflow: 'hidden' },
-  thumbnailImage: { width: '100%', height: '100%' },
   thumbnailActive: { borderColor: green },
   specRow: { flexDirection: 'row', gap: 10 },
   spec: { flex: 1, minWidth: 0, paddingVertical: 10, paddingHorizontal: 4, backgroundColor: '#f7faf7', borderColor: '#e2efe0', borderWidth: 1, borderRadius: 12, alignItems: 'center' },
@@ -212,23 +214,26 @@ const styles = StyleSheet.create({
   specValue: { color: green, fontSize: 14, lineHeight: 19, fontWeight: '700', marginTop: 2, textAlign: 'center' },
   divider: { height: 1, backgroundColor: '#edf2f7', marginVertical: 18 },
   sectionTitle: { color: '#1a202c', fontSize: 15, fontWeight: '700', marginBottom: 8 },
-  description: { color: '#4a5568', fontSize: 13, lineHeight: 19.5 },
+  description: { color: '#4a5568', fontSize: 14, lineHeight: 21 },
   healthCard: { minHeight: 92, marginTop: 14, paddingHorizontal: 20, borderWidth: 1, borderColor: '#c7e5c4', borderRadius: 14, backgroundColor: '#e2f3e3', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   healthCopy: { flex: 1 },
   healthTitle: { color: green, fontSize: 14, fontWeight: '700' },
   healthSubtitle: { color: '#2d6a4f', fontSize: 13, lineHeight: 18, marginTop: 2 },
   sellerCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#f8fafc' },
+  sellerCopy: { flex: 1, minWidth: 0 },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: green, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   sellerName: { color: '#1a202c', fontSize: 14, fontWeight: '700' },
   sellerMeta: { color: '#52647a', fontSize: 13, lineHeight: 18 },
   verified: { color: '#1b4d3e', fontSize: 12, lineHeight: 17, fontWeight: '700', marginTop: 3 },
   dock: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0', backgroundColor: '#fff' },
+  dockCompact: { flexWrap: 'wrap' },
   callButton: { width: 50, height: 50, borderRadius: 12, borderWidth: 1, borderColor: green, alignItems: 'center', justifyContent: 'center' },
-  chatButton: { flex: 1, minWidth: 0, height: 50, borderRadius: 12, backgroundColor: green, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },
-  chatText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  orderButton: { flex: 1, minWidth: 0, height: 50, borderRadius: 12, borderWidth: 1, borderColor: green, backgroundColor: '#e8f3ec', flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },
-  orderText: { color: green, fontSize: 14, fontWeight: '700' },
+  chatButton: { flex: 1, minWidth: 0, minHeight: 50, padding: 10, borderRadius: 12, backgroundColor: green, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },
+  chatText: { flexShrink: 1, textAlign: 'center', color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  orderButton: { flex: 1, minWidth: 0, minHeight: 50, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: green, backgroundColor: '#e8f3ec', flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center' },
+  orderButtonCompact: { flexBasis: '100%' },
+  orderText: { flexShrink: 1, textAlign: 'center', color: green, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   missing: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: '#fff' },
   missingTitle: { color: green, fontSize: 20, fontWeight: '700' },
   missingLink: { color: '#296a52', fontSize: 14 },

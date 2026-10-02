@@ -2,28 +2,44 @@ import { useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-import { DAVAO_DEL_NORTE, isDavaoDelNorteLocality, type DavaoDelNorteLocality } from '@/constants/davao_del_norte';
+import { DAVAO_DEL_NORTE, isDavaoDelNorteLocality } from '@/constants/davao_del_norte';
 import { ApiError, apiRequest, getAccessToken, onUnauthorized, setAccessToken } from '@/services/api';
 import type { IdentityVerification, ValidIdType } from './domain/identity_verification';
 import { emailError, passwordError } from '../auth/domain/credential_policy';
+import type { Account, AccountSession as Session, PersonalInformation } from './domain/account';
+import { firebaseEnabled } from '@/services/firebase_config';
+import { getFirebaseServices } from '@/services/firebase';
+import { readFirebaseAccount } from '@/services/firebase_account';
+import { firebaseError } from '@/services/firebase_errors';
+import { onAuthStateChanged } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 
-export type PersonalInformation = { fullName: string; email: string; phone: string; city: DavaoDelNorteLocality };
-type Account = { id: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean; avatarVersion: string | null };
-type Session = { token: string; account: Account };
-type AccountSnapshot = { signedIn: boolean; loading: boolean; userId: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean; avatarVersion: string | null };
-const empty: AccountSnapshot = { signedIn: false, loading: false, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: 'Tagum City' }, verification: { status: 'unverified' }, isReviewer: false, avatarVersion: null };
+export type { PersonalInformation } from './domain/account';
+type AccountSnapshot = { signedIn: boolean; loading: boolean; error: string | null; userId: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean; avatarVersion: string | null };
+const empty: AccountSnapshot = { signedIn: false, loading: false, error: null, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: 'Tagum City' }, verification: { status: 'unverified' }, isReviewer: false, avatarVersion: null };
 let snapshot: AccountSnapshot = { ...empty, loading: true };
 const listeners = new Set<() => void>();
 let initialized: Promise<void> | undefined;
 let generation = 0;
 let storageQueue = Promise.resolve();
 const storageKey = 'animarket.session.v1';
+let authMutations = 0;
+let stopAuth: (() => void) | undefined;
+function finishAuthMutation() {
+  authMutations--;
+  if (!firebaseEnabled || authMutations) return;
+  // A cancelled sign-in followed by a failed newer attempt must not leave
+  // the cancelled account persisted in Firebase behind a signed-out screen.
+  if ((getFirebaseServices().auth.currentUser?.uid ?? '') !== (snapshot.signedIn ? snapshot.userId : '')) signOut();
+}
 function publish(next: AccountSnapshot) { snapshot = next; listeners.forEach((listener) => listener()); }
 export function subscribeAccount(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }
 export function getAccountSnapshot() { return snapshot; }
 export function useAccount() { return useSyncExternalStore(subscribeAccount, getAccountSnapshot, getAccountSnapshot); }
-function accountSnapshot(account: Account): AccountSnapshot { return { userId: account.id, username: account.username, personal: account.personal, verification: account.verification ?? { status: 'unverified' }, isReviewer: account.isReviewer === true, avatarVersion: account.avatarVersion ?? null, signedIn: true, loading: false }; }
+function accountSnapshot(account: Account): AccountSnapshot { return { userId: account.id, username: account.username, personal: account.personal, verification: account.verification ?? { status: 'unverified' }, isReviewer: account.isReviewer === true, avatarVersion: account.avatarVersion ?? null, signedIn: true, loading: false, error: null }; }
 function storeSession(session: Session | null) {
+  // Firebase owns token refresh and persisted login. Never persist a second session.
+  if (firebaseEnabled) return Promise.resolve();
   const write = async () => {
     if (Platform.OS === 'web') {
       if (session) localStorage.setItem(storageKey, JSON.stringify(session)); else localStorage.removeItem(storageKey);
@@ -42,6 +58,32 @@ export function initializeAccount() {
   initialized = (async () => {
     const epoch = generation;
     try {
+      if (firebaseEnabled) {
+        const { auth } = getFirebaseServices();
+        await auth.authStateReady();
+        const initialUid = auth.currentUser?.uid ?? '';
+        try {
+          if (epoch === generation) {
+            if (auth.currentUser) {
+              const account = await readFirebaseAccount(auth.currentUser);
+              if (epoch === generation) { setAccessToken(`firebase:${account.id}`); publish(accountSnapshot(account)); }
+            } else publish({ ...empty });
+          }
+        } finally {
+          // Observe future changes even if the initial profile cannot be read.
+          let first = true;
+          stopAuth ??= onAuthStateChanged(auth, (user) => {
+            if (first) { first = false; if ((user?.uid ?? '') === initialUid) return; }
+            if (authMutations || (user?.uid ?? '') === (snapshot.signedIn ? snapshot.userId : '')) return;
+            const current = ++generation;
+            setAccessToken(null); publish({ ...empty, loading: !!user });
+            if (user) void readFirebaseAccount(user).then((account) => {
+              if (current === generation) { setAccessToken(`firebase:${account.id}`); publish(accountSnapshot(account)); }
+            }).catch((error) => { if (current === generation) publish({ ...empty, error: firebaseError(error).message }); });
+          });
+        }
+        return;
+      }
       const saved = Platform.OS === 'web' ? localStorage.getItem(storageKey) : await SecureStore.getItemAsync(storageKey);
       if (epoch !== generation) return;
       if (!saved) { publish({ ...empty }); return; }
@@ -58,10 +100,20 @@ export function initializeAccount() {
         // Cached identity allows reconnection; the server still authorizes every request.
         if (epoch === generation && !(error instanceof ApiError && error.status === 401)) publish(accountSnapshot(session.account));
       }
-    } catch { if (epoch === generation) clearSession(); }
+    } catch (error) {
+      if (epoch === generation) {
+        if (firebaseEnabled) { setAccessToken(null); publish({ ...empty, error: firebaseError(error).message }); }
+        else clearSession();
+      }
+    }
   })();
   return initialized;
 }
+export function retryInitializeAccount() {
+  stopAuth?.(); stopAuth = undefined; initialized = undefined; generation++;
+  publish({ ...empty, loading: true }); return initializeAccount();
+}
+export function dismissAccountError() { publish({ ...snapshot, error: null }); }
 async function acceptSession(session: Session, epoch: number) {
   if (epoch !== generation) return 'Sign-in was cancelled. Please try again.';
   try { await storeSession(session); }
@@ -71,11 +123,14 @@ async function acceptSession(session: Session, epoch: number) {
 }
 export async function signIn(email: string, password: string): Promise<string | null> {
   const epoch = ++generation;
+  authMutations++;
   try { return await acceptSession(await apiRequest<Session>('/auth/login', { public: true, method: 'POST', body: { email: email.trim(), password } }), epoch); }
   catch (error) { return error instanceof Error ? error.message : 'Unable to sign in.'; }
+  finally { finishAuthMutation(); }
 }
 export async function registerAccount(values: { firstName: string; middleName: string; lastName: string; email: string; phone: string; municipalityCity: string; purok: string; barangay: string; postalCode: string; password: string }): Promise<string | null> {
   const epoch = ++generation;
+  authMutations++;
   try {
     const session = await apiRequest<Session>('/auth/register', { public: true, method: 'POST', body: {
       fullName: [values.firstName, values.middleName, values.lastName].map((part) => part.trim()).filter(Boolean).join(' '),
@@ -83,10 +138,16 @@ export async function registerAccount(values: { firstName: string; middleName: s
     } });
     return await acceptSession(session, epoch);
   } catch (error) { return error instanceof Error ? error.message : 'Unable to create your account.'; }
+  finally { finishAuthMutation(); }
 }
 export function signOut() {
   const token = getAccessToken(); clearSession();
-  if (token) void apiRequest('/auth/logout', { token, method: 'POST', body: {} }).catch(() => {});
+  if (token || firebaseEnabled) {
+    authMutations++;
+    void apiRequest('/auth/logout', { token, method: 'POST', body: {} }).catch((error) => {
+      if (firebaseEnabled && !snapshot.signedIn) publish({ ...empty, error: firebaseError(error).message });
+    }).finally(() => { authMutations--; });
+  }
 }
 export function validatePersonalInformation(personal: PersonalInformation): string | null {
   if (!personal.fullName.trim()) return 'Enter your full name.';
@@ -140,3 +201,25 @@ export const withdrawIdentity = () => updateAccount('/verification/withdraw', {}
 export const checkSellerEligibility = () => updateAccount('/verification/eligibility');
 export const saveProfilePhoto = (photo: string) => updateAccount('/auth/photo', { photo });
 export const removeProfilePhoto = () => updateAccount('/auth/photo/remove', {});
+
+let observedUser = '';
+let stopProfile: (() => void)[] = [];
+if (firebaseEnabled) subscribeAccount(() => {
+  const uid = snapshot.signedIn ? snapshot.userId : '';
+  if (uid === observedUser) return;
+  stopProfile.forEach((stop) => stop()); stopProfile = []; observedUser = uid;
+  if (!uid) return;
+  const db = getFirebaseServices().firestore;
+  for (const name of ['users', 'roles', 'verifications']) {
+    let first = true;
+    stopProfile.push(onSnapshot(doc(db, name, uid), () => {
+      if (first) { first = false; return; }
+      if (snapshot.userId === uid) void refreshAccount().catch((error) => {
+        if (snapshot.userId === uid) publish({ ...snapshot, error: firebaseError(error).message });
+      });
+    }, (error) => {
+      // Never retain reviewer/verified privileges when their authoritative feed is denied.
+      if (snapshot.userId === uid) publish({ ...snapshot, isReviewer: false, verification: { status: 'unverified' }, error: firebaseError(error).message });
+    }));
+  }
+});

@@ -1,7 +1,8 @@
+import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { NavigationIcon } from '@/components/navigation_icon';
@@ -102,7 +103,7 @@ export function ConversationScreen({ conversationId, service, focused, onBack, o
       />
       {!!sendError && <Text accessibilityRole="alert" style={styles.sendError}>{sendError} Your message is kept below.</Text>}
       <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <TextInput accessibilityLabel="Message" value={draft} onChangeText={setDraft} multiline maxLength={2000} placeholder="Type a message…" placeholderTextColor={muted} selectionColor={forest} style={styles.input} editable={!!conversation} />
+        <TextInput accessibilityLabel="Message" value={draft} onChangeText={setDraft} multiline maxLength={2000} placeholder="Type a message…" placeholderTextColor={muted} style={styles.input} editable={!!conversation} />
         <Pressable accessibilityRole="button" accessibilityLabel={sending ? 'Sending message' : 'Send message'} accessibilityState={{ disabled: sending || !draft.trim() || !conversation }} disabled={sending || !draft.trim() || !conversation} onPress={send} style={[styles.send, (sending || !draft.trim() || !conversation) && styles.disabled]}>
           {sending ? <ActivityIndicator color="#fff" /> : <SymbolView name={sendIcon} size={22} tintColor="#fff" />}
         </Pressable>
