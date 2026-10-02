@@ -128,3 +128,38 @@ test('login resumes message routes and rejects external or unexpected destinatio
   assert.equal(loginDestination('/messages/../../profile'), '/home');
   assert.equal(loginDestination(), '/home');
 });
+
+test('staff login always opens the admin portal and customer return links cannot reach it', () => {
+  for (const returnTo of [undefined, '/home', '/messages', '/admin', '/order_checkout?id=one']) {
+    assert.equal(loginDestination(returnTo, true), '/admin');
+  }
+  assert.equal(loginDestination('/admin', false), '/home');
+});
+
+test('every screen is declared and protected routing separates staff from customer screens', () => {
+  const filename = path.join(appRoot, '_layout.tsx');
+  const source = ts.createSourceFile(filename, fs.readFileSync(filename, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const screens = [];
+  function attribute(node, name) { return node.attributes.properties.find((item) => ts.isJsxAttribute(item) && item.name.text === name)?.initializer; }
+  function visit(node, guards = []) {
+    if (ts.isJsxElement(node) && node.openingElement.tagName.getText(source) === 'Stack.Protected') {
+      const guard = attribute(node.openingElement, 'guard');
+      assert.ok(guard && ts.isJsxExpression(guard));
+      for (const child of node.children) visit(child, [...guards, guard.expression.getText(source)]);
+      return;
+    }
+    if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(source) === 'Stack.Screen') {
+      const name = attribute(node, 'name'); assert.ok(name && ts.isStringLiteral(name));
+      screens.push({ name: name.text.replace(/\/index$/, ''), guards });
+    }
+    ts.forEachChild(node, (child) => visit(child, guards));
+  }
+  visit(source);
+  assert.deepEqual(screens.map((screen) => screen.name).sort(), [...routeNames].sort());
+  function visible(account) { return screens.filter((screen) => screen.guards.every((guard) => vm.runInNewContext(guard, { account }))).map((screen) => screen.name); }
+  assert.deepEqual(visible({ signedIn: true, isStaff: true, isReviewer: true }), ['admin']);
+  assert.equal(visible({ signedIn: false, isStaff: false, isReviewer: false }).includes('admin'), false);
+  assert.equal(visible({ signedIn: true, isStaff: false, isReviewer: false }).includes('admin'), false);
+  assert.equal(visible({ signedIn: true, isStaff: false, isReviewer: true }).includes('verification_review'), true);
+  assert.equal(visible({ signedIn: true, isStaff: true, isReviewer: false }).includes('admin'), false);
+});

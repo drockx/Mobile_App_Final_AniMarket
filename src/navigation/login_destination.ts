@@ -1,6 +1,7 @@
 import type { Href } from 'expo-router';
 
-export function loginDestination(returnTo?: string): Href {
+export function loginDestination(returnTo?: string, isStaff = false): Href {
+  if (isStaff) return '/admin';
   if (returnTo === '/messages' || returnTo === '/home' || returnTo === '/listings/create' || returnTo === '/account_verification') return returnTo;
   if (returnTo && /^\/messages\/[a-zA-Z0-9-]{1,80}$/.test(returnTo)) return returnTo as Href;
   if (returnTo?.startsWith('/order_checkout?id=')) {

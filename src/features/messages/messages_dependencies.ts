@@ -8,7 +8,8 @@ import { firebaseMessageRepository } from './data/firebase_message_repository';
 export const messageService = createMessageService(firebaseEnabled ? firebaseMessageRepository : apiMessageRepository);
 function connectAccount() {
   const account = getAccountSnapshot();
-  messageService.connect(account.signedIn ? account.userId : '', getAccessToken() ?? '');
+  const customer = account.signedIn && !account.isStaff;
+  messageService.connect(customer ? account.userId : '', customer ? getAccessToken() ?? '' : '');
 }
 subscribeAccount(connectAccount);
 connectAccount();

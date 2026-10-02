@@ -13,7 +13,7 @@ export default function MessagesRoute() {
       key={side === 'selling' ? 'selling' : 'buying'}
       initialSide={side === 'selling' ? 'selling' : 'buying'}
       service={messageService}
-      notice={notice === 'sample-seller' ? 'This sample seller has no messaging account. Use New message to contact a registered user.' : notice === 'chat-error' ? 'Unable to open that conversation. Please choose the user again.' : undefined}
+      notice={notice === 'seller-unavailable' ? 'The seller account is unavailable. Use New message to contact a registered user.' : notice === 'chat-error' ? 'Unable to open that conversation. Please choose the user again.' : undefined}
       onOpenConversation={(conversation) => router.push({ pathname: '/messages/[id]', params: { id: conversation.id } })}
     />
   );

@@ -115,7 +115,7 @@ test('real accounts, private conversations and live two-way delivery', async (t)
       await sellerService.send(conversation.id, 'A reply while your app is away', 'away-reply');
       buyerService.setActive(true);
       await until(() => buyerService.getSnapshot().threads[conversation.id]?.messages.some((item) => item.clientId === 'away-reply'));
-      await assert.rejects(() => buyerService.openBuyerConversation({ id: 'demo', title: 'Demo', seller: 'Juan Dela Cruz' }), /sample seller/);
+      await assert.rejects(() => buyerService.openBuyerConversation({ id: 'demo', title: 'Demo', seller: 'Juan Dela Cruz' }), /seller account is unavailable/);
       buyerService.connect('', '');
       assert.equal(buyerService.getSnapshot().conversations.length, 0); assert.deepEqual(buyerService.getSnapshot().threads, {});
       await assert.rejects(() => buyerService.send(conversation.id, 'No longer signed in', 'signed-out'), /sign in/);

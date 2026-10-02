@@ -162,7 +162,7 @@ export function createMessageService(repository: MessageRepository): MessageServ
       finally { if (requestEpoch === epoch && readRequests.get(id) === throughSeq) readRequests.delete(id); }
     },
     async openBuyerConversation(item: { id: string; title: string; seller: string; sellerId?: string; verified?: boolean }) {
-      if (!item.sellerId) throw new Error('This sample seller does not have a messaging account. Choose New message to contact a registered user.');
+      if (!item.sellerId) throw new Error('The seller account is unavailable. Choose New message to contact a registered user.');
       ensureSignedIn(); return this.openConversation(item.sellerId);
     },
   };

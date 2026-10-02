@@ -34,7 +34,7 @@ export default function ListingDetailsRoute() {
         : router.push({ pathname: '/login', params: { returnTo: `/order_checkout?id=${encodeURIComponent(listingId)}` } })}
       onChat={listing?.seller && listing.seller.id !== account.userId ? () => {
         if (!account.signedIn) { router.push({ pathname: '/login', params: { returnTo: '/messages' } }); return; }
-        if (!listing.seller?.id) { router.push({ pathname: '/messages', params: { notice: 'sample-seller' } }); return; }
+        if (!listing.seller?.id) { router.push({ pathname: '/messages', params: { notice: 'seller-unavailable' } }); return; }
         void messageService.openBuyerConversation({ id: listing.id, title: listing.title, seller: listing.seller.name, sellerId: listing.seller.id }).then((conversation) => {
           router.push({ pathname: '/messages/[id]', params: { id: conversation.id } });
         }).catch(() => router.push({ pathname: '/messages', params: { notice: 'chat-error' } }));

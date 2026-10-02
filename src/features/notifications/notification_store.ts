@@ -20,8 +20,8 @@ export { createNotificationStore } from './application/notification_service';
 export const notificationStore = createNotificationStore(appRepositories.notificationReads);
 function refreshEvents() {
   const account = getAccountSnapshot();
-  notificationStore.connectOwner(account.signedIn ? account.userId : '');
-  if (!account.signedIn) return;
+  notificationStore.connectOwner(account.signedIn && !account.isStaff ? account.userId : '');
+  if (!account.signedIn || account.isStaff) return;
   const today = new Date().toLocaleDateString();
   const events: AppNotification[] = [];
   // Every destination is supplied by the real record, never by a fixture ID.

@@ -5,7 +5,7 @@ const Module = require('node:module');
 const ts = require('typescript');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
 const { doc, getDoc, setDoc, updateDoc, collection, getDocs, writeBatch, connectFirestoreEmulator, setLogLevel } = require('firebase/firestore');
-const { connectAuthEmulator, createUserWithEmailAndPassword, deleteUser } = require('firebase/auth');
+const { connectAuthEmulator, createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser } = require('firebase/auth');
 const { deleteApp } = require('firebase/app');
 setLogLevel('silent');
 
@@ -140,6 +140,11 @@ async function denied(promise) { await assertFails(promise); checks++; }
     assert.equal((await readFirebaseAccount()).id, session.account.id);
     await assert.rejects(request('/auth/me', { token: 'firebase:another-account' }), /account changed/);
     await request('/auth/logout', { method: 'POST', token }); assert.equal(auth.currentUser, null);
+    await assert.rejects(request('/auth/register', { method: 'POST', body: { ...body, password: 'DifferentPass2!' } }), (error) => error.status === 409 && /email already has an account/.test(error.message));
+    assert.equal(auth.currentUser, null);
+    await assert.rejects(request('/auth/register', { method: 'POST', body }), /already registered/);
+    assert.equal((await getDoc(doc(firestore, 'users', session.account.id))).data().personal.fullName, body.fullName);
+    await request('/auth/logout', { method: 'POST', token });
     await assert.rejects(request('/auth/login', { method: 'POST', body: { email: body.email, password: 'WrongPass1!' } }), /incorrect/);
     const loggedIn = await request('/auth/login', { method: 'POST', body }); assert.equal(loggedIn.account.id, session.account.id);
     const personal = { ...body, fullName: 'Updated SDK User', phone: '09987654321' };
@@ -201,5 +206,27 @@ async function denied(promise) { await assertFails(promise); checks++; }
     await deleteUser(auth.currentUser);
     await until(() => !store.getAccountSnapshot().signedIn);
     console.log('App account store passed: bootstrap, registration, restore, logout during login, cancelled login followed by failure, latest-login selection and incomplete-profile recovery.');
+
+    const staffEmail = `staff-${Date.now()}@example.com`;
+    const staffUser = (await createUserWithEmailAndPassword(auth, staffEmail, values.password)).user;
+    await env.withSecurityRulesDisabled(async (context) => setDoc(doc(context.firestore(), 'roles', staffUser.uid), { staff: true, reviewer: true }));
+    await store.retryInitializeAccount();
+    assert.equal(store.getAccountSnapshot().isStaff, true);
+    assert.equal(store.getAccountSnapshot().isReviewer, true);
+    assert.equal((await getDoc(doc(firestore, 'users', staffUser.uid))).exists(), false);
+    const { loginDestination } = require('../src/navigation/login_destination.ts');
+    assert.equal(loginDestination('/messages', true), '/admin');
+    assert.equal(loginDestination('/admin', false), '/home');
+    await assert.rejects(request('/auth/register', { method: 'POST', body: { ...body, email: staffEmail, password: values.password } }), /admin portal/);
+    store.signOut(); await until(() => auth.currentUser === null);
+    assert.equal(await store.signIn(staffEmail, values.password), null);
+    assert.equal(store.getAccountSnapshot().isStaff, true);
+    await env.withSecurityRulesDisabled(async (context) => setDoc(doc(context.firestore(), 'roles', staffUser.uid), { staff: true, reviewer: false }));
+    await until(() => !store.getAccountSnapshot().signedIn && auth.currentUser === null);
+    assert.match(await store.signIn(staffEmail, values.password), /Admin access is no longer available/);
+    await until(() => auth.currentUser === null);
+    await signInWithEmailAndPassword(auth, staffEmail, values.password);
+    await deleteUser(auth.currentUser);
+    console.log('App admin login, profile-free staff identity, protected destination, registration denial and live role revocation passed.');
   } finally { await deleteApp(app); await env.cleanup(); }
 })().catch((error) => { console.error(error); process.exitCode = 1; });

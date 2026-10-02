@@ -1,7 +1,7 @@
-import { checkoutTotals, TRANSPORT_ESTIMATE, type OrderRequest } from '../domain/checkout';
+import { checkoutTotals, TRANSPORT_ESTIMATE, type OrderRequest } from '../../src/features/orders/domain/checkout';
 import { mockCheckoutItem } from './mock_checkout_item';
 import { createExampleReviewForm } from './mock_order_review';
-import { copyLocation } from '../../location/domain/location';
+import { copyLocation } from '../../src/features/location/domain/location';
 
 export function createExampleOrderStatus(now = new Date()): OrderRequest {
   const form = createExampleReviewForm(now);

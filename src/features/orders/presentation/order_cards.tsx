@@ -5,7 +5,6 @@ import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { animalIcons } from '@/constants/animal_icons';
-import { getListingImage } from '@/features/marketplace/presentation/listing_images';
 
 import type { CheckoutItem } from '../domain/checkout';
 import { checkoutColors as color, checkoutIcons as icons } from './checkout_controls';
@@ -42,7 +41,7 @@ export function OrderConfirmation({ title, description, status, ready = false }:
 export function OrderItem({ item, showBadges = true }: { item: CheckoutItem; showBadges?: boolean }) {
   const { width, fontScale } = useWindowDimensions();
   const stackPrice = width < 420 || fontScale > 1.15;
-  const image = item.imageUri ? { uri: item.imageUri } : getListingImage(item.id);
+  const image = item.imageUri ? { uri: item.imageUri } : undefined;
   const animal = item.category === 'Goat' ? animalIcons.goat : item.category === 'Pig' ? animalIcons.pig : item.category === 'Chicken' ? animalIcons.poultry : animalIcons.cow;
   return <>
     <View style={styles.product}>

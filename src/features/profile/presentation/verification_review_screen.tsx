@@ -8,7 +8,7 @@ import { AccountScreenLayout } from './components/account_screen_layout';
 import { verificationStyles as s } from './components/verification_styles';
 import { PrivateIdPreview } from './components/private_id_preview';
 
-export function VerificationReviewScreen({ onBack }: { onBack: () => void }) {
+export function VerificationReviewScreen({ onBack, onSignOut, title = 'ID Reviews' }: { onBack?: () => void; onSignOut?: () => void; title?: string }) {
   const [reviews, setReviews] = useState<IdReview[]>([]);
   const [selected, setSelected] = useState<IdReview | null>(null);
   const [reason, setReason] = useState('');
@@ -62,7 +62,7 @@ export function VerificationReviewScreen({ onBack }: { onBack: () => void }) {
     else Alert.alert('Approve identity?', message, [{ text: 'Cancel', style: 'cancel' }, { text: 'Approve', onPress: () => { void decide('verified'); } }]);
   }
   return (
-    <AccountScreenLayout title="ID Reviews" subtitle="Check the whole ID, its validity, and whether its name matches the account." onBack={onBack}>
+    <AccountScreenLayout title={title} subtitle="Check the whole ID, its validity, and whether its name matches the account." onBack={onBack} onSignOut={onSignOut}>
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       {selected ? <View style={s.card}>
         <Text style={s.title}>{selected.fullName}</Text>

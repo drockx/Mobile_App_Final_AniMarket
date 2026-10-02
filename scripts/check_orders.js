@@ -13,9 +13,9 @@ require.extensions['.ts'] = (module, filename) => {
 
 const { createCheckoutService } = require('../src/features/orders/application/checkout_service.ts');
 const { emptyCheckoutForm, PICKUP_TIMES, selectDeliveryLocation, updateCheckoutField } = require('../src/features/orders/domain/checkout.ts');
-const { createExampleReviewForm } = require('../src/features/orders/data/mock_order_review.ts');
-const { mockCheckoutItem } = require('../src/features/orders/data/mock_checkout_item.ts');
-const { createExampleOrderStatus } = require('../src/features/orders/data/mock_order_status.ts');
+const { createExampleReviewForm } = require('./fixtures/mock_order_review.ts');
+const { mockCheckoutItem } = require('./fixtures/mock_checkout_item.ts');
+const { createExampleOrderStatus } = require('./fixtures/mock_order_status.ts');
 const { orderStatusCopy, orderProgress } = require('../src/features/orders/domain/order_status.ts');
 const { filterOrders } = require('../src/features/orders/domain/order_list.ts');
 const now = new Date(2026, 8, 30, 12);

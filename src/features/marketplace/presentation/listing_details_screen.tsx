@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { MarketplaceService } from '../application/marketplace_service';
 import { formatListingAddress } from '../domain/listing';
-import { getListingImage } from './listing_images';
 import { ListingPhoto } from './listing_photo';
 
 const green = '#12372a';
@@ -87,7 +86,7 @@ export function ListingDetailsScreen({
   ];
   const photos = listing.imageUris?.length ? listing.imageUris : listing.imageUri ? [listing.imageUri] : [];
   const activePhoto = photos[selectedPhoto] ?? photos[0];
-  const imageSource = activePhoto || getListingImage(listing.id);
+  const imageSource = activePhoto;
 
   const share = async () => {
     try {
@@ -131,7 +130,7 @@ export function ListingDetailsScreen({
           <View style={styles.thumbnails}>
             {(photos.length ? photos : [null]).map((uri, index) => (
               <Pressable key={`${uri ?? listing.id}-${index}`} accessibilityRole="button" accessibilityLabel={`View photo ${index + 1}`} accessibilityState={{ selected: selectedPhoto === index }} onPress={() => setSelectedPhoto(index)} style={[styles.thumbnail, selectedPhoto === index && styles.thumbnailActive]}>
-                <ListingPhoto source={uri || getListingImage(listing.id)} category={listing.category} label={`${listing.title}, photo ${index + 1}`} />
+                <ListingPhoto source={uri} category={listing.category} label={`${listing.title}, photo ${index + 1}`} />
               </Pressable>
             ))}
           </View>

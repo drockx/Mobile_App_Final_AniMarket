@@ -5,7 +5,7 @@ import { appRepositories } from '@/data/app_repositories';
 
 // Firebase is deliberately absent. A future authorized adapter belongs at this boundary.
 const catalog = createMarketplaceService(appRepositories.listings);
-function connectAccount() { const account = getAccountSnapshot(); catalog.connectOwner(account.signedIn ? account.userId : ''); }
+function connectAccount() { const account = getAccountSnapshot(); catalog.connectOwner(account.signedIn && !account.isStaff ? account.userId : ''); }
 subscribeAccount(connectAccount); connectAccount();
 export const sellerListingsService = createSellerListingsService(catalog);
 export const getOrderPickupPin = (id: string) => catalog.loadPickupPin(id, getAccountSnapshot().userId);

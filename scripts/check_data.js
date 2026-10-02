@@ -76,7 +76,7 @@ test('empty collections have stable snapshots, no records, and a successful empt
   assert.equal(store.getSnapshot(), store.getSnapshot()); assert.equal(store.getState().error, null);
 });
 test('the complete app data bootstrap can start without any sample records', () => {
-  const providers = createLocalAppRepositories(false);
+  const providers = createLocalAppRepositories();
   for (const repository of Object.values(providers)) {
     let snapshot; repository.watch('public', (items) => { snapshot = items; }, assert.fail); assert.deepEqual(snapshot, []);
   }

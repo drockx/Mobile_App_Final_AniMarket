@@ -1,6 +1,6 @@
-import { emptyCheckoutForm, tomorrowKey, type CheckoutForm } from '../domain/checkout';
+import { emptyCheckoutForm, tomorrowKey, type CheckoutForm } from '../../src/features/orders/domain/checkout';
 
-// Direct navigation displays the supplied reference with a valid future date.
+// Test-only order input with a valid future date.
 export function createExampleReviewForm(now = new Date()): CheckoutForm {
   return {
     ...emptyCheckoutForm('Maria Santos', '0917 123 4567'), fulfillment: 'delivery',

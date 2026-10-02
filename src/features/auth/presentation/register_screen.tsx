@@ -136,8 +136,8 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
       <AuthButton label={busy ? 'Creating account…' : 'Register'} onPress={submit} compact disabled={busy} />
 
       <View style={styles.switchRow}>
-        <Text style={styles.switchText}>Already have an account? </Text>
-        <Pressable accessibilityRole="link" hitSlop={8} onPress={onBackToLogin}>
+        <Text style={styles.switchText}>Already have an account?</Text>
+        <Pressable accessibilityRole="link" disabled={busy} onPress={onBackToLogin} style={styles.switchButton}>
           <Text style={styles.switchLink}>Log in</Text>
         </Pressable>
       </View>
@@ -185,8 +185,9 @@ const styles = StyleSheet.create({
   terms: { marginTop: 16, marginBottom: 14 },
   termsError: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 4, marginLeft: 38 },
   message: { color: '#fff', backgroundColor: 'rgba(20,31,24,0.5)', borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 13 },
-  switchRow: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', marginTop: 14 },
-  switchText: { color: '#fff', fontSize: 15 },
-  switchLink: { color: '#fff', fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', columnGap: 4, marginTop: 14 },
+  switchText: { color: '#fff', fontSize: 15, lineHeight: 22 },
+  switchLink: { color: '#fff', fontSize: 15, lineHeight: 22, fontWeight: '700', textDecorationLine: 'underline' },
+  switchButton: { minHeight: 44, justifyContent: 'center' },
   credit: { color: '#fff', textAlign: 'center', fontSize: 13, fontWeight: '700', marginTop: 24 },
 });

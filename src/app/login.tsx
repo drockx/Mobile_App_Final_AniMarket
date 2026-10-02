@@ -7,6 +7,6 @@ import { loginDestination } from '@/navigation/login_destination';
 export default function LoginRoute() {
   const account = useAccount();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
-  if (account.signedIn) return <Redirect href={loginDestination(returnTo)} />;
+  if (account.signedIn) return <Redirect href={loginDestination(returnTo, account.isStaff)} />;
   return <LoginScreen onSignup={() => router.push({ pathname: '/register', params: { returnTo } })} onLogin={signIn} />;
 }

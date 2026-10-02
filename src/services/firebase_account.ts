@@ -36,7 +36,13 @@ export async function readFirebaseAccount(user = requireFirebaseUser()): Promise
     getDoc(doc(firestore, 'users', user.uid)), getDoc(doc(firestore, 'roles', user.uid)), getDoc(doc(firestore, 'verifications', user.uid)),
   ]);
   if (auth.currentUser?.uid !== user.uid) throw new ApiError('Your account changed. Sign in again.', 401);
-  if (role.data()?.staff === true) throw new ApiError('This reviewer login is for the AniMarket admin portal. Use a personal account in the mobile app.', 403);
+  if (role.data()?.staff === true) {
+    if (role.data()?.reviewer !== true) throw new ApiError('Admin access is no longer available. Contact the project owner.', 403);
+    // Staff identity comes from Firebase Auth and the owner-managed role, without creating a customer profile.
+    const fullName = user.displayName || 'ID Reviewer';
+    return { id: user.uid, username: fullName, personal: { fullName, email: user.email ?? '', phone: '', city: 'Tagum City' },
+      verification: { status: 'unverified' }, isReviewer: true, isStaff: true, avatarVersion: null };
+  }
   if (!profile.exists()) throw new ApiError('Your Firebase account exists, but its profile is incomplete. Register again using the same email and password to finish setup.', 409);
   const record = profile.data() as Profile;
   if (record.id !== user.uid || !record.personal || !isDavaoDelNorteLocality(record.personal.city)) throw new ApiError('Your saved profile needs an administrator to correct it.', 409);
@@ -45,7 +51,7 @@ export async function readFirebaseAccount(user = requireFirebaseUser()): Promise
     ? { status: review.status, idType: review.idType, submittedAt: review.submittedAt, reviewedAt: review.reviewedAt ?? null, reason: review.reason ?? '' }
     : { status: 'unverified' };
   return { id: user.uid, username: record.username, personal: { ...record.personal, email: user.email ?? record.personal.email },
-    verification: status, isReviewer: role.data()?.reviewer === true, avatarVersion: record.avatar?.version ?? null };
+    verification: status, isReviewer: role.data()?.reviewer === true, isStaff: false, avatarVersion: record.avatar?.version ?? null };
 }
 async function saveProfile(profile: Profile) {
   const { firestore } = getFirebaseServices();
@@ -67,17 +73,27 @@ async function register(body: Record<string, unknown>): Promise<AccountSession> 
   };
   const { auth, firestore } = getFirebaseServices();
   let user: User;
-  if (auth.currentUser?.email?.toLowerCase() === personal.email) {
-    user = auth.currentUser;
-    await reauthenticateWithCredential(user, EmailAuthProvider.credential(personal.email, password));
-  } else {
-    try { user = (await createUserWithEmailAndPassword(auth, personal.email, password)).user; }
-    catch (error) {
-      if ((error as { code?: string })?.code !== 'auth/email-already-in-use') throw error;
-      // A failed profile write may leave an Auth account. Prove its password
-      // before repairing it, including after an app restart or logout.
-      user = (await signInWithEmailAndPassword(auth, personal.email, password)).user;
+  let existingAccount = auth.currentUser?.email?.toLowerCase() === personal.email;
+  try {
+    if (auth.currentUser?.email?.toLowerCase() === personal.email) {
+      user = auth.currentUser;
+      await reauthenticateWithCredential(user, EmailAuthProvider.credential(personal.email, password));
+    } else {
+      try { user = (await createUserWithEmailAndPassword(auth, personal.email, password)).user; }
+      catch (error) {
+        if ((error as { code?: string })?.code !== 'auth/email-already-in-use') throw error;
+        existingAccount = true;
+        // A failed profile write may leave an Auth account. Prove its password
+        // before repairing it, including after an app restart or logout.
+        user = (await signInWithEmailAndPassword(auth, personal.email, password)).user;
+      }
     }
+  } catch (error) {
+    const code = (error as { code?: string })?.code;
+    if (existingAccount && ['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found'].includes(code ?? '')) {
+      throw new ApiError('This email already has an account. Log in with its existing password, or use a different email to create a new account.', 409);
+    }
+    throw error;
   }
   if ((await getDoc(doc(firestore, 'roles', user.uid))).data()?.staff === true) throw new ApiError('This reviewer login is for the admin portal. Register your personal account with a different email.', 403);
   if ((await getDoc(doc(firestore, 'users', user.uid))).exists()) throw new ApiError('This email is already registered. Sign in to continue.', 409);

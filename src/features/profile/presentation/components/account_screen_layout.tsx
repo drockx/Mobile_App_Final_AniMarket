@@ -16,10 +16,11 @@ export const accountColors = {
   red: '#b42318',
 } as const;
 
-export function AccountScreenLayout({ title, subtitle, onBack, children }: {
+export function AccountScreenLayout({ title, subtitle, onBack, onSignOut, children }: {
   title: string;
   subtitle: string;
-  onBack: () => void;
+  onBack?: () => void;
+  onSignOut?: () => void;
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
@@ -28,11 +29,11 @@ export function AccountScreenLayout({ title, subtitle, onBack, children }: {
       <StatusBar style="dark" />
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + 9 }]}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Back to profile" onPress={onBack} hitSlop={8} style={styles.backButton}>
+          {onBack ? <Pressable accessibilityRole="button" accessibilityLabel="Back to profile" onPress={onBack} hitSlop={8} style={styles.backButton}>
             <NavigationIcon name="back" />
-          </Pressable>
+          </Pressable> : <View style={styles.backButton} />}
           <Text accessibilityRole="header" style={styles.title}>{title}</Text>
-          <View style={styles.backButton} />
+          {onSignOut ? <Pressable accessibilityRole="button" onPress={onSignOut} style={styles.logoutButton}><Text style={styles.logoutText}>Log out</Text></Pressable> : <View style={styles.backButton} />}
         </View>
         <KeyboardScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 20 }]}>
           <Text style={styles.subtitle}>{subtitle}</Text>
@@ -48,6 +49,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: accountColors.surface },
   header: { paddingHorizontal: 15, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: accountColors.line },
   backButton: { width: 44, minHeight: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  logoutButton: { minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
+  logoutText: { ...appTypography.body, color: accountColors.forest, fontWeight: '700' },
   title: { ...appTypography.title, flex: 1, minWidth: 0, textAlign: 'center', color: accountColors.forest },
   content: { paddingHorizontal: 15, paddingTop: 18, gap: 14 },
   subtitle: { ...appTypography.body, color: accountColors.muted },

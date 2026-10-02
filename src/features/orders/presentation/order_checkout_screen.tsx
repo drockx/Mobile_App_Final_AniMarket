@@ -9,7 +9,6 @@ import { SymbolView } from 'expo-symbols';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getListingImage } from '@/features/marketplace/presentation/listing_images';
 import type { SelectedLocation } from '@/features/location/domain/location';
 import { LocationPicker } from '@/features/location/presentation/location_picker';
 
@@ -57,7 +56,7 @@ export function OrderCheckoutScreen({ item, service, loading, error, onRetry, re
     <StatusBar style="dark" /><DataFeedback loading={loading} error={error} onRetry={onRetry} />{!loading && !error && <><Text style={styles.reviewTitle}>Listing unavailable</Text><Text style={styles.reviewCopy}>This listing is no longer available for checkout.</Text></>}<CheckoutButton label="Back to Marketplace" onPress={onBack} />
   </View>;
 
-  const image = item.imageUri ? { uri: item.imageUri } : getListingImage(item.id);
+  const image = item.imageUri ? { uri: item.imageUri } : undefined;
   return <View style={styles.background}>
     <StatusBar style="dark" />
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>

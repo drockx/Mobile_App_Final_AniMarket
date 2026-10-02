@@ -9,6 +9,7 @@ import { firebaseVoiceRepository } from './data/firebase_voice_repository';
 export const voiceService = createVoiceService(firebaseEnabled ? firebaseVoiceRepository : apiVoiceRepository, createVoiceMedia);
 function connectAccount() {
   const account = getAccountSnapshot();
-  voiceService.connect(account.signedIn ? account.userId : '', getAccessToken() ?? '');
+  const customer = account.signedIn && !account.isStaff;
+  voiceService.connect(customer ? account.userId : '', customer ? getAccessToken() ?? '' : '');
 }
 subscribeAccount(connectAccount); connectAccount();

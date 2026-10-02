@@ -15,8 +15,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 export type { PersonalInformation } from './domain/account';
-type AccountSnapshot = { signedIn: boolean; loading: boolean; error: string | null; userId: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean; avatarVersion: string | null };
-const empty: AccountSnapshot = { signedIn: false, loading: false, error: null, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: 'Tagum City' }, verification: { status: 'unverified' }, isReviewer: false, avatarVersion: null };
+type AccountSnapshot = { signedIn: boolean; loading: boolean; error: string | null; userId: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean; isStaff: boolean; avatarVersion: string | null };
+const empty: AccountSnapshot = { signedIn: false, loading: false, error: null, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: 'Tagum City' }, verification: { status: 'unverified' }, isReviewer: false, isStaff: false, avatarVersion: null };
 let snapshot: AccountSnapshot = { ...empty, loading: true };
 const listeners = new Set<() => void>();
 let initialized: Promise<void> | undefined;
@@ -36,7 +36,7 @@ function publish(next: AccountSnapshot) { snapshot = next; listeners.forEach((li
 export function subscribeAccount(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }
 export function getAccountSnapshot() { return snapshot; }
 export function useAccount() { return useSyncExternalStore(subscribeAccount, getAccountSnapshot, getAccountSnapshot); }
-function accountSnapshot(account: Account): AccountSnapshot { return { userId: account.id, username: account.username, personal: account.personal, verification: account.verification ?? { status: 'unverified' }, isReviewer: account.isReviewer === true, avatarVersion: account.avatarVersion ?? null, signedIn: true, loading: false, error: null }; }
+function accountSnapshot(account: Account): AccountSnapshot { return { userId: account.id, username: account.username, personal: account.personal, verification: account.verification ?? { status: 'unverified' }, isReviewer: account.isReviewer === true, isStaff: account.isStaff === true, avatarVersion: account.avatarVersion ?? null, signedIn: true, loading: false, error: null }; }
 function storeSession(session: Session | null) {
   // Firebase owns token refresh and persisted login. Never persist a second session.
   if (firebaseEnabled) return Promise.resolve();
@@ -215,11 +215,15 @@ if (firebaseEnabled) subscribeAccount(() => {
     stopProfile.push(onSnapshot(doc(db, name, uid), () => {
       if (first) { first = false; return; }
       if (snapshot.userId === uid) void refreshAccount().catch((error) => {
-        if (snapshot.userId === uid) publish({ ...snapshot, error: firebaseError(error).message });
+        if (snapshot.userId !== uid) return;
+        if (snapshot.isStaff) signOut();
+        else publish({ ...snapshot, error: firebaseError(error).message });
       });
     }, (error) => {
       // Never retain reviewer/verified privileges when their authoritative feed is denied.
-      if (snapshot.userId === uid) publish({ ...snapshot, isReviewer: false, verification: { status: 'unverified' }, error: firebaseError(error).message });
+      if (snapshot.userId !== uid) return;
+      if (snapshot.isStaff) signOut();
+      else publish({ ...snapshot, isReviewer: false, verification: { status: 'unverified' }, error: firebaseError(error).message });
     }));
   }
 });

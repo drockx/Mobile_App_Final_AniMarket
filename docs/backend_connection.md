@@ -1,13 +1,13 @@
 # Backend connection
 
-Updated 2 October 2026. The app selects its deployed cloud backend through `EXPO_PUBLIC_BACKEND=firebase`. Sample listings are disabled. An empty marketplace is expected until a verified seller publishes livestock. Existing local-development accounts are separate and were not migrated.
+Updated 2 October 2026. The app selects its deployed cloud backend through `EXPO_PUBLIC_BACKEND=firebase`. Sample listings, seller records, conversations, market references and bundled sample livestock photos were removed from app source. Local repositories always start empty. The old local development database and its two accounts were deleted at the user's request; cloud accounts and the real admin login were preserved. Order test fixtures exist only under `scripts/fixtures`, outside the app and excluded from EAS. An empty marketplace is expected until a verified seller publishes livestock.
 
 | Service | Connected behavior |
 | --- | --- |
 | Firebase `animarket-87354` | Email/password accounts, persistent profiles, livestock listings, orders, real-time messages, call signaling and verification status. Rules restrict private reads and deny direct client changes to trusted records. |
 | Supabase `yvamvsbfbknnasfvqdto` | Trusted `animarket` Edge Function validates Firebase tokens and account revocation, enforces ownership and order transitions, signs uploads and processes private ID decisions. Private ID/document storage is restricted. |
 | Cloudinary `dnbmd5qhj` | Signed public profile and livestock photos, with replacement/deletion cleanup. Government IDs and vaccination documents remain in private Supabase storage. |
-| Account verification portal | [Open the portal](https://animarket-87354-admin.web.app). Reviewer-only pending queue, private ID preview, approval and rejection with feedback. The separate staff account can only review IDs. Its login is in ignored `admin-login.local.txt`. |
+| Account verification portal | Staff can sign in on the mobile app's normal login page to open `/admin`, or use [the browser portal](https://animarket-87354-admin.web.app). Both use the restricted reviewer queue, private ID preview, approval and rejection with feedback. The staff account can only review IDs. Its login is in ignored `admin-login.local.txt`. |
 | Cleanup | An hourly Supabase job expires old pending IDs, removes unattached media and retries failed deletions. ID photos are removed after review or withdrawal; pending submissions expire after 30 days. |
 
 ## Account and data security
@@ -33,6 +33,7 @@ The Cloud Billing API confirmed that Firebase billing is disabled with no linked
 - `node --test scripts/check_cloud.mjs`: nine cloud authorization/workflow checks passed, including staff-only access.
 - `node scripts/check_cloud_live.mjs --live`: deployed photos, private ID approval, private documents, listing ownership, complete order flow, two-way messages and call signaling passed. Temporary test accounts, records and media were removed.
 - `node scripts/check_admin_live.js`: hosted portal, real reviewer login, queue and denial of non-review actions passed without changing customer records.
+- `node scripts/check_registration_live.js --live`: actual app registration, duplicate-email feedback, interrupted-profile recovery and staff login passed; disposable registration accounts were removed. Add `--admin-only` for the read-only app admin login/queue/scope probe. Navigation checks cover every declared screen, and emulator checks verify role revocation signs staff out.
 - Live Supabase storage policy tests passed and rolled their temporary metadata back.
 
 ```powershell

@@ -7,7 +7,7 @@ import { getAccountSnapshot, subscribeAccount } from '../profile/profile_store';
 import type { CheckoutItem } from './domain/checkout';
 
 export const checkoutService = createOrderService(appRepositories.orders);
-function connectAccount() { const account = getAccountSnapshot(); checkoutService.connectOwner(account.signedIn ? account.userId : ''); }
+function connectAccount() { const account = getAccountSnapshot(); checkoutService.connectOwner(account.signedIn && !account.isStaff ? account.userId : ''); }
 subscribeAccount(connectAccount); connectAccount();
 
 export async function saveOrderRequest(listingId: string | undefined, reviewed: boolean) {

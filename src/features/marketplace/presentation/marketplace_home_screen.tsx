@@ -14,7 +14,6 @@ import { notificationStore } from '@/features/notifications/notification_store';
 import type { MarketplaceService } from '../application/marketplace_service';
 import { formatListingAddress, type Listing, type LivestockCategory } from '../domain/listing';
 import { hasActiveFilterOptions, toListingCriteria, type SearchFilters } from './search_filters';
-import { getListingImage } from './listing_images';
 import { ListingPhoto } from './listing_photo';
 import { appColors } from '@/constants/app_theme';
 
@@ -51,7 +50,7 @@ const icons = {
 function ListingCard({ listing, onPress, wide }: { listing: Listing; onPress: () => void; wide: boolean }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.title} details`} onPress={onPress} style={({ pressed }) => [styles.card, wide && styles.wideCard, pressed && styles.pressed]}>
-      <View style={styles.cardImage}><ListingPhoto source={listing.imageUri || getListingImage(listing.id)} category={listing.category} label={listing.title} /></View>
+      <View style={styles.cardImage}><ListingPhoto source={listing.imageUri} category={listing.category} label={listing.title} /></View>
       <View style={styles.cardBody}>
         <Text numberOfLines={2} style={styles.cardTitle}>{listing.title}</Text>
         <Text numberOfLines={2} style={styles.cardDetails}>{listing.details}</Text>
