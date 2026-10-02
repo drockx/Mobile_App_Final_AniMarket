@@ -1,5 +1,5 @@
 import { AppTextInput as TextInput } from '@/components/app_text_input';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Alert, Platform, Pressable, Text, View } from 'react-native';
 
 import { apiRequest } from '@/services/api';
@@ -8,7 +8,7 @@ import { AccountScreenLayout } from './components/account_screen_layout';
 import { verificationStyles as s } from './components/verification_styles';
 import { PrivateIdPreview } from './components/private_id_preview';
 
-export function VerificationReviewScreen({ onBack, onSignOut, title = 'ID Reviews' }: { onBack?: () => void; onSignOut?: () => void; title?: string }) {
+export function VerificationReviewScreen({ onBack, onSignOut, title = 'ID Reviews', navigation }: { onBack?: () => void; onSignOut?: () => void; title?: string; navigation?: ReactNode }) {
   const [reviews, setReviews] = useState<IdReview[]>([]);
   const [selected, setSelected] = useState<IdReview | null>(null);
   const [reason, setReason] = useState('');
@@ -63,6 +63,7 @@ export function VerificationReviewScreen({ onBack, onSignOut, title = 'ID Review
   }
   return (
     <AccountScreenLayout title={title} subtitle="Check the whole ID, its validity, and whether its name matches the account." onBack={onBack} onSignOut={onSignOut}>
+      {navigation}
       {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
       {selected ? <View style={s.card}>
         <Text style={s.title}>{selected.fullName}</Text>

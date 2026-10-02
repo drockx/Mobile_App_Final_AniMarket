@@ -19,6 +19,7 @@ import {
   type DavaoDelNorteLocality,
 } from '@/constants/davao_del_norte';
 import { useMarketReferences } from '@/features/market_reference/market_reference_dependencies';
+import { marketForLocality, observationDate } from '@/features/market_reference/domain/market_reference';
 import { listingLocality, locationIssue, type SelectedLocation } from '@/features/location/domain/location';
 import { LocationPicker } from '@/features/location/presentation/location_picker';
 
@@ -117,7 +118,7 @@ function validDate(value: string) {
   return isCalendarDateSelectable(value, { maxDate: calendarDateKey(new Date()) });
 }
 
-export function CreateListingScreen({ marketplace, initialDraft, initialPickup, initialPrice = '', initialCategory = 'Cow', initialWeight = '', initialTitle = '', initialPriceUnit = 'per head', onClose, onPublished, onMarketReference }: {
+export function CreateListingScreen({ marketplace, initialDraft, initialPickup, initialPrice = '', initialCategory = 'Cow', initialWeight = '', initialTitle = '', initialPriceUnit = 'per head', initialReferencePriceId = '', onClose, onPublished, onMarketReference }: {
   marketplace: MarketplaceService;
   initialDraft?: Listing;
   initialPickup?: SelectedLocation | null;
@@ -126,6 +127,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
   initialWeight?: string;
   initialTitle?: string;
   initialPriceUnit?: ListingPriceUnit;
+  initialReferencePriceId?: string;
   onClose: () => void;
   onPublished: (id: string) => void;
   onMarketReference: () => void;
@@ -157,17 +159,19 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
   const publishingRef = useRef(false);
   const [operationId] = useState(createRecordId);
   const referenceData = useMarketReferences();
+  const [referencePriceId, setReferencePriceId] = useState(initialReferencePriceId);
 
   const reference = useMemo(() => {
-    const market = referenceData.items.find((item) => item.location === davaoDelNorteLocation(city));
+    const market = marketForLocality(referenceData.items, davaoDelNorteLocation(city));
     const marketCategory = { Cow: 'cow', Goat: 'goat', Pig: 'pig', Chicken: 'poultry' }[category];
-    const rate = market?.prices.find((item) => item.category === marketCategory);
+    const rates = market?.prices.filter((item) => item.category === marketCategory) ?? [];
+    const rate = rates.find((item) => item.id === referencePriceId) ?? rates[0];
     const kg = Number(weight);
     const perKg = rate?.unit.toLowerCase().includes('per kg') ?? false;
     const suggested = rate && perKg && !referenceData.loading && !referenceData.error && Number.isFinite(kg) && kg > 0
-      ? Math.max(100, Math.round((kg * (rate.min + rate.max) / 2) / 500) * 500) : null;
-    return { market, rate, perKg, kg, suggested };
-  }, [category, city, weight, referenceData]);
+      ? Math.round(kg * (rate.min + rate.max) / 2) : null;
+    return { market, rate, rates, perKg, kg, suggested };
+  }, [category, city, weight, referenceData, referencePriceId]);
 
   async function addPhotos() {
     try {
@@ -353,9 +357,11 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
             <Text style={styles.marketBadge}>Market reference</Text>
           </View>
           <Text style={styles.referenceLocation}>{reference.market ? `${categories.find((item) => item.value === category)?.label} ${reference.market.sample ? 'sample' : 'reference'} from ${reference.market.location}` : 'No Davao del Norte market reference available'}</Text>
+          {reference.rates.length > 1 && <SelectField label="Price Reference" value={reference.rate?.id ?? ''} options={reference.rates.map((rate) => ({ label: rate.name, value: rate.id }))} onSelect={setReferencePriceId} />}
+          {!!reference.rate && <Text style={styles.referenceLocation}>{reference.rate.name} · Observed {observationDate(reference.rate.observedAt)}</Text>}
           <View style={[styles.referenceRow, stackedFields && styles.stackedRow]}>
-            <View style={[styles.referenceStat, stackedFields && styles.stackedItem]}><Text style={styles.statLabel}>REFERENCE RATE</Text><Text style={styles.statValue}>{reference.rate ? `${peso(reference.rate.min)}–${peso(reference.rate.max)}${reference.perKg ? '/kg' : '/head'}` : 'Unavailable'}</Text></View>
-            <View style={[styles.referenceStat, stackedFields && styles.stackedItem]}><Text style={styles.statLabel}>ESTIMATED VALUE</Text><Text style={styles.statValue}>{reference.suggested !== null && reference.rate ? `${peso(reference.kg * reference.rate.min)}–${peso(reference.kg * reference.rate.max)}` : reference.perKg ? 'Enter live weight' : 'Set manually'}</Text></View>
+            <View style={[styles.referenceStat, stackedFields && styles.stackedItem]}><Text style={styles.statLabel}>REFERENCE RATE</Text><Text style={styles.statValue}>{reference.rate ? `${reference.rate.min === reference.rate.max ? `₱${reference.rate.min.toFixed(2)}` : `₱${reference.rate.min.toFixed(2)}–₱${reference.rate.max.toFixed(2)}`}${reference.perKg ? '/kg' : '/head'}` : 'Unavailable'}</Text></View>
+            <View style={[styles.referenceStat, stackedFields && styles.stackedItem]}><Text style={styles.statLabel}>ESTIMATED VALUE</Text><Text style={styles.statValue}>{reference.suggested !== null && reference.rate ? reference.rate.min === reference.rate.max ? peso(reference.kg * reference.rate.min) : `${peso(reference.kg * reference.rate.min)}–${peso(reference.kg * reference.rate.max)}` : reference.perKg ? 'Enter live weight' : 'Set manually'}</Text></View>
           </View>
           <View style={[styles.priceActions, stackedFields && styles.stackedRow]}>
             <Pressable accessibilityRole="button" accessibilityState={{ disabled: reference.suggested === null }} disabled={reference.suggested === null} onPress={() => { setPrice(String(reference.suggested)); setPriceUnit('per head'); }} style={[styles.suggestionButton, stackedFields && styles.stackedItem, reference.suggested === null && styles.suggestionDisabled]}>
@@ -363,7 +369,7 @@ export function CreateListingScreen({ marketplace, initialDraft, initialPickup, 
             </Pressable>
             <Pressable accessibilityRole="button" onPress={onMarketReference} style={[styles.marketButton, stackedFields && styles.stackedItem]}><Text style={styles.marketButtonText}>View market prices</Text></Pressable>
           </View>
-          <Text style={styles.basis}>{reference.suggested !== null ? `Based on ${reference.kg.toLocaleString()} kg live weight and local ${reference.market?.sample ? 'sample' : 'market'} prices.` : 'Enter a live weight for a price estimate where per-kg data is available.'}</Text>
+          <Text style={styles.basis}>{reference.suggested !== null ? `Based on ${reference.kg.toLocaleString()} kg live weight and the dated reference. Confirm current prices with the seller.` : 'Enter a live weight for a price estimate where per-kg data is available.'}</Text>
           <Text style={styles.disclaimer}>Advisory estimate. Breed, age, health, transport, and local demand may affect the final price.</Text>
         </View>
 

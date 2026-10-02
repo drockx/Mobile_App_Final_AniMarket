@@ -2,7 +2,7 @@ import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
 import { NavigationIcon } from '@/components/navigation_icon';
 import type { ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { appColors, appTypography } from '@/constants/app_theme';
 
@@ -24,6 +24,7 @@ export function AccountScreenLayout({ title, subtitle, onBack, onSignOut, childr
   children: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.background}>
       <StatusBar style="dark" />
@@ -32,7 +33,7 @@ export function AccountScreenLayout({ title, subtitle, onBack, onSignOut, childr
           {onBack ? <Pressable accessibilityRole="button" accessibilityLabel="Back to profile" onPress={onBack} hitSlop={8} style={[styles.backButton, onSignOut && styles.staffToolbar]}>
             <NavigationIcon name="back" />
           </Pressable> : <View style={[styles.backButton, onSignOut && styles.staffToolbar]} />}
-          <Text accessibilityRole="header" style={styles.title}>{title}</Text>
+          <Text accessibilityRole="header" style={[styles.title, !!onSignOut && width < 360 && styles.compactStaffTitle]}>{title}</Text>
           {onSignOut ? <Pressable accessibilityRole="button" onPress={onSignOut} style={styles.logoutButton}><Text style={styles.logoutText}>Log out</Text></Pressable> : <View style={styles.backButton} />}
         </View>
         <KeyboardScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingBottom: Math.max(insets.bottom, 20) + 20 }]}>
@@ -53,6 +54,7 @@ const styles = StyleSheet.create({
   logoutButton: { width: 72, minHeight: 44, paddingHorizontal: 8, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
   logoutText: { ...appTypography.body, color: accountColors.forest, fontWeight: '700', textAlign: 'center' },
   title: { ...appTypography.title, flex: 1, minWidth: 0, textAlign: 'center', color: accountColors.forest },
+  compactStaffTitle: { fontSize: 20, lineHeight: 26 },
   content: { paddingHorizontal: 15, paddingTop: 18, gap: 14 },
   subtitle: { ...appTypography.body, color: accountColors.muted },
 });

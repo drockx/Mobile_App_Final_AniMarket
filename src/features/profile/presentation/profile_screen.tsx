@@ -95,6 +95,8 @@ type ProfileScreenProps = {
   activeListingCount: number;
   orderCount: number;
   unreadMessageCount: number;
+  ratingAverage?: number | null;
+  onPublicProfile: () => void;
   onMyListings: () => void;
   onMyOrders: () => void;
   onMessages: () => void;
@@ -107,7 +109,7 @@ type ProfileScreenProps = {
   onLogOut: () => void;
 };
 
-export function ProfileScreen({ activeListingCount, orderCount, unreadMessageCount, onMyListings, onMyOrders, onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onVerification, onIdReviews, onLogOut }: ProfileScreenProps) {
+export function ProfileScreen({ activeListingCount, orderCount, unreadMessageCount, ratingAverage, onPublicProfile, onMyListings, onMyOrders, onMessages, onMarketReference, onPriceCalculator, onPersonalInformation, onAccountSecurity, onVerification, onIdReviews, onLogOut }: ProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const compact = width < 360;
@@ -161,7 +163,7 @@ export function ProfileScreen({ activeListingCount, orderCount, unreadMessageCou
             </View>
 
             <View style={styles.stats}>
-              {[['—', 'RATING'], [String(activeListingCount), 'ACTIVE LISTINGS'], [String(orderCount), 'ORDERS']].map(([value, label], index) => (
+              {[[ratingAverage == null ? '—' : ratingAverage.toFixed(1), 'RATING'], [String(activeListingCount), 'ACTIVE LISTINGS'], [String(orderCount), 'ORDERS']].map(([value, label], index) => (
                 <View key={label} style={[styles.stat, index < 2 && styles.statDivider]}>
                   <Text style={styles.statValue}>{value}</Text>
                   <Text style={styles.statLabel}>{label}</Text>
@@ -203,6 +205,7 @@ export function ProfileScreen({ activeListingCount, orderCount, unreadMessageCou
               </Pressable>
             </View>
             <View style={styles.menu}>
+              <MenuItem title="Public Profile & Ratings" symbol={icon.person} onPress={onPublicProfile} />
               <MenuItem title="Personal Information" symbol={icon.person} onPress={onPersonalInformation} />
               {account.isReviewer && <MenuItem title="ID Reviews" symbol={icon.check} onPress={onIdReviews} />}
               <MenuItem title="Account & Security" symbol={icon.lock} onPress={onAccountSecurity} />

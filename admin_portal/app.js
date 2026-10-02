@@ -1,6 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import { getAuth, setPersistence, browserSessionPersistence, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, collection, query, where, limit, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+import { createMarketPrices } from './market_prices.js';
 
 const app = initializeApp({ apiKey: 'AIzaSyAhZIUbXYCrmaQSytYX_t8ubBMnzugsd_E', authDomain: 'animarket-87354.firebaseapp.com', projectId: 'animarket-87354', appId: '1:144256379000:web:ec46e106870561cb1e658d' });
 const auth = getAuth(app), db = getFirestore(app);
@@ -9,7 +10,7 @@ let session = 0, stopQueue, stopRole, selected = null, selecting = 0, busy = fal
 const stamp = (value) => { const date = new Date(value); return Number.isFinite(date.getTime()) ? date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'Date unavailable'; };
 function notice(message = '', error = false) { $('notice').textContent = message; $('notice').hidden = !message; $('notice').classList.toggle('error', error); }
 function clearReview() { selected = null; selecting++; $('id-photo').removeAttribute('src'); $('review').hidden = true; $('choose').hidden = false; $('reason').value = ''; $('confirm').checked = false; $('approve').disabled = true; document.querySelectorAll('.queue-item').forEach((item) => item.setAttribute('aria-pressed', 'false')); }
-function clean() { stopQueue?.(); stopRole?.(); stopQueue = stopRole = undefined; $('queue').replaceChildren(); clearReview(); $('workspace').hidden = true; $('denied-panel').hidden = true; busy = false; }
+function clean() { stopQueue?.(); stopRole?.(); prices.stop(); stopQueue = stopRole = undefined; $('queue').replaceChildren(); clearReview(); $('workspace').hidden = true; $('denied-panel').hidden = true; busy = false; showSection('reviews'); }
 async function request(path, body, method = 'GET') {
   const user = auth.currentUser, generation = session;
   if (!user) throw new Error('Sign in again.');
@@ -23,6 +24,13 @@ async function request(path, body, method = 'GET') {
   if (!response.ok) { if (response.status === 401) await signOut(auth); throw new Error(data.error ?? 'The request could not be completed. Refresh and retry.'); }
   return data;
 }
+const prices = createMarketPrices({ db, request, notice });
+function showSection(section) {
+  const market = section === 'prices'; $('prices-pane').hidden = !market; $('reviews-pane').hidden = market;
+  for (const [id, active] of [['reviews-tab', !market], ['prices-tab', market]]) { $(id).className = active ? 'primary' : 'outline'; $(id).setAttribute('aria-pressed', String(active)); }
+}
+$('reviews-tab').addEventListener('click', () => { if (!prices.busy()) { notice(); showSection('reviews'); } });
+$('prices-tab').addEventListener('click', () => { if (!busy) { clearReview(); notice(); showSection('prices'); } });
 function controls() { $('approve').disabled = busy || !selected || !$('confirm').checked; $('reject').disabled = busy || !selected; $('close-review').disabled = busy; }
 async function openReview(row, button) {
   if (busy) return;
@@ -90,6 +98,13 @@ onAuthStateChanged(auth, async (user) => {
     if (generation !== session) return;
     if (role.data()?.reviewer !== true) { $('denied-panel').hidden = false; notice(); return; }
     $('workspace').hidden = false; notice(); watchQueue();
-    stopRole = onSnapshot(doc(db, 'roles', user.uid), (snapshot) => { if (generation === session && snapshot.data()?.reviewer !== true) { clean(); $('denied-panel').hidden = false; notice('Reviewer access was removed.', true); } }, () => { if (generation === session) { clean(); $('denied-panel').hidden = false; notice('Reviewer access could not be confirmed. Sign in again.', true); } });
+    let staff = role.data()?.staff === true;
+    if (staff) prices.start();
+    stopRole = onSnapshot(doc(db, 'roles', user.uid), (snapshot) => {
+      if (generation !== session) return;
+      if (snapshot.data()?.reviewer !== true) { clean(); $('denied-panel').hidden = false; notice('Reviewer access was removed.', true); return; }
+      const nextStaff = snapshot.data()?.staff === true;
+      if (nextStaff !== staff) { staff = nextStaff; if (staff) prices.start(); else { prices.stop(); showSection('reviews'); notice('Market price editing access was removed.', true); } }
+    }, () => { if (generation === session) { clean(); $('denied-panel').hidden = false; notice('Reviewer access could not be confirmed. Sign in again.', true); } });
   } catch { if (generation === session) { $('denied-panel').hidden = false; notice('Reviewer access could not be checked. Check your connection and sign in again.', true); } }
 });

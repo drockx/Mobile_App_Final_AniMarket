@@ -9,6 +9,7 @@ import { useMarketReferences, marketReferenceStore } from '@/features/market_ref
 import { DataFeedback } from '@/components/data_feedback';
 import { isDavaoDelNorteLocality, davaoDelNorteLocation } from '@/constants/davao_del_norte';
 import { appColors, appFormStyles, appTypography } from '@/constants/app_theme';
+import { marketForLocality, observationDate } from '@/features/market_reference/domain/market_reference';
 
 import { adjustment, categories, estimatePrice, peso, type Category, type Condition, type Province, type Purpose, type ReferenceRates } from '../calculator';
 
@@ -36,7 +37,7 @@ const conditions: { value: Condition; detail: string }[] = [
   { value: 'A', detail: 'Prime condition' },
 ];
 
-type Picker = 'category' | 'sex' | 'purpose' | 'province';
+type Picker = 'category' | 'sex' | 'purpose' | 'province' | 'reference';
 type Option = { value: string; label: string };
 type PriceResult = ReturnType<typeof estimatePrice>;
 
@@ -86,11 +87,17 @@ function BreakdownRow({ label, value }: { label: string; value: string }) {
   return <View style={styles.breakdownRow}><Text style={styles.breakdownLabel}>{label}</Text><Text style={styles.breakdownValue}>{value}</Text></View>;
 }
 
-export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity = 'Tagum City', onBack, onUsePrice }: {
+function referenceRate(rates: ReferenceRates) {
+  const format = (value: number) => `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${rates[0] === rates[1] ? format(rates[0]) : `${format(rates[0])}–${format(rates[1])}`}/kg`;
+}
+
+export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity = 'Tagum City', initialPriceId = '', onBack, onUsePrice }: {
   initialCategory?: Category;
   initialCity?: string;
+  initialPriceId?: string;
   onBack: () => void;
-  onUsePrice: (price: number, category: Category, weight: number) => void;
+  onUsePrice: (price: number, category: Category, weight: number, referencePriceId?: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
@@ -105,20 +112,22 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
   const [city, setCity] = useState(initialCity);
   const [province, setProvince] = useState<Province>('Davao del Norte');
   const [picker, setPicker] = useState<Picker | null>(null);
+  const [priceId, setPriceId] = useState(initialPriceId);
   const [savedResult, setResult] = useState<{ value: PriceResult; basis: string } | null>(null);
   const data = useMarketReferences();
 
   const locality = city.trim();
-  const market = isDavaoDelNorteLocality(locality) ? data.items.find((item) => item.location === davaoDelNorteLocation(locality)) : undefined;
-  const price = market?.prices.find((item) => item.category === ({ cattle: 'cow', swine: 'pig', goat: 'goat', poultry: 'poultry' }[category]) && /per kg/i.test(item.unit));
+  const market = isDavaoDelNorteLocality(locality) ? marketForLocality(data.items, davaoDelNorteLocation(locality)) : undefined;
+  const referencePrices = market?.prices.filter((item) => item.category === ({ cattle: 'cow', swine: 'pig', goat: 'goat', poultry: 'poultry' }[category]) && /per kg/i.test(item.unit)) ?? [];
+  const price = referencePrices.find((item) => item.id === priceId) ?? referencePrices[0];
+  const referenceOptions = referencePrices.map((item) => ({ value: item.id, label: item.name }));
   const rates: ReferenceRates | null = price ? [price.min, price.max] : null;
-  const basis = JSON.stringify([market?.id, market?.updatedAt, rates, category, city, province, weight, age, condition, purpose]);
+  const basis = JSON.stringify([market?.id, market?.updatedAt, price?.id, rates, category, city, province, weight, age, condition, purpose]);
   const result = savedResult?.basis === basis ? savedResult.value : null;
-  const categoryLabel = categories.find((item) => item.value === category)?.label.toLowerCase();
   const valid = Number(weight) >= 1 && Number(weight) <= 2000
     && Number(age) >= 1 && Number(age) <= 240 && isDavaoDelNorteLocality(locality) && !!rates && !data.loading && !data.error;
-  const pickerOptions = picker === 'category' ? categories : picker === 'sex' ? sexes : picker === 'purpose' ? purposes : provinces;
-  const pickerValue = picker === 'category' ? category : picker === 'sex' ? sex : picker === 'purpose' ? purpose : province;
+  const pickerOptions = picker === 'category' ? categories : picker === 'sex' ? sexes : picker === 'purpose' ? purposes : picker === 'reference' ? referenceOptions : provinces;
+  const pickerValue = picker === 'category' ? category : picker === 'sex' ? sex : picker === 'purpose' ? purpose : picker === 'reference' ? price?.id : province;
 
   function change<T>(setter: (value: T) => void, value: T) {
     setter(value);
@@ -130,6 +139,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
     if (picker === 'sex') change(setSex, value);
     if (picker === 'purpose') change(setPurpose, value as Purpose);
     if (picker === 'province') change(setProvince, value as Province);
+    if (picker === 'reference') change(setPriceId, value);
     setPicker(null);
   }
 
@@ -189,14 +199,16 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
 
         <View style={styles.referenceCard}>
           <DataFeedback loading={data.loading} error={data.error} onRetry={marketReferenceStore.retry} />
+          {referencePrices.length > 1 && <SelectField label="Price Reference" value={price?.id ?? ''} options={referenceOptions} onPress={() => setPicker('reference')} />}
           <View style={[styles.referenceTop, compact && styles.stackedRow]}>
             <View style={styles.referenceCopy}>
-              <Text style={styles.referenceTitle}>{city}, {province} {categoryLabel} reference</Text>
-              <Text style={styles.referenceRate}>{rates ? `${peso(rates[0])}–${peso(rates[1])}/kg` : 'No per-kg reference available'}</Text>
+              <Text style={styles.referenceTitle}>{price?.name ?? 'Livestock'} · {market?.location ?? province}</Text>
+              <Text style={styles.referenceRate}>{rates ? `${referenceRate(rates)} live weight` : 'No per-kg reference available'}</Text>
             </View>
-            <Text style={styles.referenceBadge}>Local market</Text>
+            <Text style={styles.referenceBadge}>{price?.statistic === 'average' ? 'Reported average' : 'Reported range'}</Text>
           </View>
-          <Text style={styles.referenceMeta}>{market?.sample ? 'Sample prices; confirm current prices with the seller.' : market?.source ?? 'Estimates require a local per-kg market reference.'}</Text>
+          <Text style={styles.referenceMeta}>{market?.sample ? 'Sample prices; confirm current prices with the seller.' : price?.sourceName ?? market?.source ?? 'Estimates require a local per-kg market reference.'}</Text>
+          {!!price && <Text style={styles.referenceMeta}>Observed {observationDate(price.observedAt)}. Confirm current prices with the seller. Age, condition and purpose adjustments are app estimates.</Text>}
         </View>
 
         <Pressable accessibilityRole="button" accessibilityState={{ disabled: !valid }} disabled={!valid} onPress={calculate} style={[styles.calculateButton, !valid && styles.buttonDisabled]}>
@@ -208,19 +220,19 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
           <View style={styles.resultSection} onLayout={() => scrollRef.current?.scrollToEnd({ animated: true })}>
             <View style={styles.resultCard}>
               <Text style={styles.resultLabel}>ESTIMATED MARKET VALUE</Text>
-              <Text style={styles.resultRange}>{peso(result.minimum)}–{peso(result.maximum)}</Text>
+              <Text style={styles.resultRange}>{result.minimum === result.maximum ? peso(result.minimum) : `${peso(result.minimum)}–${peso(result.maximum)}`}</Text>
               <Text style={styles.suggested}>Suggested listing price: <Text style={styles.suggestedValue}>{peso(result.suggested)}</Text></Text>
             </View>
             <View style={styles.breakdown}>
               <Text style={styles.breakdownTitle}>Calculation Breakdown</Text>
               <BreakdownRow label="Live weight" value={`${Number(weight).toLocaleString()} kg`} />
-              <BreakdownRow label="Local reference" value={rates ? `${peso(rates[0])}–${peso(rates[1])}/kg` : 'Unavailable'} />
+              <BreakdownRow label="Local reference" value={rates ? referenceRate(rates) : 'Unavailable'} />
               <BreakdownRow label="Body condition" value={adjustment(result.conditionFactor)} />
               <BreakdownRow label="Age adjustment" value={adjustment(result.ageFactor)} />
               <BreakdownRow label="Purpose adjustment" value={adjustment(result.purposeFactor)} />
             </View>
             <View style={[styles.resultActions, compact && styles.stackedRow]}>
-              <Pressable accessibilityRole="button" onPress={() => onUsePrice(result.suggested, category, Number(weight))} style={[styles.resultButton, styles.usePrice]}><Text style={styles.usePriceText}>Use Suggested Price</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={() => onUsePrice(result.suggested, category, Number(weight), price?.id)} style={[styles.resultButton, styles.usePrice]}><Text style={styles.usePriceText}>Use Suggested Price</Text></Pressable>
               <Pressable accessibilityRole="button" onPress={() => { setResult(null); scrollRef.current?.scrollTo({ y: 0, animated: true }); }} style={[styles.resultButton, styles.editInputs]}><Text style={styles.editText}>Edit Inputs</Text></Pressable>
             </View>
             <Text style={styles.disclaimer}>This is an advisory market estimate, not a guaranteed selling price. Actual value may vary after inspection, negotiation, documentation review, transport arrangements and changes in local demand.</Text>
@@ -232,7 +244,7 @@ export function PriceCalculatorScreen({ initialCategory = 'cattle', initialCity 
         <View style={styles.modalBackdrop}>
           <Pressable accessibilityRole="button" accessibilityLabel="Close options" onPress={() => setPicker(null)} style={StyleSheet.absoluteFill} />
           <View style={styles.optionSheet}>
-            <Text style={styles.optionTitle}>Choose {picker === 'category' ? 'Livestock Category' : picker === 'sex' ? 'Sex' : picker === 'purpose' ? 'Selling Purpose' : 'Province'}</Text>
+            <Text style={styles.optionTitle}>Choose {picker === 'category' ? 'Livestock Category' : picker === 'sex' ? 'Sex' : picker === 'purpose' ? 'Selling Purpose' : picker === 'reference' ? 'Price Reference' : 'Province'}</Text>
             <ScrollView style={styles.optionList} keyboardShouldPersistTaps="handled">
               {pickerOptions.map((option) => (
                 <Pressable key={option.value} accessibilityRole="button" accessibilityState={{ selected: pickerValue === option.value }} onPress={() => choose(option.value)} style={styles.option}>

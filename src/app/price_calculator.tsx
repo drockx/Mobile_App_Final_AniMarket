@@ -4,7 +4,7 @@ import { PriceCalculatorScreen } from '@/features/price_calculator/presentation/
 import { backOrReplace } from '@/navigation/app_navigation';
 
 export default function PriceCalculatorRoute() {
-  const { category, city } = useLocalSearchParams<{ category?: string; city?: string }>();
+  const { category, city, priceId } = useLocalSearchParams<{ category?: string; city?: string; priceId?: string }>();
   const initialCategory = category === 'goat' ? 'goat'
     : category === 'pig' || category === 'swine' ? 'swine'
       : category === 'poultry' ? 'poultry' : 'cattle';
@@ -13,8 +13,9 @@ export default function PriceCalculatorRoute() {
     <PriceCalculatorScreen
       initialCategory={initialCategory}
       initialCity={city}
+      initialPriceId={priceId}
       onBack={() => backOrReplace('/market_reference')}
-      onUsePrice={(price, animal, weight) => router.push({ pathname: '/listings/create', params: { suggestedPrice: String(price), suggestedCategory: animal, suggestedWeight: String(weight) } })}
+      onUsePrice={(price, animal, weight, referencePriceId) => router.push({ pathname: '/listings/create', params: { suggestedPrice: String(price), suggestedCategory: animal, suggestedWeight: String(weight), referencePriceId } })}
     />
   );
 }

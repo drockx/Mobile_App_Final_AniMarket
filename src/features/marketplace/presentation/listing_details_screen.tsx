@@ -46,6 +46,7 @@ export function ListingDetailsScreen({
   onOrder,
   onChat,
   onCall,
+  onViewSeller,
   orderEnabled = true,
   orderNotice,
 }: {
@@ -55,6 +56,7 @@ export function ListingDetailsScreen({
   onOrder: (id: string) => void;
   onChat?: () => void;
   onCall?: () => void;
+  onViewSeller?: () => void;
   orderEnabled?: boolean;
   orderNotice?: string;
 }) {
@@ -119,7 +121,7 @@ export function ListingDetailsScreen({
             <View style={styles.titleBlock}>
               <Text style={styles.title}>{listing.title}{listing.subtitle ? `\n${listing.subtitle}` : ''}</Text>
             </View>
-            <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}{listing.priceUnit ? ` ${listing.priceUnit}` : ''}</Text>
+            <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}{listing.priceUnit && listing.priceUnit !== 'per head' ? ` ${listing.priceUnit}` : ''}</Text>
           </View>
 
           <View style={styles.locationRow}>
@@ -155,7 +157,7 @@ export function ListingDetailsScreen({
 
           <View style={styles.divider} />
           <Text style={styles.sectionTitle}>Seller Information</Text>
-          <View style={styles.sellerCard}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`View ${listing.seller?.name ?? 'seller'} profile`} disabled={!onViewSeller} onPress={onViewSeller} style={styles.sellerCard}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
                 {listing.seller ? listing.seller.name.split(' ').map((name) => name[0]).slice(0, 2).join('') : '?'}
@@ -167,9 +169,11 @@ export function ListingDetailsScreen({
                 {listing.seller?.memberSince ? `Member since ${listing.seller.memberSince}` : 'AniMarket seller'}
               </Text>
               {listing.verified && <Text style={styles.verified}>✓ Verified Seller</Text>}
+              {onViewSeller && <Text style={styles.verified}>View Profile</Text>}
               {orderNotice && <Text style={styles.sellerMeta}>{orderNotice}</Text>}
             </View>
-          </View>
+            {onViewSeller && <NavigationIcon name="next" />}
+          </Pressable>
         </View>
       </ScrollView>
 

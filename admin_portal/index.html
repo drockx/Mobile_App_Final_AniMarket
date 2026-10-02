@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <title>AniMarket · Account verification</title>
+  <title>AniMarket · Admin Portal</title>
   <link rel="stylesheet" href="/styles.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/" aria-label="AniMarket account verification"><span class="mark" aria-hidden="true">A</span><span>AniMarket<small>Account verification</small></span></a>
+    <a class="brand" href="/" aria-label="AniMarket Admin Portal"><span class="mark" aria-hidden="true">A</span><span>AniMarket<small>Admin Portal</small></span></a>
     <button id="logout" class="outline" type="button" hidden>Sign out</button>
   </header>
   <main>
@@ -18,7 +18,7 @@
     <section id="login-panel" class="login-card card">
       <span class="eyebrow">ADMIN PORTAL</span>
       <h1>Verify with care.</h1>
-      <p class="muted">Sign in with your authorized reviewer account to review government IDs.</p>
+      <p class="muted">Sign in with your authorized account to review government IDs. Administrators can also maintain market prices.</p>
       <form id="login-form">
         <label for="email">Email address</label>
         <input id="email" type="email" autocomplete="username" required maxlength="254" placeholder="Your reviewer email">
@@ -32,6 +32,8 @@
       <h1>Reviewer access required</h1><p class="muted">This account is not authorized to review IDs. Sign out and use your reviewer login.</p>
     </section>
     <section id="workspace" hidden>
+      <nav class="admin-tabs" aria-label="Admin sections"><button id="reviews-tab" class="primary" type="button" aria-pressed="true">ID Reviews</button><button id="prices-tab" class="outline" type="button" aria-pressed="false" hidden>Market Prices</button></nav>
+      <div id="reviews-pane">
       <div class="page-title"><div><span class="eyebrow">ACCOUNT VERIFICATION</span><h1>Pending reviews <span id="count" class="count">0</span></h1><p class="muted">Check that the ID is readable and the name matches the account.</p></div><button id="refresh" class="outline" type="button">Refresh</button></div>
       <div class="workspace-grid">
         <section class="card queue" aria-label="Pending ID submissions"><h2>Review queue</h2><p id="empty" class="empty">No IDs waiting for review.</p><div id="queue"></div></section>
@@ -48,9 +50,32 @@
           </div>
         </section>
       </div>
+      </div>
+      <section id="prices-pane" hidden aria-label="Market price editor">
+        <div class="page-title"><div><span class="eyebrow">DAVAO DEL NORTE</span><h1>Market prices</h1><p class="muted">Maintain verified PHP/kg live-weight farmgate references, with sources and observation dates.</p></div></div>
+        <div class="workspace-grid">
+          <section class="card queue"><h2>Published references</h2><p id="prices-empty" class="empty">Loading references…</p><div id="prices-list"></div></section>
+          <section class="card detail"><p id="prices-choose" class="empty">Choose a reference to edit its price.</p>
+            <form id="price-form" hidden>
+              <h2 id="price-title"></h2><p id="price-basis" class="muted"></p>
+              <p id="price-stale" class="notice" hidden>This reference changed while you were editing. Your input has been kept; reload the latest values before saving.</p>
+              <button id="price-reload" type="button" class="outline">Reload latest values</button>
+              <label for="price-type">Price type</label><select id="price-type"><option value="average">Reported average</option><option value="range">Reported range</option></select>
+              <div class="price-fields"><div><label id="price-min-label" for="price-min">Average price (PHP/kg)</label><input id="price-min" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01" required></div><div id="price-max-field" hidden><label for="price-max">Maximum price (PHP/kg)</label><input id="price-max" type="number" inputmode="decimal" min="0.01" max="1000000" step="0.01"></div></div>
+              <label for="price-date">Observation date</label><input id="price-date" type="date" required><p class="fine">For a monthly report, use the last day of the reported month and describe the period in the notes.</p>
+              <label for="price-source">Source name</label><input id="price-source" maxlength="150" required>
+              <label for="price-url">Public HTTPS source link</label><input id="price-url" type="url" maxlength="2048" required placeholder="https://…">
+              <label for="price-notes">Source notes / reported period</label><textarea id="price-notes" rows="4" maxlength="500"></textarea>
+              <p class="fine">Keep notes accurate for this source and date. Updating an entry does not make an older observation a current quote. Every edit is audited.</p>
+              <label class="check"><input id="price-confirm" type="checkbox" required><span>I checked this price, location and observation date against the linked source.</span></label>
+              <button id="price-save" type="submit" class="primary full">Publish price update</button>
+            </form>
+          </section>
+        </div>
+      </section>
     </section>
     <noscript><p class="notice">Enable JavaScript to use this portal.</p></noscript>
   </main>
-  <footer>Private government ID review · AniMarket</footer>
+  <footer>Account verification and sourced market references · AniMarket</footer>
 </body>
 </html>

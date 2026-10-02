@@ -123,6 +123,8 @@ test('login resumes message routes and rejects external or unexpected destinatio
   assert.equal(loginDestination('/messages'), '/messages');
   assert.equal(loginDestination('/messages/abcd-1234'), '/messages/abcd-1234');
   assert.equal(loginDestination('/listings/create'), '/listings/create');
+  assert.equal(loginDestination('/users/registered_UID-123'), '/users/registered_UID-123');
+  assert.equal(loginDestination('/users/../../admin'), '/home');
   assert.equal(loginDestination('https://other.example'), '/home');
   assert.equal(loginDestination('//other.example'), '/home');
   assert.equal(loginDestination('/messages/../../profile'), '/home');

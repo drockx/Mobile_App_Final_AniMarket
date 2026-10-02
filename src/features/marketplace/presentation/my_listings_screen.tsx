@@ -162,9 +162,9 @@ export function MyListingsScreen({ service, onBack, onCreate, onInquiries, onOrd
               <Text style={styles.meta}>{item.details}</Text>
               <Text style={styles.meta}>{item.location}</Text>
             </View>
-            {!stackPrice && <View style={styles.priceBlock}><Text style={styles.price}>{money(item.price)}</Text><Text style={styles.unit}>{item.unit}</Text></View>}
+            {!stackPrice && <View style={styles.priceBlock}><Text style={styles.price}>{money(item.price)}</Text>{(item.status === 'draft' || item.unit !== 'per head') && <Text style={styles.unit}>{item.unit}</Text>}</View>}
           </View>
-          {stackPrice && <View style={styles.compactPrice}><Text style={styles.price}>{money(item.price)}</Text><Text style={styles.unit}>{item.unit}</Text></View>}
+          {stackPrice && <View style={styles.compactPrice}><Text style={styles.price}>{money(item.price)}</Text>{(item.status === 'draft' || item.unit !== 'per head') && <Text style={styles.unit}>{item.unit}</Text>}</View>}
           <View style={styles.metrics}>{[['Views', String(item.views)], ['Inquiries', String(item.inquiries)], ['Updated', item.updated]].map(([label, value]) => <View key={label} style={styles.metric}><Text style={styles.metricLabel}>{label.toUpperCase()}</Text><Text style={styles.metricValue}>{value}</Text></View>)}</View>
           <View style={styles.notice}><Text style={styles.noticeText}>{item.notice}</Text></View>
           <View style={[styles.actions, compact && styles.actionsCompact]}>

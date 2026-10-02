@@ -46,6 +46,7 @@ export default function RootLayout() {
           <Stack.Screen name="listings/create" />
           <Stack.Screen name="listings/id" />
           <Stack.Protected guard={account.signedIn}>
+            <Stack.Screen name="users/[id]" />
             <Stack.Screen name="profile" />
             <Stack.Screen name="my_listings" />
             <Stack.Screen name="personal_information" />

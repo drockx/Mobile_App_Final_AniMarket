@@ -5,13 +5,14 @@ import { DataFeedback } from '@/components/data_feedback';
 import { useMemo, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
 import { animalIcons } from '@/constants/animal_icons';
 
 import type { LocalMarket, MarketCategory, MarketPrice } from '../domain/market_reference';
+import { observationDate, isSourceUrl } from '../domain/market_reference';
 
 const forest = '#12372a';
 const ink = '#17221d';
@@ -26,7 +27,7 @@ const categories: { label: string; value: MarketCategory | 'all' }[] = [
 ];
 const sortOptions = [
   { label: 'Sort: Name', shortLabel: 'Sort: Name', value: 'name' },
-  { label: 'Highest median', shortLabel: 'High median', value: 'median' },
+  { label: 'Highest price', shortLabel: 'High price', value: 'median' },
   { label: 'Largest change', shortLabel: 'Big change', value: 'change' },
 ] as const;
 type SortValue = typeof sortOptions[number]['value'];
@@ -37,7 +38,11 @@ const icons = {
 } as const;
 
 function peso(value: number) {
-  return `₱${value.toLocaleString('en-PH')}`;
+  return `₱${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function openSource(url?: string) {
+  if (url && isSourceUrl(url)) void Linking.openURL(url).catch(() => Alert.alert('Source unavailable', 'Unable to open the source. Please try again.'));
 }
 
 function PriceCard({ item, onHistory, onCalculator }: {
@@ -46,10 +51,14 @@ function PriceCard({ item, onHistory, onCalculator }: {
   onCalculator?: () => void;
 }) {
   const trend = item.change > 0
-    ? `↑ ${item.change.toFixed(1)}% vs 7-day avg`
+    ? `↑ ${item.change.toFixed(1)}%`
     : item.change < 0
-      ? `↓ ${Math.abs(item.change).toFixed(1)}% vs 7-day avg`
-      : '→ Stable vs 7-day avg';
+      ? `↓ ${Math.abs(item.change).toFixed(1)}%`
+      : '→ 0.0%';
+  const trendLabel = item.change === 0
+    ? 'No price change from the previous report'
+    : `Price ${item.change > 0 ? 'increased' : 'decreased'} ${Math.abs(item.change).toFixed(1)} percent from the previous report`;
+  const sourceName = item.sourceName === 'Philippine Statistics Authority (PSA)' ? 'PSA' : item.sourceName ?? 'View report';
 
   return (
     <View style={styles.priceCard}>
@@ -62,14 +71,15 @@ function PriceCard({ item, onHistory, onCalculator }: {
           </View>
         </View>
         <View style={styles.priceBox}>
-          <Text style={styles.priceRange}>{peso(item.min)}–{peso(item.max)}</Text>
-          <Text style={styles.median}>Median {peso(item.median)}</Text>
+          <Text style={styles.priceRange}>{item.min === item.max ? peso(item.min) : `${peso(item.min)}–${peso(item.max)}`}</Text>
+          <Text style={styles.priceBasis}>{item.statistic === 'average' ? 'Average' : 'Range'}</Text>
         </View>
       </View>
-      <View style={styles.cardDetails}>
-        <Text style={[styles.trend, item.change > 0 ? styles.trendUp : item.change < 0 ? styles.trendDown : styles.trendStable]}>{trend}</Text>
-        <Text style={styles.observations}>{item.observations} observations</Text>
-      </View>
+      {(item.history.length > 1 || item.observedAt) && <View style={styles.cardDetails}>
+        {item.history.length > 1 && <Text accessibilityLabel={trendLabel} style={[styles.trend, item.change > 0 ? styles.trendUp : item.change < 0 ? styles.trendDown : styles.trendStable]}>{trend}</Text>}
+        {!!item.observedAt && <Text style={styles.reportDate}>As of {observationDate(item.observedAt)}</Text>}
+      </View>}
+      {!!item.sourceUrl && <Pressable accessibilityRole="link" accessibilityLabel={`Source: ${item.sourceName ?? 'View report'}`} onPress={() => openSource(item.sourceUrl)} style={styles.sourceButton}><Text style={styles.sourceText}>Source: {sourceName} ↗</Text></Pressable>}
       <View style={styles.cardActions}>
         {onCalculator && (
           <Pressable accessibilityRole="button" accessibilityLabel={`Use ${item.name} in calculator`} onPress={onCalculator} style={[styles.cardButton, styles.calculatorButton]}>
@@ -84,7 +94,7 @@ function PriceCard({ item, onHistory, onCalculator }: {
   );
 }
 
-export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpenCalculator }: { markets: readonly LocalMarket[]; loading?: boolean; error?: string | null; onRetry?: () => void; onOpenCalculator?: (category: MarketCategory, city: string) => void }) {
+export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpenCalculator }: { markets: readonly LocalMarket[]; loading?: boolean; error?: string | null; onRetry?: () => void; onOpenCalculator?: (category: MarketCategory, city: string, priceId: string) => void }) {
   const insets = useSafeAreaInsets();
   const [marketId, setMarketId] = useState('');
   const [marketOpen, setMarketOpen] = useState(false);
@@ -133,7 +143,6 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
       <KeyboardScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <DataFeedback loading={loading} error={error} onRetry={onRetry} />
         <View style={styles.regionCard}>
-          <Text style={styles.eyebrow}>DAVAO DEL NORTE MARKET</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Choose market, currently ${market.name}`}
@@ -141,7 +150,7 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
             onPress={() => { setMarketOpen(!marketOpen); setSortOpen(false); }}
             style={styles.marketSelect}
           >
-            <Text style={styles.marketSelectText}>{market.name}</Text>
+            <Text style={styles.marketSelectText}>{market.scope === 'province' ? market.location : market.name}</Text>
             <NavigationIcon name={marketOpen ? 'up' : 'down'} />
           </Pressable>
           {marketOpen && (
@@ -163,8 +172,7 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
               ))}
             </View>
           )}
-          <Text style={styles.marketMeta}>{market.location} • {market.sample ? 'Sample reference' : market.source ?? 'Market reference'}</Text>
-          <Text style={styles.marketMeta}>{market.sample ? 'Sample prices; confirm with the seller before trading.' : market.updatedAt ? `Updated ${new Date(market.updatedAt).toLocaleDateString()}` : 'Confirm current prices before trading.'}</Text>
+          {market.sample && <Text style={styles.marketMeta}>Sample prices</Text>}
         </View>
 
         <View style={styles.toolsRow}>
@@ -196,11 +204,11 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
         </View>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryText}>{prices.length} market {prices.length === 1 ? 'reference' : 'references'}</Text>
-          <Text style={[styles.summaryText, styles.summaryHint]}>Range • Median • 7-day change</Text>
+          <Text style={styles.summaryText}>{prices.length} {prices.length === 1 ? 'reference' : 'references'}</Text>
+          <Text style={[styles.summaryText, styles.summaryHint]}>PHP · Live weight</Text>
         </View>
         {prices.length ? prices.map((item) => (
-          <PriceCard key={item.id} item={item} onCalculator={onOpenCalculator ? () => onOpenCalculator(item.category, market.location.split(',')[0]) : undefined} onHistory={() => openPriceModal(item)} />
+          <PriceCard key={item.id} item={item} onCalculator={onOpenCalculator ? () => onOpenCalculator(item.category, market.scope === 'province' ? 'Tagum City' : market.location.split(',')[0], item.id) : undefined} onHistory={() => openPriceModal(item)} />
         )) : <Text style={styles.emptyState}>No market references match this search and category.</Text>}
 
       </KeyboardScrollView>
@@ -214,7 +222,12 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
             <Text style={styles.modalTitle}>{selectedPrice?.name ?? ''} Price History</Text>
             <Text style={styles.modalSubtitle}>{market.name} • {selectedPrice?.unit ?? ''}</Text>
             <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-              {selectedPrice && (
+              {!!selectedPrice?.historyEntries?.length ? selectedPrice.historyEntries.map((entry) => <View key={entry.observedAt} style={styles.historyRow}>
+                <Text style={styles.itemName}>{observationDate(entry.observedAt)}</Text>
+                <Text style={styles.priceRange}>{entry.min === entry.max ? peso(entry.min) : `${peso(entry.min)}–${peso(entry.max)}`}</Text>
+                <Text style={styles.marketMeta}>{entry.statistic === 'average' ? 'Average' : 'Range'} · {selectedPrice.unit}</Text>
+                <Pressable accessibilityRole="link" onPress={() => openSource(entry.sourceUrl)} style={styles.sourceButton}><Text style={styles.historyText}>{entry.sourceName} ↗</Text></Pressable>
+              </View>) : selectedPrice && (
                 <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={styles.chart}>
                   {selectedPrice.history.map((value, index) => {
                     const low = Math.min(...selectedPrice.history);
@@ -224,7 +237,7 @@ export function MarketReferenceScreen({ markets, loading, error, onRetry, onOpen
                       <View key={index} style={styles.chartColumn}>
                         <Text style={styles.chartValue}>{peso(value)}</Text>
                         <View style={styles.chartTrack}><View style={[styles.chartBar, { height: barHeight }]} /></View>
-                        <Text style={styles.chartDay}>D{index + 1}</Text>
+                        <Text style={styles.chartDay}>Report {index + 1}</Text>
                       </View>
                     );
                   })}
@@ -244,8 +257,9 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 15, paddingBottom: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#edf2f0' },
   headerTitle: { color: forest, fontSize: 24, lineHeight: 30, fontWeight: '700' },
   content: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 22 },
+  sourceButton: { minHeight: 44, justifyContent: 'center', paddingVertical: 8 },
+  historyRow: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: border },
   regionCard: { padding: 14, borderWidth: 1, borderColor: border, borderRadius: 15, backgroundColor: '#fff' },
-  eyebrow: { color: muted, fontSize: 13, lineHeight: 18, fontWeight: '800', letterSpacing: 0.35, marginBottom: 7 },
   marketSelect: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: '#cbd5d0', borderRadius: 10, backgroundColor: '#f8faf9', flexDirection: 'row', alignItems: 'center', gap: 8 },
   marketSelectText: { flex: 1, minWidth: 0, color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   marketMenu: { marginTop: 4, borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#fff', overflow: 'hidden' },
@@ -253,25 +267,25 @@ const styles = StyleSheet.create({
   marketOptionSelected: { backgroundColor: '#eaf5ed' },
   marketOptionCopy: { flex: 1, minWidth: 0 },
   marketOptionName: { color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
-  marketOptionLocation: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
+  marketOptionLocation: { color: muted, fontSize: 14, lineHeight: 20, marginTop: 2 },
   marketOptionCheck: { color: forest, fontSize: 18, lineHeight: 25, fontWeight: '800' },
-  marketMeta: { color: '#53675b', fontSize: 13, lineHeight: 18, marginTop: 5 },
+  marketMeta: { color: '#53675b', fontSize: 14, lineHeight: 20, marginTop: 5 },
   toolsRow: { marginTop: 13, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   searchField: { flexGrow: 1, flexShrink: 1, flexBasis: 180, minWidth: 0, minHeight: 48, paddingHorizontal: 11, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
   searchInput: { flex: 1, minWidth: 0, minHeight: 46, marginLeft: 7, paddingVertical: 10, color: ink, fontSize: 16, lineHeight: 22 },
-  sortButton: { width: 116, maxWidth: '100%', marginLeft: 'auto', minHeight: 48, paddingHorizontal: 9, paddingVertical: 8, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#fff' },
-  sortText: { flex: 1, minWidth: 0, color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  sortButton: { width: 136, maxWidth: '100%', marginLeft: 'auto', minHeight: 48, paddingHorizontal: 9, paddingVertical: 8, borderWidth: 1, borderColor: border, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#fff' },
+  sortText: { flex: 1, minWidth: 0, color: forest, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   sortMenu: { alignSelf: 'flex-end', width: 175, marginTop: 4, borderWidth: 1, borderColor: border, borderRadius: 10, backgroundColor: '#fff', overflow: 'hidden' },
   sortOption: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, justifyContent: 'center', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: border },
-  sortOptionText: { color: ink, fontSize: 13, lineHeight: 18 },
+  sortOptionText: { color: ink, fontSize: 14, lineHeight: 20 },
   sortOptionSelected: { color: forest, fontWeight: '800' },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12, marginBottom: 10 },
   categoryButton: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: border, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   categorySelected: { backgroundColor: forest, borderColor: forest },
-  categoryText: { color: muted, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  categoryText: { color: muted, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   categoryTextSelected: { color: '#fff' },
   summaryRow: { marginBottom: 8, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  summaryText: { color: muted, fontSize: 13, lineHeight: 18 },
+  summaryText: { color: muted, fontSize: 14, lineHeight: 20 },
   summaryHint: { flexShrink: 1, textAlign: 'right' },
   priceCard: { marginBottom: 10, padding: 12, borderWidth: 1, borderColor: '#e2e8e4', borderRadius: 14, backgroundColor: '#fff' },
   cardTop: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
@@ -280,34 +294,35 @@ const styles = StyleSheet.create({
   animalIcon: { fontSize: 19, lineHeight: 24 },
   itemCopy: { flex: 1, minWidth: 0 },
   itemName: { color: ink, fontSize: 15, lineHeight: 21, fontWeight: '800' },
-  itemBasis: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
+  itemBasis: { color: muted, fontSize: 14, lineHeight: 20, marginTop: 2 },
   priceBox: { maxWidth: '100%', minWidth: 0, flexShrink: 1, marginLeft: 'auto', alignItems: 'flex-end' },
   priceRange: { color: forest, fontSize: 16, lineHeight: 22, fontWeight: '800', textAlign: 'right' },
-  median: { color: '#53675b', fontSize: 13, lineHeight: 18, marginTop: 2 },
+  priceBasis: { color: '#53675b', fontSize: 14, lineHeight: 20, marginTop: 2 },
   cardDetails: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#edf2f0', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 6 },
-  trend: { flex: 1, minWidth: 0, fontSize: 13, lineHeight: 18, fontWeight: '700' },
+  trend: { flexShrink: 0, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   trendUp: { color: '#15803d' },
   trendDown: { color: '#b42318' },
   trendStable: { color: muted },
-  observations: { color: muted, fontSize: 13, lineHeight: 18, textAlign: 'right' },
+  reportDate: { flexShrink: 1, marginLeft: 'auto', color: muted, fontSize: 14, lineHeight: 20, textAlign: 'right' },
+  sourceText: { color: forest, fontSize: 14, lineHeight: 20, fontWeight: '700' },
   cardActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   cardButton: { flexGrow: 1, flexShrink: 1, flexBasis: 130, minWidth: 0, minHeight: 44, paddingHorizontal: 10, paddingVertical: 10, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   calculatorButton: { backgroundColor: forest },
   historyButton: { borderWidth: 1, borderColor: forest, backgroundColor: '#fff' },
-  calculatorText: { color: '#fff', fontSize: 13, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
-  historyText: { color: forest, fontSize: 13, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
+  calculatorText: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
+  historyText: { color: forest, fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
   emptyState: { padding: 24, borderWidth: 1, borderStyle: 'dashed', borderColor: '#cbd5d0', borderRadius: 13, backgroundColor: '#fff', color: muted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   modalRoot: { flex: 1, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,34,25,0.62)' },
   modalSheet: { width: '100%', maxWidth: 420, maxHeight: '82%', padding: 17, borderRadius: 16, backgroundColor: '#fff' },
   modalTitle: { color: forest, fontSize: 18, lineHeight: 25, fontWeight: '800' },
-  modalSubtitle: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 4 },
+  modalSubtitle: { color: muted, fontSize: 14, lineHeight: 20, marginTop: 4 },
   modalScroll: { flexGrow: 0, marginTop: 12 },
   chart: { minWidth: 480, minHeight: 170, padding: 10, borderRadius: 12, backgroundColor: '#f5f9f6', flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
   chartColumn: { flexGrow: 1, minWidth: 60, alignItems: 'center' },
-  chartValue: { color: muted, fontSize: 13, lineHeight: 18, textAlign: 'center' },
+  chartValue: { color: muted, fontSize: 14, lineHeight: 20, textAlign: 'center' },
   chartTrack: { height: 108, width: '100%', justifyContent: 'flex-end', paddingHorizontal: 2 },
   chartBar: { width: '100%', borderTopLeftRadius: 5, borderTopRightRadius: 5, backgroundColor: '#4b8b69' },
-  chartDay: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 3 },
+  chartDay: { color: muted, fontSize: 14, lineHeight: 20, marginTop: 3 },
   closeButton: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, marginTop: 13, borderRadius: 10, backgroundColor: forest, alignItems: 'center', justifyContent: 'center' },
   closeText: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700' },
 });

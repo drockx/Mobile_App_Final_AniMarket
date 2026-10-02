@@ -7,9 +7,9 @@ export default function MarketReferenceRoute() {
   return (
     <MarketReferenceScreen
       markets={data.items} loading={data.loading} error={data.error} onRetry={marketReferenceStore.retry}
-      onOpenCalculator={(category, city) => router.push({
+      onOpenCalculator={(category, city, priceId) => router.push({
         pathname: '/price_calculator',
-        params: { category, city },
+        params: { category, city, priceId },
       })}
     />
   );

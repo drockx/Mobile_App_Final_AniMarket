@@ -13,7 +13,7 @@ import type { LocationSelection } from '@/features/location/location_dependencie
 export default function CreateListingRoute() {
   const account = useAccount();
   useFocusEffect(useCallback(() => { if (account.signedIn) void refreshAccount().catch(() => {}); }, [account.signedIn]));
-  const { suggestedPrice, suggestedCategory, suggestedWeight, suggestedTitle, suggestedUnit, draftId } = useLocalSearchParams<{ suggestedPrice?: string; suggestedCategory?: string; suggestedWeight?: string; suggestedTitle?: string; suggestedUnit?: string; draftId?: string }>();
+  const { suggestedPrice, suggestedCategory, suggestedWeight, suggestedTitle, suggestedUnit, draftId, referencePriceId } = useLocalSearchParams<{ suggestedPrice?: string; suggestedCategory?: string; suggestedWeight?: string; suggestedTitle?: string; suggestedUnit?: string; draftId?: string; referencePriceId?: string }>();
   const initialPrice = suggestedPrice && /^\d+(\.\d{1,2})?$/.test(suggestedPrice) && Number.isFinite(Number(suggestedPrice)) && Number(suggestedPrice) > 0 ? suggestedPrice : '';
   const initialCategory = suggestedCategory === 'goat' ? 'Goat' : suggestedCategory === 'swine' ? 'Pig' : suggestedCategory === 'poultry' ? 'Chicken' : 'Cow';
   const initialWeight = suggestedWeight && Number(suggestedWeight) > 0 && Number.isFinite(Number(suggestedWeight)) ? suggestedWeight : '';
@@ -45,6 +45,7 @@ export default function CreateListingRoute() {
       initialPrice={initialPrice}
       initialCategory={initialCategory}
       initialWeight={initialWeight}
+      initialReferencePriceId={referencePriceId}
       initialTitle={suggestedTitle}
       initialPriceUnit={suggestedUnit === 'per kg' || suggestedUnit === 'total' ? suggestedUnit : 'per head'}
       onClose={() => backOrReplace('/home')}

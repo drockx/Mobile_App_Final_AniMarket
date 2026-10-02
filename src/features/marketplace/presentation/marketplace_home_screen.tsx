@@ -55,7 +55,7 @@ function ListingCard({ listing, onPress, wide }: { listing: Listing; onPress: ()
         <Text numberOfLines={2} style={styles.cardTitle}>{listing.title}</Text>
         <Text numberOfLines={2} style={styles.cardDetails}>{listing.details}</Text>
         <Text numberOfLines={2} style={styles.cardAddress}>{formatListingAddress(listing)}</Text>
-        <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}{listing.priceUnit ? ` ${listing.priceUnit}` : ''}</Text>
+        <Text style={styles.price}>₱{listing.price.toLocaleString('en-PH')}{listing.priceUnit && listing.priceUnit !== 'per head' ? ` ${listing.priceUnit}` : ''}</Text>
       </View>
     </Pressable>
   );

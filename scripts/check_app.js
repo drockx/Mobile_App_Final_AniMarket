@@ -8,6 +8,8 @@ const checks = [
   ...['architecture', 'data', 'orders', 'navigation', 'location', 'inputs', 'calendar', 'auth', 'messages', 'calls', 'verification', 'profile_photos', 'backend_bootstrap']
     .map((name) => [name, `scripts/check_${name}.js`]),
   ['Cloud records', 'scripts/check_cloud.mjs'],
+  ['Market prices', 'scripts/check_market_prices.mjs'],
+  ['Public profiles and ratings', 'scripts/check_public_profiles.mjs'],
 ];
 for (const [label, script, ...args] of checks) {
   console.log(`\nChecking ${label}`);

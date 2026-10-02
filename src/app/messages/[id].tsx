@@ -25,6 +25,7 @@ export default function ConversationRoute() {
       conversationId={id}
       service={messageService}
       focused={focused}
+      onViewProfile={(userId) => router.push({ pathname: '/users/[id]', params: { id: userId } })}
       onBack={() => backOrReplace('/messages')}
       onCall={() => {
         const call = voiceService.getSnapshot();

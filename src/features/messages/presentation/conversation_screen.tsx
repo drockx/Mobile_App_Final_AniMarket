@@ -14,8 +14,9 @@ const muted = '#5b6d63';
 const sendIcon = { ios: 'paperplane.fill', android: 'send', web: 'send' } as const;
 const callIcon = { ios: 'phone', android: 'call', web: 'call' } as const;
 
-export function ConversationScreen({ conversationId, service, focused, onBack, onCall }: {
+export function ConversationScreen({ conversationId, service, focused, onBack, onCall, onViewProfile }: {
   conversationId: string; service: MessageService; focused: boolean; onBack: () => void; onCall: () => void;
+  onViewProfile?: (userId: string) => void;
 }) {
   const insets = useSafeAreaInsets();
   const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
@@ -65,10 +66,10 @@ export function ConversationScreen({ conversationId, service, focused, onBack, o
       <View style={[styles.header, { paddingTop: insets.top + 5 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back to messages" onPress={onBack} style={styles.iconButton}><NavigationIcon name="back" /></Pressable>
         <View style={styles.avatar}><Text style={styles.avatarText}>{conversation?.initials ?? '…'}</Text></View>
-        <View style={styles.person}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`View ${conversation?.participant ?? 'user'} profile`} disabled={!onViewProfile || !conversation?.participantId} onPress={() => { if (conversation?.participantId) onViewProfile?.(conversation.participantId); }} style={styles.person}>
           <Text numberOfLines={1} style={styles.name}>{conversation?.participant ?? 'Conversation'}</Text>
           <Text style={styles.status}>{snapshot.status === 'live' ? 'Live messaging' : snapshot.status === 'connecting' ? 'Connecting…' : 'Reconnecting…'}</Text>
-        </View>
+        </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel={`Voice call ${conversation?.participant ?? 'user'}`} accessibilityState={{ disabled: !conversation }} disabled={!conversation} onPress={onCall} style={[styles.iconButton, !conversation && styles.disabled]}><SymbolView name={callIcon} size={23} tintColor={forest} /></Pressable>
       </View>
       {conversation?.listingId && <View style={styles.context}><Text numberOfLines={2} style={styles.contextText}>{conversation.listing}</Text></View>}
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
   iconButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#c7e4d1', alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: forest, fontSize: 15, lineHeight: 21, fontWeight: '700' },
-  person: { flex: 1, minWidth: 0 },
+  person: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
   name: { color: forest, fontSize: 17, lineHeight: 23, fontWeight: '700' },
   status: { color: muted, fontSize: 13, lineHeight: 18, marginTop: 2 },
   context: { paddingHorizontal: 18, paddingVertical: 12, backgroundColor: '#edf7f1' },

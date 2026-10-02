@@ -18,6 +18,11 @@ export default function ListingDetailsRoute() {
     <ListingDetailsScreen
       listingId={id}
       marketplace={marketplaceService}
+      onViewSeller={listing?.seller?.id ? () => {
+        const sellerId = listing.seller!.id!;
+        if (!account.signedIn) { router.push({ pathname: '/login', params: { returnTo: `/users/${sellerId}` } }); return; }
+        router.push({ pathname: '/users/[id]', params: { id: sellerId } });
+      } : undefined}
       onCall={listing?.seller?.id && listing.seller.id !== account.userId ? () => {
         if (!account.signedIn) { router.push({ pathname: '/login', params: { returnTo: '/messages' } }); return; }
         const current = voiceService.getSnapshot();

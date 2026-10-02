@@ -10,6 +10,8 @@ import { createCommerce } from './commerce.mjs';
 import { createChat } from './chat.mjs';
 import { createCalls } from './calls.mjs';
 import { createMaintenance } from './maintenance.mjs';
+import { createMarketPrices } from './market_prices.mjs';
+import { createPublicProfiles } from './public_profiles.mjs';
 import { authorizeAction, authorizeProfile } from './session_access.mjs';
 
 const jwks = createRemoteJWKSet(new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
@@ -78,9 +80,11 @@ const accountActions = createAccountActions({ store, media, accounts, authAdmin 
 const commerce = createCommerce({ store, accounts, media });
 const chat = createChat({ store, accounts });
 const calls = createCalls({ store, accounts, chat, env: (key) => Deno.env.get(key) });
+const marketPrices = createMarketPrices({ store });
+const publicProfiles = createPublicProfiles({ store, accounts });
 async function action(session, path, body, method) {
   authorizeAction(session, path);
-  const result = await accountActions(session, path, body, method) ?? await commerce(session.uid, path, body, method)
+  const result = await publicProfiles(session, path, body, method) ?? await marketPrices(session, path, body, method) ?? await accountActions(session, path, body, method) ?? await commerce(session.uid, path, body, method)
     ?? await chat.handle(session.uid, path, body, method) ?? await calls.handle(session.uid, path, body, method);
   if (result === undefined) throw new BackendError('This action is unavailable.', 404); return result;
 }

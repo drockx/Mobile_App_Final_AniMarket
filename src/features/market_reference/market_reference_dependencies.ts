@@ -3,7 +3,7 @@ import { createCollectionStore } from '@/services/collection';
 import { appRepositories } from '@/data/app_repositories';
 import { isMarketRecord } from './domain/market_reference';
 
-/** Sample references for the prototype; replace with verified market data before production use. */
+/** Public, sourced references maintained through the authorized admin endpoint. */
 export const marketReferenceStore = createCollectionStore(appRepositories.markets, isMarketRecord);
 marketReferenceStore.connect('public');
 

@@ -1,0 +1,385 @@
+{
+  "id": "davao-del-norte-official",
+  "name": "Davao del Norte · Livestock references",
+  "location": "Davao del Norte",
+  "scope": "province",
+  "sample": false,
+  "source": "Sources and observation dates shown per reference",
+  "prices": [
+    {
+      "id": "cow-0",
+      "category": "cow",
+      "name": "Cow",
+      "unit": "per kg live weight",
+      "observedAt": "2026-06-30",
+      "min": 235.11,
+      "max": 235.11,
+      "statistic": "average",
+      "sourceName": "Philippine Statistics Authority (PSA)",
+      "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/",
+      "median": 235.11,
+      "change": 2.1684338605944653,
+      "observations": 0,
+      "revision": 1,
+      "history": [
+        240,
+        240,
+        245,
+        240.09,
+        230.12,
+        235.11
+      ],
+      "historyEntries": [
+        {
+          "observedAt": "2026-01-31",
+          "min": 240,
+          "max": 240,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-02-28",
+          "min": 240,
+          "max": 240,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-03-31",
+          "min": 245,
+          "max": 245,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-04-30",
+          "min": 240.09,
+          "max": 240.09,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-05-31",
+          "min": 230.12,
+          "max": 230.12,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-06-30",
+          "min": 235.11,
+          "max": 235.11,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        }
+      ],
+      "notes": "Cattle for Slaughter. June 2026 monthly provincial weighted household/establishment farmgate average; Q2 2026 preliminary. PSA table updated August 4, 2026. Not an October spot quote or a breed-specific price."
+    },
+    {
+      "id": "pig-1",
+      "category": "pig",
+      "name": "Pig",
+      "unit": "per kg live weight",
+      "observedAt": "2026-06-30",
+      "min": 189.5,
+      "max": 189.5,
+      "statistic": "average",
+      "sourceName": "Philippine Statistics Authority (PSA)",
+      "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/",
+      "median": 189.5,
+      "change": -0.6084128815692869,
+      "observations": 0,
+      "revision": 1,
+      "history": [
+        206.14,
+        207.19,
+        210.86,
+        192.15,
+        190.66,
+        189.5
+      ],
+      "historyEntries": [
+        {
+          "observedAt": "2026-01-31",
+          "min": 206.14,
+          "max": 206.14,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-02-28",
+          "min": 207.19,
+          "max": 207.19,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-03-31",
+          "min": 210.86,
+          "max": 210.86,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-04-30",
+          "min": 192.15,
+          "max": 192.15,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-05-31",
+          "min": 190.66,
+          "max": 190.66,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-06-30",
+          "min": 189.5,
+          "max": 189.5,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        }
+      ],
+      "notes": "Hog for Slaughter. June 2026 monthly provincial weighted household/establishment farmgate average; Q2 2026 preliminary. PSA table updated August 4, 2026. Not an October spot quote or a breed-specific price."
+    },
+    {
+      "id": "goat-2",
+      "category": "goat",
+      "name": "Goat",
+      "unit": "per kg live weight",
+      "observedAt": "2026-06-30",
+      "min": 280.01,
+      "max": 280.01,
+      "statistic": "average",
+      "sourceName": "Philippine Statistics Authority (PSA)",
+      "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/",
+      "median": 280.01,
+      "change": -3.4448275862069,
+      "observations": 0,
+      "revision": 1,
+      "history": [
+        270.02,
+        270.02,
+        280.01,
+        330,
+        290,
+        280.01
+      ],
+      "historyEntries": [
+        {
+          "observedAt": "2026-01-31",
+          "min": 270.02,
+          "max": 270.02,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-02-28",
+          "min": 270.02,
+          "max": 270.02,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-03-31",
+          "min": 280.01,
+          "max": 280.01,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-04-30",
+          "min": 330,
+          "max": 330,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-05-31",
+          "min": 290,
+          "max": 290,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-06-30",
+          "min": 280.01,
+          "max": 280.01,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        }
+      ],
+      "notes": "Goat for Slaughter. June 2026 monthly provincial weighted household/establishment farmgate average; Q2 2026 preliminary. PSA table updated August 4, 2026. Not an October spot quote or a breed-specific price."
+    },
+    {
+      "id": "poultry-3",
+      "category": "poultry",
+      "name": "Chicken (Broiler)",
+      "unit": "per kg live weight",
+      "observedAt": "2026-06-30",
+      "min": 120,
+      "max": 120,
+      "statistic": "average",
+      "sourceName": "Philippine Statistics Authority (PSA)",
+      "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/",
+      "median": 120,
+      "change": 9.061165136780879,
+      "observations": 0,
+      "revision": 1,
+      "history": [
+        132.11,
+        132.11,
+        142.11,
+        110.03,
+        110.03,
+        120
+      ],
+      "historyEntries": [
+        {
+          "observedAt": "2026-01-31",
+          "min": 132.11,
+          "max": 132.11,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-02-28",
+          "min": 132.11,
+          "max": 132.11,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-03-31",
+          "min": 142.11,
+          "max": 142.11,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-04-30",
+          "min": 110.03,
+          "max": 110.03,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-05-31",
+          "min": 110.03,
+          "max": 110.03,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-06-30",
+          "min": 120,
+          "max": 120,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        }
+      ],
+      "notes": "Broiler Chicken. June 2026 monthly provincial weighted household/establishment farmgate average; Q2 2026 preliminary. PSA table updated August 4, 2026. Not an October spot quote or a breed-specific price."
+    },
+    {
+      "id": "poultry-4",
+      "category": "poultry",
+      "name": "Chicken (Native / Improved)",
+      "unit": "per kg live weight",
+      "observedAt": "2026-06-30",
+      "min": 190.02,
+      "max": 190.02,
+      "statistic": "average",
+      "sourceName": "Philippine Statistics Authority (PSA)",
+      "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/",
+      "median": 190.02,
+      "change": 0,
+      "observations": 0,
+      "revision": 1,
+      "history": [
+        215.01,
+        220.01,
+        225.01,
+        180.02,
+        190.02,
+        190.02
+      ],
+      "historyEntries": [
+        {
+          "observedAt": "2026-01-31",
+          "min": 215.01,
+          "max": 215.01,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-02-28",
+          "min": 220.01,
+          "max": 220.01,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-03-31",
+          "min": 225.01,
+          "max": 225.01,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-04-30",
+          "min": 180.02,
+          "max": 180.02,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-05-31",
+          "min": 190.02,
+          "max": 190.02,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        },
+        {
+          "observedAt": "2026-06-30",
+          "min": 190.02,
+          "max": 190.02,
+          "statistic": "average",
+          "sourceName": "Philippine Statistics Authority (PSA)",
+          "sourceUrl": "https://openstat.psa.gov.ph/PXWeb/pxweb/en/DB/DB__2M__NFG/0032M4AFN12.px/"
+        }
+      ],
+      "notes": "Native/Improved Chicken. June 2026 monthly provincial weighted household/establishment farmgate average; Q2 2026 preliminary. PSA table updated August 4, 2026. Not an October spot quote or a breed-specific price."
+    }
+  ]
+}
