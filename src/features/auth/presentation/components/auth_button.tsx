@@ -1,3 +1,4 @@
+import { platformShadow } from '@/constants/platform_shadow';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
@@ -33,11 +34,7 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 19,
     overflow: 'hidden',
-    shadowColor: '#0b4d2a',
-    shadowOpacity: 0.24,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 6,
+    ...platformShadow('#0b4d2a', 0.24, 14, 12, 6),
   },
   pressed: { transform: [{ scale: 0.98 }] },
   gradient: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 12 },

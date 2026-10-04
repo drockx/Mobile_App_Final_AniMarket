@@ -1,4 +1,5 @@
 import { NavigationIcon } from '@/components/navigation_icon';
+import { platformShadow } from '@/constants/platform_shadow';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -24,8 +25,7 @@ export function SplashScreen({ onContinue }: SplashScreenProps) {
       <LinearGradient
         colors={['rgba(9,25,17,0.04)', 'rgba(9,25,17,0)', 'rgba(9,25,17,0.10)', 'rgba(9,25,17,0.25)']}
         locations={[0, 0.45, 0.7, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
       />
 
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 72, paddingBottom: Math.max(insets.bottom + 5, 39) }]} showsVerticalScrollIndicator={false}>
@@ -77,11 +77,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     marginTop: 'auto',
     borderRadius: 46,
-    shadowColor: '#000',
-    shadowOpacity: 0.19,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 9 },
-    elevation: 8,
+    ...platformShadow('#000', 0.19, 14, 9, 8),
   },
   cta: {
     minHeight: 92,
@@ -116,10 +112,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
+    ...platformShadow('#000', 0.15, 8, 5, 4),
   },
 });

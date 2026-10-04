@@ -3,6 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useAccount } from '@/features/profile/profile_store';
+import { platformShadow } from '@/constants/platform_shadow';
 
 type Tab = 'home' | 'messages' | 'market' | 'profile';
 
@@ -109,10 +110,6 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#12372a',
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    ...platformShadow('#12372a', 0.2, 5, 2, 4),
   },
 });

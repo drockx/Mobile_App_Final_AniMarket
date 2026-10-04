@@ -14,7 +14,7 @@ const sizes = { back: 24, next: 20, down: 20, up: 20, close: 22 } as const;
 export function NavigationIcon({ name, color = '#12372a', size = sizes[name] }: {
   name: keyof typeof sources; color?: string; size?: number;
 }) {
-  return <View pointerEvents="none" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: size, height: size, flexShrink: 0 }}>
+  return <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: size, height: size, flexShrink: 0, pointerEvents: 'none' }}>
     <Image source={sources[name]} contentFit="contain" tintColor={color} transition={0} style={StyleSheet.absoluteFill} />
   </View>;
 }

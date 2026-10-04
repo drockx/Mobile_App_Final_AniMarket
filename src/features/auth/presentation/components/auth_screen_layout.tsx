@@ -1,4 +1,5 @@
 import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
+import { platformShadow } from '@/constants/platform_shadow';
 import type { ReactNode } from 'react';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,8 +26,7 @@ export function AuthScreenLayout({ children, compact = false }: AuthScreenLayout
       <LinearGradient
         colors={['rgba(8,18,12,0.10)', 'rgba(8,18,12,0.16)', 'rgba(5,14,9,0.36)']}
         locations={[0, 0.52, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
       />
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <KeyboardScrollView
@@ -64,11 +64,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.65)',
-    shadowColor: '#000',
-    shadowOpacity: 0.29,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 20 },
-    elevation: 10,
+    ...platformShadow('#000', 0.29, 30, 20, 10),
   },
   loginCard: { borderRadius: 30, paddingTop: 32, paddingHorizontal: 20, paddingBottom: 24 },
   compactCard: { borderRadius: 30, paddingTop: 26, paddingHorizontal: 20, paddingBottom: 24 },

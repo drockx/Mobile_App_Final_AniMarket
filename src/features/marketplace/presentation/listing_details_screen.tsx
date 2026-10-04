@@ -109,7 +109,7 @@ export function ListingDetailsScreen({
             <Pressable accessibilityRole="button" accessibilityLabel={`View full image of ${listing.title}`} accessibilityState={{ disabled: !imageSource }} disabled={!imageSource} onPress={() => { if (imageSource) setExpandedPhoto({ listingId: listing.id, source: imageSource }); }} style={StyleSheet.absoluteFill}>
               <ListingPhoto source={imageSource} category={listing.category} label={listing.title} />
             </Pressable>
-            <View pointerEvents="box-none" style={styles.heroActions}>
+            <View style={styles.heroActions}>
               <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} style={styles.heroButton}>
                 <NavigationIcon name="back" color="#fff" />
               </Pressable>
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', backgroundColor: '#fff' },
   scrollContent: { paddingBottom: 20 },
   hero: { width: '100%', aspectRatio: 192 / 118, backgroundColor: '#263028' },
-  heroActions: { position: 'absolute', top: 12, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between' },
+  heroActions: { position: 'absolute', top: 12, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', pointerEvents: 'box-none' },
   heroButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#26382f', alignItems: 'center', justifyContent: 'center' },
   details: { marginTop: -20, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, backgroundColor: '#fff' },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },

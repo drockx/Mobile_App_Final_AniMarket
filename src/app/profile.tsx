@@ -40,7 +40,7 @@ export default function ProfileRoute() {
       onAccountSecurity={() => router.push('/account_security')}
       onVerification={() => router.push('/account_verification')}
       onIdReviews={() => router.push('/verification_review')}
-      onLogOut={() => { if (router.canDismiss()) router.dismissAll(); signOut(); router.replace('/login'); }}
+      onLogOut={() => { signOut(); router.replace('/login'); }}
     />
   );
 }

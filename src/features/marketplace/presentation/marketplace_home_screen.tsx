@@ -16,6 +16,7 @@ import { formatListingAddress, type Listing, type LivestockCategory } from '../d
 import { hasActiveFilterOptions, toListingCriteria, type SearchFilters } from './search_filters';
 import { ListingPhoto } from './listing_photo';
 import { appColors } from '@/constants/app_theme';
+import { platformShadow } from '@/constants/platform_shadow';
 
 const palette = {
   green: appColors.forest,
@@ -309,11 +310,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    shadowColor: '#465c6d',
-    shadowOpacity: 0.08,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    ...platformShadow('#465c6d', 0.08, 7, 3, 2),
   },
   searchInput: {
     flex: 1,
@@ -393,11 +390,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 12,
     alignItems: 'center',
-    shadowColor: '#183f31',
-    shadowOpacity: 0.22,
-    shadowRadius: 9,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 5,
+    ...platformShadow('#183f31', 0.22, 9, 5, 5),
   },
   bannerCopy: {
     flexGrow: 1,
@@ -474,11 +467,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e0e7ef',
-    shadowColor: '#556a7d',
-    shadowOpacity: 0.10,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
+    ...platformShadow('#556a7d', 0.10, 6, 3, 2),
   },
   cardImage: {
     width: '100%',

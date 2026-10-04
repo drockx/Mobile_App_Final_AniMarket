@@ -1,4 +1,5 @@
 import { NavigationIcon } from '@/components/navigation_icon';
+import { platformShadow } from '@/constants/platform_shadow';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 15, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: color.line },
   headerTitle: { color: color.forest, fontSize: 24, lineHeight: 30, fontWeight: '700' },
   content: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 20, gap: 12 },
-  profileCard: { padding: 15, paddingBottom: 20, borderRadius: 18, borderWidth: 1, borderColor: color.line, backgroundColor: '#fff', shadowColor: color.forest, shadowOpacity: 0.05, shadowRadius: 18, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  profileCard: { padding: 15, paddingBottom: 20, borderRadius: 18, borderWidth: 1, borderColor: color.line, backgroundColor: '#fff', ...platformShadow(color.forest, 0.05, 18, 5, 2) },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   identityCopy: { flex: 1, minWidth: 0 },
   identityTopRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },

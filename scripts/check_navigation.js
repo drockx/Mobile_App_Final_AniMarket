@@ -19,6 +19,71 @@ function files(directory) {
 const routeNames = files(appRoot).filter((filename) => !/[/\\][_+]/.test(filename)).map((filename) => path.relative(appRoot, filename).replace(/\\/g, '/').replace(/\.tsx?$/, '').replace(/\/index$/, ''));
 const options = { routeNames, routeParamList: {}, routeGetIdList: {} };
 
+function loadModule(filename, dependencies, transpile = false) {
+  const module = { exports: {} };
+  const source = fs.readFileSync(filename, 'utf8');
+  const code = transpile ? ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText : source;
+  vm.runInNewContext(code, { module, exports: module.exports, require: (name) => {
+    assert.ok(Object.hasOwn(dependencies, name), `Unexpected dependency: ${name}`);
+    return dependencies[name];
+  } }, { filename });
+  return module.exports;
+}
+
+test('logout remains safe when protected routes disappear before Expo drains its action queue', () => {
+  for (const initial of [['home', 'profile'], ['my_orders', 'profile'], ['profile']]) {
+    const engine = StackRouter({ initialRouteName: initial[0] });
+    let state = engine.getInitialState(options);
+    let currentOptions = options;
+    function dispatch(action) {
+      const next = engine.getStateForAction(state, action, currentOptions);
+      assert.ok(next, `Stack rejected queued ${action.type} after logout`);
+      state = next;
+    }
+    initial.slice(1).forEach((name) => dispatch(StackActions.push(name)));
+    const sdkRoot = path.resolve(__dirname, '../node_modules/expo-router/build');
+    const { routingQueue } = loadModule(path.join(sdkRoot, 'global-state/routingQueue.js'), {
+      './getNavigationAction': { getNavigateAction: (href, _options, event) => {
+        assert.equal(event, 'REPLACE');
+        return StackActions.replace(href.slice(1));
+      } },
+    });
+    // Use the installed SDK's public router and deferred queue, not a synchronous mock.
+    const { router } = loadModule(path.join(sdkRoot, 'global-state/router.js'), {
+      'expo/dom': { IS_DOM: false }, 'expo-linking': {},
+      'react-native': { Platform: { OS: 'web' } },
+      './routingQueue': { routingQueue },
+      './store': { store: { get state() { return state; } } },
+      '../domComponents/emitDomEvent': { emitDomDismissAll: () => false, emitDomLinkEvent: () => false },
+      '../link/href': { resolveHref: (href) => href },
+      '../utils/url': { shouldLinkExternally: () => false },
+    });
+    let signedOut = false;
+    const snapshot = (value) => ({ subscribe: () => () => {}, getSnapshot: () => value });
+    const { default: ProfileRoute } = loadModule(path.join(appRoot, 'profile.tsx'), {
+      'react/jsx-runtime': require('react/jsx-runtime'),
+      'react': { useState: () => [null, () => {}], useCallback: (callback) => callback, useSyncExternalStore: (_subscribe, get) => get() },
+      'expo-router': { router, useFocusEffect: () => {} },
+      '@/features/profile/presentation/profile_screen': { ProfileScreen: () => null },
+      '@/features/profile/profile_store': { useAccount: () => ({ userId: 'buyer' }), signOut: () => {
+        signedOut = true;
+        currentOptions = { ...options, routeNames: ['index', 'login', 'home', 'messages'], routeKeyChanges: [] };
+        state = engine.getStateForRouteNamesChange(state, currentOptions);
+      } },
+      '@/services/api': {},
+      '@/features/marketplace/marketplace_dependencies': { sellerListingsService: snapshot([]) },
+      '@/features/orders/orders_store': { useOrders: () => [] },
+      '@/features/messages/messages_dependencies': { messageService: snapshot({ conversations: [] }) },
+    }, true);
+    ProfileRoute().props.onLogOut();
+    assert.equal(signedOut, true);
+    assert.equal(state.routes.length, 1);
+    routingQueue.run({ current: { dispatch } });
+    assert.equal(state.routes[state.index].name, 'login');
+    assert.equal(state.routes.some((route) => ['profile', 'my_orders'].includes(route.name)), false);
+  }
+});
+
 function stack(initialRoutes) {
   const engine = StackRouter({ initialRouteName: initialRoutes[0] });
   let state = engine.getInitialState(options);

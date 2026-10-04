@@ -29,7 +29,7 @@ export function ListingPhotoViewer({ source, label, onClose }: { source: string;
           onLoad={() => setLoading(false)}
           onError={() => { setLoading(false); setFailed(true); }}
         />}
-        {loading && <View pointerEvents="none" style={styles.feedback}><ActivityIndicator color="#fff" accessibilityLabel="Loading livestock photo" /></View>}
+        {loading && <View style={[styles.feedback, { pointerEvents: 'none' }]}><ActivityIndicator color="#fff" accessibilityLabel="Loading livestock photo" /></View>}
       </View>
     </View>
   </Modal>;
