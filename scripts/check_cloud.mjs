@@ -36,7 +36,7 @@ function fixture() {
   const deleted = [];
   const media = { publicPhoto: async (uid, photo, id) => { imageBytes(photo); return { url: `https://res.cloudinary.com/dnbmd5qhj/image/upload/animarket/${uid}/${id}.png`, publicId: `animarket/${uid}/${id}` }; }, deletePublic: async (path) => deleted.push(path), privatePhoto: async (_bucket, _path, photo) => imageBytes(photo), privateDocument: async (_bucket, _path, photo) => documentBytes(photo), privateRead: async () => 'data:image/png;base64,test', privateDelete: async (_bucket, path) => deleted.push(path) };
   const now = () => timestamp;
-  for (const uid of ['seller', 'buyer', 'outsider', 'reviewer']) rows.set(`users/${uid}`, { id: uid, username: `${uid} User`, personal: { fullName: `${uid} User`, phone: '09123456789', email: `${uid}@example.invalid`, city: 'Tagum City' }, acceptedTerms: true, createdAt: new Date(timestamp).toISOString(), avatar: null });
+  for (const uid of ['seller', 'buyer', 'outsider', 'reviewer']) rows.set(`users/${uid}`, { id: uid, username: `${uid} User`, personal: { fullName: `${uid} User`, phone: '09123456789', email: `${uid}@example.invalid`, city: 'Tagum City' }, street: 'Purok 2', barangay: 'Visayan Village', postalCode: '8100', acceptedTerms: true, createdAt: new Date(timestamp).toISOString(), avatar: null });
   rows.set('roles/reviewer', { reviewer: true }); rows.set('verifications/seller', { status: 'verified', fullName: 'seller User', idType: 'National ID' });
   const accounts = createAccounts({ store, now }); const chat = createChat({ store, accounts, now }); const calls = createCalls({ store, accounts, chat, now });
   const authChanges = [];
@@ -85,6 +85,7 @@ test('Listings enforce seller verification, real image ownership, geofence, and 
 });
 test('Order totals and workflow are canonical, role checked, persistent and reserve once', async () => {
   const f = fixture(); const { listing: saved } = await f.commerce('seller', '/listings/publish', { listing: listing(), pickupPin: pin }, 'POST');
+  for (const uid of ['buyer', 'outsider']) f.rows.set(`verifications/${uid}`, { status: 'verified', fullName: `${uid} User`, idType: 'National ID' });
   const input = order(saved); const placed = (await f.commerce('buyer', '/orders/save', { order: input }, 'POST')).order;
   assert.equal(placed.status, 'awaiting-seller'); assert.equal(placed.draft.totalMin, 45000); assert.equal(placed.sellerId, 'seller'); assert.deepEqual(placed.participants, ['buyer', 'seller']); assert.deepEqual(placed.pickupPin, pin);
   await assert.rejects(f.commerce('outsider', '/orders/save', { order: { ...placed, status: 'accepted' } }, 'POST'), /unavailable/);
@@ -131,6 +132,53 @@ test('Call summaries preserve unread messages until the recipient opens the conv
   await f.chat.handle('buyer', `${path}/read`, { throughSeq: 2 }, 'POST');
   assert.equal((await f.store.get(`conversations/${conversation.id}`)).readBy.buyer, 2);
 });
+test('New orders require approved buyer identity and existing orders remain manageable after approval changes', async () => {
+  const f = fixture(); const { listing: saved } = await f.commerce('seller', '/listings/publish', { listing: listing(), pickupPin: pin }, 'POST');
+  for (const status of ['unverified', 'pending', 'rejected', 'expired', 'verified']) {
+    f.rows.set('verifications/buyer', { status, fullName: status === 'verified' ? 'Previous Name' : 'buyer User', expiresAt: Date.parse('2026-11-01T00:00:00Z') });
+    await assert.rejects(f.commerce('buyer', '/orders/save', { order: order(saved) }, 'POST'), (error) => error.status === 403 && /ID approval/.test(error.message));
+    assert.equal(await f.store.get('orders/order'), null);
+  }
+  f.rows.set('verifications/buyer', { status: 'verified', fullName: 'buyer User', idType: 'National ID' });
+  const placed = (await f.commerce('buyer', '/orders/save', { order: order(saved) }, 'POST')).order;
+  assert.equal(placed.status, 'awaiting-seller');
+  f.rows.delete('verifications/buyer');
+  assert.equal((await f.commerce('buyer', '/orders/save', { order: order(saved) }, 'POST')).order.id, placed.id);
+  const cancelled = (await f.commerce('buyer', '/orders/save', { order: { ...placed, status: 'cancelled' } }, 'POST')).order;
+  assert.equal(cancelled.status, 'cancelled');
+  await assert.rejects(f.commerce('buyer', '/orders/save', { order: order(saved, 'new-order') }, 'POST'), (error) => error.status === 403);
+  assert.equal(await f.store.get('orders/new-order'), null);
+});
+
+test('An incomplete address blocks ID upload and approval until Personal Information is completed', async () => {
+  const f = fixture(); const session = { uid: 'buyer', record: { email: 'buyer@example.invalid' } };
+  const initial = structuredClone(f.rows.get('users/buyer')); let uploads = 0;
+  const upload = f.media.privatePhoto;
+  f.media.privatePhoto = async (...args) => { uploads++; return upload(...args); };
+  const submission = { idType: 'National ID', fullName: 'buyer User', photo: png, consent: true };
+  for (const field of ['city', 'street', 'barangay', 'postalCode']) {
+    const person = structuredClone(initial);
+    if (field === 'city') person.personal.city = ''; else person[field] = '';
+    f.rows.set('users/buyer', person);
+    await assert.rejects(f.account(session, '/verification/id', submission, 'POST'), (error) => error.status === 409 && /Personal Information/.test(error.message));
+    assert.equal(await f.store.get('verifications/buyer'), null); assert.equal(uploads, 0);
+  }
+  await f.account(session, '/auth/me', { ...initial.personal, street: initial.street, barangay: initial.barangay, postalCode: initial.postalCode }, 'PATCH');
+  assert.equal((await f.account(session, '/verification/id', submission, 'POST')).account.verification.status, 'pending'); assert.equal(uploads, 1);
+  const saved = await f.store.get('verifications/buyer'); f.rows.get('users/buyer').street = '';
+  await assert.rejects(f.account({ uid: 'reviewer' }, '/verification/reviews/buyer', { decision: 'verified', submissionId: saved.submissionId }, 'POST'), /Complete your address/);
+  assert.equal((await f.store.get('verifications/buyer')).status, 'pending');
+  f.rows.get('users/buyer').street = initial.street;
+  assert.equal((await f.account({ uid: 'reviewer' }, '/verification/reviews/buyer', { decision: 'verified', submissionId: saved.submissionId }, 'POST')).account.verification.status, 'verified');
+});
+
+test('An address change during an ID upload aborts submission and removes the uploaded photo', async () => {
+  const f = fixture();
+  f.media.privatePhoto = async () => { f.rows.get('users/buyer').street = ''; };
+  await assert.rejects(f.account({ uid: 'buyer' }, '/verification/id', { idType: 'National ID', fullName: 'buyer User', photo: png, consent: true }, 'POST'), /Complete your address/);
+  assert.equal(await f.store.get('verifications/buyer'), null); assert.equal(f.deleted.length, 1);
+});
+
 test('Government ID review is private, immutable while pending, rejects self-review and cleans photos', async () => {
   const f = fixture(); const submit = await f.account({ uid: 'buyer' }, '/verification/id', { idType: 'National ID', fullName: 'buyer User', photo: png, consent: true }, 'POST'); assert.equal(submit.account.verification.status, 'pending');
   const saved = await f.store.get('verifications/buyer');

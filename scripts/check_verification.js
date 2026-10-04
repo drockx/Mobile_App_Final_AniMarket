@@ -18,6 +18,19 @@ async function request(app, route, token, body, method = body ? 'POST' : 'GET') 
 }
 const submission = (fullName) => ({ fullName, idType: 'National ID', photo: image, consent: true });
 
+test('verification requires an address saved in Personal Information before accepting an ID', async (t) => {
+  const app = await start(); t.after(() => app.close());
+  const complete = person('Address Required', 'address@example.test');
+  const { city, street, barangay, postalCode, ...registration } = complete;
+  const user = await request(app, '/auth/register', null, registration); assert.equal(user.status, 201);
+  const missing = await request(app, '/verification/id', user.token, submission(complete.fullName));
+  assert.equal(missing.status, 409); assert.match(missing.error, /Personal Information/);
+  assert.equal(app.db.prepare('SELECT * FROM identity_verifications WHERE user_id = ?').get(user.account.id), undefined);
+  const saved = await request(app, '/auth/me', user.token, { ...registration, city, street, barangay, postalCode }, 'PATCH');
+  assert.equal(saved.status, 200);
+  assert.equal((await request(app, '/verification/id', user.token, submission(complete.fullName))).account.verification.status, 'pending');
+});
+
 test('valid ID submission, private review, real status and withdrawal', async (t) => {
   const app = await start(); t.after(() => app.close());
   const seller = await request(app, '/auth/register', null, { ...person('Sam Seller', 'sam@example.test'), isReviewer: true, verification: { status: 'verified' } });

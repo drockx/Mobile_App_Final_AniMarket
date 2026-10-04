@@ -4,6 +4,12 @@ import { imageBytes } from './media.mjs';
 
 const localities = ['Asuncion', 'Braulio E. Dujali', 'Carmen', 'Kapalong', 'New Corella', 'Panabo City', 'Island Garden City of Samal', 'Sawata', 'Santo Tomas', 'Tagum City', 'Talaingod'];
 const types = ['National ID', 'Passport', 'Driver’s license', 'UMID', 'Other valid photo ID'];
+function requireAddress(person) {
+  if (!localities.includes(person.personal.city) || typeof person.street !== 'string' || !person.street.trim() || person.street.trim().length > 150
+    || typeof person.barangay !== 'string' || !person.barangay.trim() || person.barangay.trim().length > 100 || !/^\d{4}$/.test(person.postalCode ?? '')) {
+    throw new BackendError('Complete your address in Personal Information before submitting your ID for verification.', 409);
+  }
+}
 export function createAccountActions({ store, media, accounts, authAdmin, now = Date.now }) {
   async function cleanup(record) {
     if (!record?.photoPath) return;
@@ -68,12 +74,14 @@ export function createAccountActions({ store, media, accounts, authAdmin, now = 
     }
     if (path === '/verification/id' && method === 'POST') {
       const person = await accounts.profile(uid); const old = await store.get(`verifications/${uid}`);
+      requireAddress(person);
       if (accounts.status(old, person).status === 'pending' || accounts.status(old, person).status === 'verified') throw new BackendError('Your ID is already submitted or approved.', 409);
       if (!types.includes(body.idType) || body.consent !== true || body.fullName !== person.personal.fullName) throw new BackendError('Choose a valid ID and confirm that its name matches your account.', 400);
       const { mime } = imageBytes(body.photo); const submissionId = crypto.randomUUID(); const photoPath = `${uid}/${submissionId}.${mime === 'image/png' ? 'png' : 'jpg'}`;
       await media.privatePhoto('animarket-ids', photoPath, body.photo);
       try { await store.transact(async (tx) => {
         const fresh = await accounts.profile(uid, tx); const review = await tx.get(`verifications/${uid}`);
+        requireAddress(fresh);
         if (fresh.personal.fullName !== body.fullName || ['pending', 'verified'].includes(accounts.status(review, fresh).status)) throw new BackendError('Your account or ID submission changed. Please refresh.', 409);
         tx.set(`verifications/${uid}`, { userId: uid, submissionId, fullName: body.fullName, idType: body.idType, status: 'pending', submittedAt: new Date(now()).toISOString(), reviewedAt: null, reason: '', photoPath, expiresAt: now() + 30 * 86400000 });
       }); } catch (error) { await cleanup({ submissionId, photoPath }); throw error; }
@@ -107,6 +115,7 @@ export function createAccountActions({ store, media, accounts, authAdmin, now = 
           if (!(await tx.get(`roles/${uid}`))?.reviewer) throw new BackendError('Reviewer access is required.', 403);
           const row = await tx.get(`verifications/${target}`); const person = await accounts.profile(target, tx);
           if (!row || row.submissionId !== body.submissionId || row.status !== 'pending' || row.expiresAt <= now() || row.fullName !== person.personal.fullName) throw new BackendError('This submission has changed or expired.', 409);
+          if (body.decision === 'verified') requireAddress(person);
           tx.set(`verifications/${target}`, { ...row, status: body.decision, reviewedAt: new Date(now()).toISOString(), reviewerId: uid, reason, photoPath: null, expiresAt: null });
           await directory(tx, target, person, body.decision === 'verified'); return row;
         }); await cleanup(old); return { account: await accounts.account(target) };

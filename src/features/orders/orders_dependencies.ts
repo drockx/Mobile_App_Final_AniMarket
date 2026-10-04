@@ -7,10 +7,11 @@ import { getAccountSnapshot, subscribeAccount } from '../profile/profile_store';
 import type { CheckoutItem } from './domain/checkout';
 
 export const checkoutService = createOrderService(appRepositories.orders);
-function connectAccount() { const account = getAccountSnapshot(); checkoutService.connectOwner(account.signedIn && !account.isStaff ? account.userId : ''); }
+function connectAccount() { const account = getAccountSnapshot(); checkoutService.connectOwner(account.signedIn && !account.isStaff ? account.userId : '', account.verification.status === 'verified'); }
 subscribeAccount(connectAccount); connectAccount();
 
 export async function saveOrderRequest(listingId: string | undefined, reviewed: boolean) {
+  if (getAccountSnapshot().verification.status !== 'verified') return { request: null, error: 'Verify your account and wait for ID approval before placing an order.' };
   const buyerId = getAccountSnapshot().userId;
   const item = getCheckoutItem(listingId);
   try {

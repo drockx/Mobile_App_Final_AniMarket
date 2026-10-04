@@ -196,7 +196,10 @@ export function refreshAccount() {
   }
   return refreshRequest.promise;
 }
-export const submitIdentity = (idType: ValidIdType, photo: string) => updateAccount('/verification/id', { idType, photo, fullName: snapshot.personal.fullName, consent: true });
+export async function submitIdentity(idType: ValidIdType, photo: string) {
+  if (Object.keys(validatePersonalAddress(snapshot.personal)).length) throw new Error('Complete your address in Personal Information before submitting your ID for verification.');
+  return updateAccount('/verification/id', { idType, photo, fullName: snapshot.personal.fullName, consent: true });
+}
 export const withdrawIdentity = () => updateAccount('/verification/withdraw', {});
 export const checkSellerEligibility = () => updateAccount('/verification/eligibility');
 export const saveProfilePhoto = (photo: string) => updateAccount('/auth/photo', { photo });

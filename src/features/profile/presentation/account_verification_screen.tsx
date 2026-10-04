@@ -5,15 +5,16 @@ import { Alert, AppState, Platform, Pressable, Text, View } from 'react-native';
 import { NavigationIcon } from '@/components/navigation_icon';
 import { apiRequest } from '@/services/api';
 import { validIdTypes, verificationLabels, type IdReview, type ValidIdType } from '../domain/identity_verification';
+import { profileAddress, validatePersonalAddress } from '../domain/personal_information';
 import { getAccountSnapshot, refreshAccount, submitIdentity, useAccount, withdrawIdentity } from '../profile_store';
 import { AccountScreenLayout } from './components/account_screen_layout';
 import { verificationStyles as s } from './components/verification_styles';
 import { PrivateIdPreview } from './components/private_id_preview';
 
 const messages = {
-  unverified: 'Submit a clear photo of your valid ID to verify your identity before selling.',
+  unverified: 'Submit a clear photo of your valid ID to verify your identity before buying or selling.',
   pending: 'Your ID has been submitted. An authorized reviewer will check it before your account is verified.',
-  verified: 'Your valid ID was reviewed and approved. You can publish livestock listings.',
+  verified: 'Your valid ID was reviewed and approved. You can place orders and publish livestock listings.',
   rejected: 'Follow the reviewer’s feedback and submit a clearer or corrected ID photo.',
   expired: 'Your pending ID photo was removed after 30 days. Submit a new photo to continue.',
 };
@@ -31,6 +32,7 @@ export function AccountVerificationScreen({ onBack, onPersonalInformation }: { o
   const [pendingPhoto, setPendingPhoto] = useState<string | null>(null);
   const [viewing, setViewing] = useState(false);
   const maySubmit = !['pending', 'verified'].includes(status);
+  const addressComplete = Object.keys(validatePersonalAddress(account.personal)).length === 0;
 
   useEffect(() => {
     let active = true;
@@ -47,6 +49,9 @@ export function AccountVerificationScreen({ onBack, onPersonalInformation }: { o
 
   async function choosePhoto(camera: boolean) {
     if (busyRef.current) return;
+    if (Object.keys(validatePersonalAddress(getAccountSnapshot().personal)).length) {
+      setError('Complete your address in Personal Information before selecting your ID photo.'); return;
+    }
     busyRef.current = true; setBusy(true); setError('');
     try {
       if (camera && Platform.OS !== 'web' && !(await ImagePicker.requestCameraPermissionsAsync()).granted) throw new Error('Allow camera access or choose an ID photo from your gallery.');
@@ -108,11 +113,16 @@ export function AccountVerificationScreen({ onBack, onPersonalInformation }: { o
         <Text style={s.title}>Account details</Text>
         <Text style={s.label}>Full name on your ID</Text>
         <Text style={s.body}>{account.personal.fullName}</Text>
-        <Text style={s.note}>{account.personal.phone}{'\n'}{account.personal.city}, Davao del Norte</Text>
+        <Text style={s.note}>{account.personal.phone}{'\n'}{profileAddress(account.personal) || 'Address not provided'}</Text>
         <Pressable accessibilityRole="button" disabled={busy} onPress={onPersonalInformation} style={s.secondary}><Text style={s.secondaryText}>Edit Personal Information</Text></Pressable>
         <Text style={s.note}>Your account name must match your ID. Changing it requires a new ID review.</Text>
       </View>
-      {maySubmit && <View style={s.card}>
+      {!addressComplete && <View style={s.status}>
+        <Text style={s.title}>Address required</Text>
+        <Text style={s.body}>Complete your Purok, Barangay, City/Municipality and postal code in Personal Information before submitting your ID for verification.</Text>
+        <Pressable accessibilityRole="button" disabled={busy} accessibilityState={{ disabled: busy }} onPress={onPersonalInformation} style={[s.button, busy && s.disabled]}><Text style={s.buttonText}>Complete Address</Text></Pressable>
+      </View>}
+      {maySubmit && addressComplete && <View style={s.card}>
         <Text style={s.title}>Valid ID photo</Text>
         <Text style={s.note}>Use your National ID or another valid photo ID. Include the whole ID with your name and photo clearly readable.</Text>
         <Text style={s.label}>ID type</Text>

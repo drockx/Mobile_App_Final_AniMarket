@@ -118,6 +118,7 @@ export function createCommerce({ store, accounts, media, now = Date.now }) {
           const saved = { ...before, status: next, updatedAt: new Date(now()).toISOString(), ...(next === 'cancelled' ? { cancelledAt: new Date(now()).toISOString() } : {}) }; tx.set(`orders/${orderId}`, saved); return { order: saved };
         }
         if (input.ownerId !== uid) throw new BackendError('The order must belong to your account.', 403);
+        const buyer = await accounts.buyer(uid, tx);
         const draft = input.draft; const listing = await tx.get(`listings/${id(draft?.item?.id)}`);
         if (!listing || listing.status !== 'active' || listing.seller.id === uid) throw new BackendError('Choose an available listing from another seller.', 409);
         await accounts.seller(listing.seller.id, tx);
@@ -135,7 +136,7 @@ export function createCommerce({ store, accounts, media, now = Date.now }) {
         }
         const amount = listing.priceUnit === 'per kg' ? listing.price * Number.parseFloat(listing.weight) : listing.price;
         if (!Number.isFinite(amount) || amount <= 0) throw new BackendError('The seller must correct this listing’s price or weight.', 409);
-        const privateListing = await tx.get(`listingPrivate/${listing.id}`); const buyer = await accounts.profile(uid, tx);
+        const privateListing = await tx.get(`listingPrivate/${listing.id}`);
         const saved = { id: orderId, ownerId: uid, sellerId: listing.seller.id, buyerName: buyer.personal.fullName, participants: [uid, listing.seller.id], createdAt: new Date(now()).toISOString(), status: 'awaiting-seller',
           ...(privateListing?.pin ? { pickupPin: privateListing.pin } : {}), draft: { item: itemOf(listing), payment: draft.payment, fulfillment: draft.fulfillment, pickup, delivery, totalMin: amount + (delivery ? 2500 : 0), totalMax: amount + (delivery ? 3500 : 0) } };
         tx.set(`orders/${orderId}`, saved); return { order: saved };

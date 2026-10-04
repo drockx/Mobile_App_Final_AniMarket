@@ -57,6 +57,12 @@ function createIdentityVerification({ db, databasePath, ApiError, notify }) {
   function requireReviewer(user) {
     if (!get('SELECT is_reviewer FROM users WHERE id = ?', user.id)?.is_reviewer) throw new ApiError(403, 'Reviewer access is required.');
   }
+  function requireAddress(person) {
+    const address = JSON.parse(person.address || '{}');
+    if (!person.city || typeof address.street !== 'string' || !address.street.trim() || typeof address.barangay !== 'string' || !address.barangay.trim() || !/^\d{4}$/.test(address.postalCode ?? '')) {
+      throw new ApiError(409, 'Complete your address in Personal Information before submitting your ID for verification.');
+    }
+  }
   function photoDto(row) {
     if (!row?.photo || row.status !== 'pending') throw new ApiError(404, 'No pending ID photo is available.');
     return { userId: row.user_id, submissionId: row.submission_id, fullName: row.submitted_name, idType: row.id_type, submittedAt: row.submitted_at, photo: `data:${row.mime_type};base64,${decrypt(row)}` };
@@ -67,6 +73,7 @@ function createIdentityVerification({ db, databasePath, ApiError, notify }) {
     if (url.pathname === '/verification/id' && req.method === 'POST') {
       const body = await bodyJson(req, Math.ceil(MAX_PHOTO_BYTES * 4 / 3) + 4096);
       const current = get('SELECT * FROM users WHERE id = ?', user.id);
+      requireAddress(current);
       if (body.consent !== true) throw new ApiError(400, 'Please consent to ID verification before submitting.');
       if (body.fullName !== current.full_name) throw new ApiError(409, 'Your account name changed. Refresh and submit again.');
       if (!ID_TYPES.has(body.idType)) throw new ApiError(400, 'Choose a valid photo ID type.');
@@ -117,6 +124,7 @@ function createIdentityVerification({ db, databasePath, ApiError, notify }) {
         if (!['verified', 'rejected'].includes(body.decision)) throw new ApiError(400, 'Choose approve or request a new photo.');
         const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
         if (body.decision === 'rejected' && (!reason || reason.length > 300)) throw new ApiError(400, 'Explain what the user must correct (up to 300 characters).');
+        if (body.decision === 'verified') requireAddress(get('SELECT * FROM users WHERE id = ?', userId));
         run('UPDATE identity_verifications SET status = ?, reviewed_at = ?, reviewed_by = ?, reason = ?, photo = NULL WHERE user_id = ?', body.decision, new Date().toISOString(), user.id, body.decision === 'rejected' ? reason : null, userId);
         changed(userId); respond(200, { ok: true }); return true;
       }

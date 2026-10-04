@@ -8,13 +8,15 @@ export type OwnedOrder = OrderRequest & { ownerId: string };
 
 export function createOrderService(repository: CollectionRepository<OwnedOrder>) {
   let ownerId = '';
+  let verified = false;
   const records = createCollectionStore(repository, (order) => isOrderRecord(order) && (order.ownerId === ownerId || order.sellerId === ownerId));
   const sessions = new Map<string, ReturnType<typeof createCheckoutService>>();
   let drafts = createCheckoutService();
   const pending = new Map<string, Promise<SaveOrderResult>>();
   function issue(error: unknown): SaveOrderResult { return { request: null, error: error instanceof Error ? error.message : 'Unable to save your order. Please retry.' }; }
   return {
-    connectOwner(id: string) {
+    connectOwner(id: string, identityVerified = false) {
+      verified = !!id && identityVerified;
       if (id === ownerId) return;
       ownerId = id;
       drafts = sessions.get(id) ?? createCheckoutService();
@@ -33,6 +35,7 @@ export function createOrderService(repository: CollectionRepository<OwnedOrder>)
     },
     saveRequest(item: CheckoutItem | undefined, reviewed: boolean, now = new Date(), pickupPin?: Coordinate): Promise<SaveOrderResult> {
       if (!ownerId) return Promise.resolve(issue(new Error('Sign in before placing an order.')));
+      if (!verified) return Promise.resolve(issue(new Error('Verify your account and wait for ID approval before placing an order.')));
       if (records.getState().loading) return Promise.resolve(issue(new Error('Your orders are still loading. Please try again shortly.')));
       if (item?.sellerId === ownerId) return Promise.resolve(issue(new Error('You cannot order your own listing.')));
       if (!item?.sellerId) return Promise.resolve(issue(new Error('This listing has no connected seller. Choose another listing.')));

@@ -39,7 +39,7 @@ async function user(label) {
   const { user } = await createUserWithEmailAndPassword(auth, email, password); resources.users.push({ uid: user.uid, email }); manifest();
   await updateProfile(user, { displayName: `Cloud Probe ${label}` });
   const personal = { fullName: `Cloud Probe ${label}`, email, phone: '09123456789', city: 'Tagum City' };
-  const batch = writeBatch(firestore); batch.set(doc(firestore, 'users', user.uid), { id: user.uid, username: personal.fullName, personal, acceptedTerms: true, createdAt: new Date().toISOString(), avatar: null });
+  const batch = writeBatch(firestore); batch.set(doc(firestore, 'users', user.uid), { id: user.uid, username: personal.fullName, personal, street: 'Purok 2', barangay: 'Visayan Village', postalCode: '8100', acceptedTerms: true, createdAt: new Date().toISOString(), avatar: null });
   batch.set(doc(firestore, 'directory', user.uid), { id: user.uid, fullName: personal.fullName, nameLower: personal.fullName.toLowerCase(), city: personal.city });
   await batch.commit();
   return { uid: user.uid, user, personal, firestore, async request(path, body, method = body ? 'POST' : 'GET') {
@@ -125,6 +125,9 @@ try {
   const photo = await reviewer.request(`/verification/reviews/${seller.uid}`); assert.match(photo.photo, /^data:image\/(png|jpeg);base64,/);
   await reviewer.request(`/verification/reviews/${seller.uid}`, { submissionId: submitted.submissionId, decision: 'verified' });
   assert.equal((await getDoc(doc(seller.firestore, 'verifications', seller.uid))).data().status, 'verified'); console.log('Live profile photo, private ID upload, reviewer access and approval passed.');
+  await buyer.request('/verification/id', { idType: 'National ID', fullName: buyer.personal.fullName, photo: png, consent: true });
+  const buyerReview = (await reviewer.request('/verification/reviews')).reviews.find((entry) => entry.userId === buyer.uid); assert.ok(buyerReview);
+  await reviewer.request(`/verification/reviews/${buyer.uid}`, { submissionId: buyerReview.submissionId, decision: 'verified' });
   const uploaded = await seller.request('/uploads', { kind: 'listing', photo: png, name: 'livestock.png' });
   const proof = await seller.request('/uploads', { kind: 'vaccination', photo: Buffer.from('%PDF-1.4\nDisposable probe\n%%EOF').toString('base64'), name: 'proof.pdf' });
   const listingId = `probe_${run}`; const listing = { id: listingId, status: 'active', title: 'Disposable Cloud Probe Cow', category: 'Cow', details: '', price: 45000, priceUnit: 'per head', location: 'Tagum City, Davao del Norte', weight: '450 kg', age: '2 years', health: 'Vaccinated', description: 'Temporary integration test', imageUris: [uploaded.uri], vaccinationProof: { name: proof.name, uri: proof.uri } };

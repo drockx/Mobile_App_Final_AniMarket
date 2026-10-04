@@ -9,6 +9,7 @@ const ts = require('typescript');
 if (!process.argv.includes('--live')) throw new Error('Pass --live to test the deployed registration flow.');
 const adminOnly = process.argv.includes('--admin-only');
 const registrationOnly = process.argv.includes('--registration-only');
+const verificationRequirements = process.argv.includes('--verification-requirements');
 const root = path.resolve(__dirname, '..');
 for (const line of fs.readFileSync(path.join(root, '.env.local'), 'utf8').split(/\r?\n/)) {
   if (!line.startsWith('EXPO_PUBLIC_')) continue;
@@ -82,10 +83,26 @@ async function main() {
     assert.equal(profile.personal.email, values.email);
     assert.equal(profile.personal.city, ''); assert.equal(profile.street, ''); assert.equal(profile.postalCode, '');
     assert.equal((await getDoc(doc(firestore, 'directory', uid))).data().fullName, 'Registration Probe');
+    const { cloudBackendRequest } = require('../src/services/supabase.ts');
+    const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aO1sAAAAASUVORK5CYII=';
+    const attemptedOrder = { order: { id: `verification_probe_${run}`, ownerId: uid, status: 'saved-locally', draft: { item: { id: 'unavailable' } } } };
+    if (verificationRequirements) {
+      await assert.rejects(store.submitIdentity('National ID', png), /Complete your address/);
+      await assert.rejects(cloudBackendRequest('/verification/id', { idType: 'National ID', fullName: profile.personal.fullName, photo: png, consent: true }), (error) => error.status === 409 && /Personal Information/.test(error.message));
+      assert.equal((await getDoc(doc(firestore, 'verifications', uid))).exists(), false);
+      await assert.rejects(cloudBackendRequest('/orders/save', attemptedOrder), (error) => error.status === 403 && /ID approval/.test(error.message));
+    }
     const personal = { ...store.getAccountSnapshot().personal, city: 'Tagum City', street: 'Purok 2', barangay: 'Visayan Village', postalCode: '8100' };
     assert.equal(await store.savePersonalInformation(personal), null);
     const addressed = (await getDoc(doc(firestore, 'users', uid))).data();
     assert.equal(addressed.street, personal.street); assert.equal(addressed.barangay, personal.barangay); assert.equal(addressed.postalCode, personal.postalCode);
+    if (verificationRequirements) {
+      assert.equal((await store.submitIdentity('National ID', png)).verification.status, 'pending');
+      await assert.rejects(cloudBackendRequest('/orders/save', attemptedOrder), (error) => error.status === 403 && /ID approval/.test(error.message));
+      assert.equal((await remote.get(`orders/${attemptedOrder.order.id}`)), null);
+      assert.equal((await store.withdrawIdentity()).verification.status, 'unverified');
+      console.log('Live missing-address ID denial, address completion, pending ID submission and unverified/pending order denial passed. Test ID withdrawn.');
+    }
     const { profile: publicProfile } = await require('../src/services/supabase.ts').cloudBackendRequest(`/users/${uid}`);
     assert.equal(publicProfile.purok, personal.street); assert.equal(publicProfile.barangay, personal.barangay); assert.equal(publicProfile.city, personal.city);
     assert.equal(Object.hasOwn(publicProfile, 'postalCode'), false);
@@ -129,6 +146,11 @@ async function main() {
         assert.ok(email.startsWith(`registration-probe-${run}-`));
         const saved = await remote.get(`users/${uid}`);
         if (saved) assert.equal(saved.personal.email, email);
+        const review = await remote.get(`verifications/${uid}`);
+        if (review?.photoPath) {
+          assert.equal(await store.signIn(email, values.password), null);
+          await store.withdrawIdentity(); store.signOut(); await until(() => auth.currentUser === null);
+        }
         await google('https://identitytoolkit.googleapis.com/v1/projects/animarket-87354/accounts:delete', 'POST', { localId: uid });
         await remote.transact(async (tx) => { for (const collection of ['users', 'directory', 'roles', 'verifications']) tx.delete(`${collection}/${uid}`); });
       }

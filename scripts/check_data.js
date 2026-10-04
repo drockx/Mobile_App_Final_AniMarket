@@ -162,15 +162,15 @@ test('a lost publication acknowledgement retries the same document without dupli
   assert.equal(saved.id, 'creation-operation'); assert.equal(service.findListings(criteria).length, 1); assert.equal(service.getOwnedSnapshot().length, 1);
 });
 test('orders work without fixtures, await saves, reject missing sellers and prevent self-ordering', async () => {
-  const service = createOrderService(createPrivateMemoryCollection()); service.connectOwner('buyer-B'); assert.deepEqual(service.getSnapshot(), []);
+  const service = createOrderService(createPrivateMemoryCollection()); service.connectOwner('buyer-B', true); assert.deepEqual(service.getSnapshot(), []);
   assert.equal(service.getOrder('missing'), undefined); assert.equal(service.getDraft('missing'), undefined);
   assert.ok((await service.saveRequest(undefined, true, now)).error);
   service.review(item(), form(), now); const saved = await service.saveRequest(item(), true, now, point);
   assert.ok(saved.request); assert.equal(saved.request.ownerId, 'buyer-B'); assert.equal(saved.request.status, 'saved-locally');
   assert.equal(service.getOrder(saved.request.id).draft.item.id, item().id);
   assert.equal((await service.saveRequest(item(), true, now)).request.id, saved.request.id); assert.equal(service.getSnapshot().length, 1);
-  service.connectOwner('seller-A'); assert.deepEqual(service.getSnapshot(), []); assert.ok((await service.saveRequest(item(), true, now)).error);
-  service.connectOwner('buyer-B'); assert.equal(service.getSnapshot().length, 1); assert.ok((await service.cancelRequest(saved.request.id, now)).request);
+  service.connectOwner('seller-A', true); assert.deepEqual(service.getSnapshot(), []); assert.ok((await service.saveRequest(item(), true, now)).error);
+  service.connectOwner('buyer-B', true); assert.equal(service.getSnapshot().length, 1); assert.ok((await service.cancelRequest(saved.request.id, now)).request);
 });
 test('drafts retain their full data and publish using the same opaque document ID', async () => {
   const service = createMarketplaceService(createLocalListingRepository()); service.connectOwner('seller-A');
@@ -184,20 +184,20 @@ test('drafts retain their full data and publish using the same opaque document I
 test('a failed order save retries the same request ID and does not fabricate a placed order', async () => {
   const repo = createPrivateMemoryCollection(); let calls = 0; const ids = [];
   const service = createOrderService({ ...repo, async save(scope, value) { ids.push(value.id); if (++calls === 1) throw new Error('Offline'); return repo.save(scope, value); } });
-  service.connectOwner('buyer-B'); service.review(item(), form(), now);
+  service.connectOwner('buyer-B', true); service.review(item(), form(), now);
   assert.equal((await service.saveRequest(item(), true, now)).request, null); assert.deepEqual(service.getSnapshot(), []);
   const saved = await service.saveRequest(item(), true, now); assert.ok(saved.request); assert.equal(ids[0], ids[1]);
 });
 test('concurrent order taps make one write and a changed account rejects a late save', async () => {
   const pending = deferred(); let calls = 0;
   const service = createOrderService({ watch(_scope, receive) { receive([]); return () => {}; }, save: async (_scope, value) => { calls++; await pending.promise; return value; }, remove: async () => {} });
-  service.connectOwner('buyer-B'); service.review(item(), form(), now);
+  service.connectOwner('buyer-B', true); service.review(item(), form(), now);
   const first = service.saveRequest(item(), true, now); const second = service.saveRequest(item(), true, now); assert.equal(first, second); assert.equal(calls, 1);
   service.connectOwner('buyer-C'); pending.resolve(); assert.match((await first).error, /account changed/); assert.deepEqual(service.getSnapshot(), []);
 });
 test('order subscription status updates are reflected in the timeline and filters', async () => {
   const repo = createPrivateMemoryCollection(); const service = createOrderService(repo);
-  service.connectOwner('buyer-B'); service.review(item(), form(), now); const request = (await service.saveRequest(item(), true, now)).request;
+  service.connectOwner('buyer-B', true); service.review(item(), form(), now); const request = (await service.saveRequest(item(), true, now)).request;
   await repo.save('buyer-B', { ...request, status: 'completed' });
   const updated = service.getOrder(request.id); assert.equal(orderStatusCopy(updated).pill, 'Completed'); assert.ok(orderProgress(updated).every((stage) => stage.state === 'complete'));
   assert.equal(filterOrders(service.getSnapshot(), 'active', '').length, 0); assert.equal(filterOrders(service.getSnapshot(), 'completed', '').length, 1);
@@ -205,6 +205,20 @@ test('order subscription status updates are reflected in the timeline and filter
   await repo.save('buyer-B', { ...request, status: 'rejected' });
   const replacement = await service.saveRequest(item(), true, now); assert.ok(replacement.request); assert.notEqual(replacement.request.id, request.id);
   assert.equal(service.getOrder(request.id).status, 'rejected');
+});
+test('only verified buyers can create orders; approval updates preserve drafts and existing order actions', async () => {
+  const repo = createPrivateMemoryCollection(); let writes = 0;
+  const service = createOrderService({ ...repo, async save(...args) { writes++; return repo.save(...args); } });
+  service.connectOwner('buyer-B'); service.review(item(), form(), now);
+  assert.match((await service.saveRequest(item(), true, now)).error, /ID approval/);
+  assert.equal(writes, 0); assert.deepEqual(service.getSnapshot(), []); assert.ok(service.getDraft(item().id));
+  service.connectOwner('buyer-B', true);
+  const saved = await service.saveRequest(item(), true, now); assert.ok(saved.request); assert.equal(writes, 1);
+  service.connectOwner('buyer-B', false);
+  assert.match((await service.saveRequest(item(), true, now)).error, /ID approval/); assert.equal(writes, 1);
+  assert.ok((await service.cancelRequest(saved.request.id, now)).request); assert.equal(writes, 2);
+  service.connectOwner('buyer-C'); service.review(item(), form(), now);
+  assert.match((await service.saveRequest(item(), true, now)).error, /ID approval/); assert.equal(writes, 2);
 });
 test('notifications use real IDs, isolate read state and accept empty event lists', async () => {
   const store = createNotificationStore(createPrivateMemoryCollection()); const event = { id: 'same-conversation-event', conversationId: 'opaque_chat_doc', category: 'message', section: 'today', title: 'Real message', description: 'Hello', meta: '', action: 'Open', destination: 'messages', unread: true, icon: 'message' };

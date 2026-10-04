@@ -33,5 +33,9 @@ export function createAccounts({ store, now = Date.now }) {
     const person = await profile(uid, tx); const review = await tx.get(`verifications/${uid}`);
     if (status(review, person).status !== 'verified') throw new BackendError('Submit a valid government photo ID and wait for approval before publishing livestock.', 403); return person;
   }
-  return { profile, status, account, peer, seller };
+  async function buyer(uid, tx = store) {
+    const person = await profile(uid, tx); const review = await tx.get(`verifications/${uid}`);
+    if (status(review, person).status !== 'verified') throw new BackendError('Verify your account and wait for ID approval before placing an order.', 403); return person;
+  }
+  return { profile, status, account, peer, seller, buyer };
 }
