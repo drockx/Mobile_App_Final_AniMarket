@@ -73,7 +73,7 @@ export function LocationPicker({ label, value, onSelect, addressQuery = '', allo
     if (active) { action.current++; searchAbort.current?.abort(); setBusy(null); setResults([]); }
   }
   function showPicker() {
-    action.current++;
+    action.current++; searchAbort.current?.abort();
     setDraft(value ? copyLocation(value) : null); setCenter(value?.coordinate ?? DEFAULT_MAP_CENTER);
     setQuery(addressQuery); setResults([]); setMessage(''); setMapError(false); setSettings(false); setBusy(null); setResolving(!!value && !value.address); setMoving(false); setInteracting(false); setOpen(true);
   }
@@ -104,8 +104,9 @@ export function LocationPicker({ label, value, onSelect, addressQuery = '', allo
   async function currentLocation() {
     const version = ++action.current;
     searchAbort.current?.abort(); setBusy('current'); setMessage(''); setSettings(false);
+    const controller = new AbortController(); searchAbort.current = controller;
     try {
-      const position = await locationService.current();
+      const position = await locationService.current(controller.signal);
       if (action.current === version) choose(position.coordinate, 'current', null, position.accuracyMeters);
     } catch (failure) {
       if (action.current !== version) return;
@@ -139,7 +140,14 @@ export function LocationPicker({ label, value, onSelect, addressQuery = '', allo
             <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!busy }} disabled={!!busy} onPress={currentLocation} style={styles.current}><SymbolView name={icons.current} size={20} tintColor={colors.forest} /><Text style={styles.currentText}>{busy === 'current' ? 'Getting your location…' : 'Use my current location'}</Text>{busy === 'current' && <ActivityIndicator color={colors.forest} />}</Pressable>
             <View style={styles.map}><LocationMap key={mapAttempt} height={Math.min(380, Math.max(240, height * 0.38))} center={center} selected={draft?.coordinate ?? null} onChange={(point) => choose(point, 'map')} onMovingChange={(active) => { setMoving(active); cancelPendingAction(active); }} onInteractionChange={(active) => { setInteracting(active); cancelPendingAction(active); }} onLoaded={() => setMapError(false)} onOutside={() => setMessage('Choose a location inside Davao del Norte. The map returned to your last valid point.')} onError={() => setMapError(true)} /></View>
             {mapError && <View style={styles.notice}><Text style={styles.body}>The map could not load. Check your connection and retry. Search and current location are still available.</Text><Button secondary label="Retry Map" onPress={() => { setCenter(draft?.coordinate ?? center); setMoving(false); setInteracting(false); setMapError(false); setMapAttempt((attempt) => attempt + 1); }} /></View>}
-            <View style={styles.selected}><Text style={styles.label}>{draft ? 'Selected location' : 'Choose a location'}</Text>{resolving && <View style={styles.loading}><ActivityIndicator color={colors.forest} /><Text style={styles.body}>Finding the nearby address…</Text></View>}<Text style={styles.selectedAddress}>{draft?.address?.label || (draft ? coordinateLabel(draft.coordinate) : 'Move the map, search an address, or use your current location.')}</Text>{draft && <Text style={styles.body}>The address is approximate. Check the pin and add your house, purok, or landmark in the form.</Text>}{draft?.accuracyMeters !== undefined && draft.accuracyMeters > 75 && <Text style={styles.warning}>GPS accuracy is about {Math.round(draft.accuracyMeters)} metres. Adjust the pin before confirming.</Text>}{draft && issue && <Text accessibilityRole="alert" style={styles.error}>{issue}</Text>}</View>
+            <View style={styles.selected}>
+              <Text style={styles.label}>{draft ? 'Selected location' : 'Choose a location'}</Text>
+              {resolving && <View style={styles.loading}><ActivityIndicator color={colors.forest} /><Text style={styles.body}>Finding the nearby address…</Text></View>}
+              <Text style={styles.selectedAddress}>{draft?.address?.label || (draft ? coordinateLabel(draft.coordinate) : 'Move the map, search an address, or use your current location.')}</Text>
+              {draft && <Text style={styles.body}>The address is approximate. Check the pin and add your house, purok, or landmark in the form.</Text>}
+              {draft?.source === 'current' && <Text style={draft.accuracyMeters === undefined || draft.accuracyMeters > 20 ? styles.warning : styles.body}>{draft.accuracyMeters === undefined ? 'GPS accuracy is unavailable. Adjust the pin before confirming.' : `GPS accuracy is about ${Math.round(draft.accuracyMeters)} metres.${draft.accuracyMeters > 20 ? ' Adjust the pin before confirming.' : ''}`}</Text>}
+              {draft && issue && <Text accessibilityRole="alert" style={styles.error}>{issue}</Text>}
+            </View>
             {!!message && <View style={styles.notice}><Text accessibilityLiveRegion="polite" style={styles.body}>{message}</Text>{settings && <Button secondary label="Open Location Settings" onPress={() => { Linking.openSettings().catch(() => setMessage('Open your device settings and allow location for AniMarket.')); }} />}{draft && !draft.address && !resolving && <Button secondary label="Retry Address Lookup" onPress={() => { setResolving(true); setLookupAttempt((attempt) => attempt + 1); }} />}</View>}
             <Text style={styles.attribution}>Address search © OpenStreetMap contributors · Photon</Text>
           </KeyboardScrollView>

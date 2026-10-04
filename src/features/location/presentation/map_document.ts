@@ -35,9 +35,9 @@ ${editable ? `<div class="fixed-pin">${pin}</div>` : ''}
   try{
     var bounds=L.latLngBounds([config.bounds.south,config.bounds.west],[config.bounds.north,config.bounds.east]);
     // Leave viewport space around coastal pins; the polygon still masks and rejects outside locations.
-    map=L.map('map',{center:[config.center.latitude,config.center.longitude],zoom:15,minZoom:9,maxZoom:19,maxBounds:bounds.pad(0.1),maxBoundsViscosity:1,zoomControl:false,attributionControl:true});
+    map=L.map('map',{center:[config.center.latitude,config.center.longitude],zoom:17,minZoom:9,maxZoom:21,maxBounds:bounds.pad(0.1),maxBoundsViscosity:1,zoomControl:false,attributionControl:true});
     L.control.zoom({position:'topright'}).addTo(map);
-    var tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{minZoom:9,maxZoom:19,maxNativeZoom:19,noWrap:true,bounds:bounds,keepBuffer:1,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'});
+    var tiles=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{minZoom:9,maxZoom:21,maxNativeZoom:19,noWrap:true,bounds:bounds,keepBuffer:1,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'});
     var loaded=0,failed=0,loadTimer;
     tiles.on('loading',function(){loaded=0;failed=0;});
     tiles.on('tileload',function(){loaded++;clearTimeout(loadTimer);document.getElementById('status').hidden=true;send('loaded');});
@@ -50,14 +50,14 @@ ${editable ? `<div class="fixed-pin">${pin}</div>` : ''}
     L.geoJSON(config.geometry,{interactive:false,style:{color:'#3c8060',weight:2,fill:false}}).addTo(map);
     map.attributionControl.setPrefix('<a href="https://www.geoboundaries.org/" target="_blank">geoBoundaries</a> · <a href="https://creativecommons.org/licenses/by/3.0/igo/" target="_blank">CC BY 3.0 IGO</a>');
     function setMarker(point){if(config.editable)return;if(marker){marker.remove();marker=null;}if(point)marker=L.marker([point.latitude,point.longitude],{icon:L.divIcon({html:pin,className:'place-pin',iconSize:[36,44],iconAnchor:[18,44]})}).addTo(map);}
-    function focus(point,selected){userGesture=false;pointerGesture=false;setMarker(selected);map.setView([point.latitude,point.longitude],Math.max(15,map.getZoom()),{animate:false});map.invalidateSize();}
+    function focus(point,selected){userGesture=false;pointerGesture=false;setMarker(selected);map.setView([point.latitude,point.longitude],Math.max(17,map.getZoom()),{animate:false});map.invalidateSize();}
     window.AniMarketMap={focus:focus,setMarker:setMarker};setMarker(config.selected);
     window.addEventListener('message',function(event){if(event.source!==window.parent)return;try{var data=typeof event.data==='string'?JSON.parse(event.data):event.data;if(data.channel!=='animarket-map-control')return;if(data.type==='ping')send('ready');else if(data.type==='focus')focus(data.coordinate,data.selected);else if(data.type==='marker')setMarker(data.selected);}catch(error){}});
     map.on('movestart',function(){if(userGesture||pointerGesture)send('moving',{active:true});});
     map.on('dragstart',function(){userGesture=true;});
     map.on('zoomstart',function(){if(pointerGesture)userGesture=true;});
     map.on('moveend',function(){if(config.editable&&userGesture){var point=map.getCenter();send('select',{coordinate:{latitude:point.lat,longitude:point.lng}});}userGesture=false;pointerGesture=false;send('moving',{active:false});send('interaction',{active:false});});
-    map.on('click',function(event){if(!config.editable)return;userGesture=false;pointerGesture=false;map.setView([event.latlng.lat,event.latlng.lng],Math.max(15,map.getZoom()),{animate:false});send('select',{coordinate:{latitude:event.latlng.lat,longitude:event.latlng.lng}});});
+    map.on('click',function(event){if(!config.editable)return;userGesture=false;pointerGesture=false;map.setView([event.latlng.lat,event.latlng.lng],Math.max(17,map.getZoom()),{animate:false});send('select',{coordinate:{latitude:event.latlng.lat,longitude:event.latlng.lng}});});
     document.getElementById('map').addEventListener('pointerdown',function(){pointerGesture=true;send('interaction',{active:true});},{passive:true});
     document.getElementById('map').addEventListener('wheel',function(event){if((event.deltaY<0&&map.getZoom()<map.getMaxZoom())||(event.deltaY>0&&map.getZoom()>map.getMinZoom()))userGesture=true;},{passive:true});
     document.getElementById('map').addEventListener('keydown',function(event){if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','+','-','='].indexOf(event.key)!==-1)userGesture=true;},true);

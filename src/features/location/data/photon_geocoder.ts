@@ -49,8 +49,8 @@ export function createPhotonGeocoder(baseUrl = 'https://photon.komoot.io', fetch
   }
   return {
     search: (query, bias, signal) => request('api/', {
-      q: query, countrycode: 'PH', limit: '8', bbox: [DAVAO_DEL_NORTE_BOUNDS.west, DAVAO_DEL_NORTE_BOUNDS.south, DAVAO_DEL_NORTE_BOUNDS.east, DAVAO_DEL_NORTE_BOUNDS.north].join(','), ...(bias ? { lat: String(bias.latitude), lon: String(bias.longitude) } : {}),
+      q: query, countrycode: 'PH', limit: '8', bbox: [DAVAO_DEL_NORTE_BOUNDS.west, DAVAO_DEL_NORTE_BOUNDS.south, DAVAO_DEL_NORTE_BOUNDS.east, DAVAO_DEL_NORTE_BOUNDS.north].join(','), ...(bias ? { lat: String(bias.latitude), lon: String(bias.longitude), zoom: '15', location_bias_scale: '0.2' } : {}),
     }, signal),
-    reverse: async (point, signal) => (await request('reverse', { lat: String(point.latitude), lon: String(point.longitude), radius: '1', limit: '1' }, signal))[0]?.address ?? null,
+    reverse: async (point, signal) => (await request('reverse', { lat: String(point.latitude), lon: String(point.longitude), radius: '0.1', limit: '1' }, signal))[0]?.address ?? null,
   };
 }

@@ -5,7 +5,7 @@ export interface Geocoder {
   reverse(point: Coordinate, signal?: AbortSignal): Promise<LocationAddress | null>;
 }
 export interface DeviceLocation {
-  current(): Promise<{ coordinate: Coordinate; accuracyMeters?: number }>;
+  current(signal?: AbortSignal): Promise<{ coordinate: Coordinate; accuracyMeters?: number }>;
 }
 
 export class LocationFailure extends Error {

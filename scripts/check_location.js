@@ -39,39 +39,124 @@ function loadDevice(platform, location = {}) {
   finally { Module._load = original; delete require.cache[filename]; }
 }
 
-test('native GPS requests foreground permission and a fresh high-accuracy position', async () => {
+test('native GPS refines a coarse fix using highest accuracy and stops the watch', async () => {
   let options;
+  let removed = 0;
   const device = loadDevice('android', {
-    Accuracy: { High: 4 }, requestForegroundPermissionsAsync: async () => ({ granted: true }),
+    Accuracy: { Highest: 5 }, requestForegroundPermissionsAsync: async () => ({ granted: true }),
     hasServicesEnabledAsync: async () => true,
-    getCurrentPositionAsync: async (value) => { options = value; return { coords: { ...point, accuracy: 12 } }; },
+    watchPositionAsync: async (value, receive) => {
+      options = value;
+      receive({ coords: { latitude: 7.45, longitude: 125.81, accuracy: 200 }, timestamp: Date.now() });
+      receive({ coords: { ...point, accuracy: 12 }, timestamp: Date.now() });
+      return { remove: () => { removed++; } };
+    },
   });
   assert.deepEqual(await device.current(), { coordinate: point, accuracyMeters: 12 });
-  assert.deepEqual(options, { accuracy: 4, mayShowUserSettingsDialog: true });
+  await Promise.resolve();
+  assert.deepEqual(options, { accuracy: 5, distanceInterval: 0, timeInterval: 1000, mayShowUserSettingsDialog: true });
+  assert.equal(removed, 1);
 });
 
 test('denied native permission and disabled device location never request GPS', async () => {
   let calls = 0;
-  const location = { getCurrentPositionAsync: async () => { calls++; }, requestForegroundPermissionsAsync: async () => ({ granted: false, canAskAgain: false }) };
+  const location = { watchPositionAsync: async () => { calls++; }, requestForegroundPermissionsAsync: async () => ({ granted: false, canAskAgain: false }) };
   await assert.rejects(loadDevice('ios', location).current(), (error) => error.settingsAvailable && /denied/.test(error.message));
   await assert.rejects(loadDevice('android', { ...location, requestForegroundPermissionsAsync: async () => ({ granted: true }), hasServicesEnabledAsync: async () => false }).current(), /Turn on/);
   assert.equal(calls, 0);
 });
 
 test('a native GPS failure produces a useful message instead of an internal API error', async () => {
-  const device = loadDevice('ios', { requestForegroundPermissionsAsync: async () => ({ granted: true }), hasServicesEnabledAsync: async () => true, Accuracy: { High: 4 }, getCurrentPositionAsync: async () => { throw new Error('Internal native failure'); } });
+  const device = loadDevice('ios', { requestForegroundPermissionsAsync: async () => ({ granted: true }), hasServicesEnabledAsync: async () => true, Accuracy: { Highest: 5 }, watchPositionAsync: async () => { throw new Error('Internal native failure'); } });
   await assert.rejects(device.current(), /Check your device location settings/);
 });
 
 test('browser GPS works without a Permissions API and does not reuse an old position', async () => {
   const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
   let options;
-  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { geolocation: { getCurrentPosition: (resolve, _, value) => { options = value; resolve({ coords: { ...point, accuracy: 18 } }); } } } });
+  const cleared = [];
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { geolocation: {
+    watchPosition: (receive, _, value) => { options = value; receive({ coords: { ...point, accuracy: 18 }, timestamp: Date.now() }); return 7; },
+    clearWatch: (id) => cleared.push(id),
+  } } });
   try {
     assert.deepEqual(await loadDevice('web').current(), { coordinate: point, accuracyMeters: 18 });
-    assert.deepEqual(options, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
-    navigator.geolocation.getCurrentPosition = (_, reject) => reject({ code: 1 });
+    assert.deepEqual(options, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+    assert.deepEqual(cleared, [7]);
+    navigator.geolocation.watchPosition = (_, reject) => { reject({ code: 1 }); return 8; };
     await assert.rejects(loadDevice('web').current(), /browser settings/);
+    assert.deepEqual(cleared, [7, 8]);
+  } finally { if (original) Object.defineProperty(globalThis, 'navigator', original); else delete globalThis.navigator; }
+});
+
+function nativeWatch(watchPositionAsync) {
+  return loadDevice('ios', { Accuracy: { Highest: 5 }, requestForegroundPermissionsAsync: async () => ({ granted: true }), hasServicesEnabledAsync: async () => true, watchPositionAsync });
+}
+
+test('GPS ignores stale and invalid fixes, keeps the most accurate fix at timeout, and stops tracking', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let receive, removed = 0;
+  const device = nativeWatch(async (_, callback) => { receive = callback; return { remove: () => removed++ }; });
+  const request = device.current();
+  await new Promise(setImmediate);
+  receive({ coords: { ...point, accuracy: 1 }, timestamp: Date.now() - 60000 });
+  receive({ coords: { latitude: NaN, longitude: 125, accuracy: 1 }, timestamp: Date.now() });
+  receive({ coords: { latitude: 7.45, longitude: 125.81, accuracy: 120 }, timestamp: Date.now() });
+  receive({ coords: { ...point, accuracy: 35 }, timestamp: Date.now() });
+  receive({ coords: { latitude: 7.46, longitude: 125.82, accuracy: 80 }, timestamp: Date.now() });
+  t.mock.timers.tick(20000);
+  assert.deepEqual(await request, { coordinate: point, accuracyMeters: 35 });
+  assert.equal(removed, 1);
+});
+
+test('GPS without a valid fix times out and missing accuracy is never treated as precise', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let receive, removed = 0;
+  const device = nativeWatch(async (_, callback) => { receive = callback; return { remove: () => removed++ }; });
+  const failed = device.current();
+  const failure = assert.rejects(failed, /timed out/);
+  await new Promise(setImmediate);
+  receive({ coords: { ...point, accuracy: 1 }, timestamp: Date.now() - 60000 });
+  t.mock.timers.tick(20000);
+  await failure;
+  const unknown = device.current();
+  await new Promise(setImmediate);
+  receive({ coords: { ...point, accuracy: null }, timestamp: Date.now() });
+  t.mock.timers.tick(20000);
+  assert.deepEqual(await unknown, { coordinate: point, accuracyMeters: undefined });
+  assert.equal(removed, 2);
+});
+
+test('cancelling GPS before watch startup completes removes the late subscription', async () => {
+  const controller = new AbortController();
+  let attach, receive, removed = 0;
+  const device = nativeWatch((_, callback) => { receive = callback; return new Promise((resolve) => { attach = resolve; }); });
+  const request = device.current(controller.signal);
+  const failure = assert.rejects(request, /cancelled/);
+  await new Promise(setImmediate);
+  controller.abort();
+  attach({ remove: () => removed++ });
+  receive({ coords: { ...point, accuracy: 5 }, timestamp: Date.now() });
+  await failure;
+  await new Promise(setImmediate);
+  assert.equal(removed, 1);
+});
+
+test('browser cancellation clears the GPS watch and ignores subsequent readings', async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  let receive, removed = 0;
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { geolocation: {
+    watchPosition: (callback) => { receive = callback; return 9; }, clearWatch: (id) => { assert.equal(id, 9); removed++; },
+  } } });
+  try {
+    const controller = new AbortController();
+    const request = loadDevice('web').current(controller.signal);
+    const failure = assert.rejects(request, /cancelled/);
+    await Promise.resolve();
+    controller.abort();
+    receive({ coords: { ...point, accuracy: 5 }, timestamp: Date.now() });
+    await failure;
+    assert.equal(removed, 1);
   } finally { if (original) Object.defineProperty(globalThis, 'navigator', original); else delete globalThis.navigator; }
 });
 
@@ -148,7 +233,7 @@ test('map gestures select the new pin while camera updates and readonly maps nev
   assert.deepEqual(h.map.center, { lat: 7.46, lng: 125.82 });
   h.map.zoom = 9;
   h.window.AniMarketMap.focus({ latitude: 7.076, longitude: 125.708 }, point);
-  assert.equal(h.map.zoom, 15, 'A province-wide view zooms in so a coastal address stays under the pin');
+  assert.equal(h.map.zoom, 17, 'A province-wide view zooms in so a coastal address stays under the pin');
   assert.deepEqual(h.map.center, { lat: 7.076, lng: 125.708 });
   for (const gesture of [() => h.domEvents.wheel({ deltaY: 1 }), () => h.domEvents.keydown({ key: 'ArrowUp' })]) {
     const previous = h.emitted.filter((event) => event.type === 'select').length;
@@ -256,8 +341,11 @@ test('search and reverse API calls encode text, bias the map and preserve the se
   assert.equal(calls[0].url.searchParams.get('bbox'), [DAVAO_DEL_NORTE_BOUNDS.west, DAVAO_DEL_NORTE_BOUNDS.south, DAVAO_DEL_NORTE_BOUNDS.east, DAVAO_DEL_NORTE_BOUNDS.north].join(','));
   assert.equal(calls[0].url.searchParams.get('lat'), String(point.latitude));
   assert.equal(calls[0].url.searchParams.get('lon'), String(point.longitude));
+  assert.equal(calls[0].url.searchParams.get('zoom'), '15');
+  assert.equal(calls[0].url.searchParams.get('location_bias_scale'), '0.2');
   assert.equal(calls[1].url.pathname, '/reverse');
   assert.equal(calls[1].url.searchParams.get('limit'), '1');
+  assert.equal(calls[1].url.searchParams.get('radius'), '0.1');
   assert.equal(address.city, 'Tagum City');
   assert.deepEqual(point, { latitude: 7.4482, longitude: 125.807 });
 });

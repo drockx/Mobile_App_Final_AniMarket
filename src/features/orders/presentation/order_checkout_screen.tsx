@@ -12,18 +12,20 @@ import { SymbolView } from 'expo-symbols';
 import { Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { listingLocality, type SelectedLocation } from '@/features/location/domain/location';
+import { listingLocality, type Coordinate, type SelectedLocation } from '@/features/location/domain/location';
 import { LocationPicker } from '@/features/location/presentation/location_picker';
 
 import type { OrderService as CheckoutService } from '../application/order_service';
 import { checkoutTotals, DELIVERY_PROVINCES, emptyCheckoutForm, PICKUP_TIMES, selectDeliveryLocation, updateCheckoutField, validateCheckout, type CheckoutForm, type CheckoutItem } from '../domain/checkout';
 import { CheckoutButton, checkoutColors as color, CheckoutDate, CheckoutField, checkoutIcons as icons, CheckoutSelect, FieldError } from './checkout_controls';
 import { amountRange, money, OrderNotice as Notice, OrderSteps, OrderSummaryRow as SummaryRow } from './order_components';
+import { SellerPickupLocation } from './seller_pickup_location';
 
 const paymentOptions = [{ value: 'cod', label: 'Pay upon meetup / delivery' }, { value: 'seller', label: 'Coordinate payment with seller' }] as const;
-export function OrderCheckoutScreen({ item, service, loading, error, onRetry, receiverName = '', receiverPhone = '', onBack, onReview }: {
+export function OrderCheckoutScreen({ item, service, loadPickupPin, loading, error, onRetry, receiverName = '', receiverPhone = '', onBack, onReview }: {
   loading?: boolean; error?: string | null; onRetry?: () => void;
   item?: CheckoutItem; service: CheckoutService; receiverName?: string; receiverPhone?: string; onBack: () => void; onReview: (id: string) => void;
+  loadPickupPin: (listingId: string) => Promise<Coordinate | undefined>;
 }) {
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
@@ -124,7 +126,7 @@ export function OrderCheckoutScreen({ item, service, loading, error, onRetry, re
             <View style={styles.pickupBox}>
               <Text style={styles.pickupTitle}>Seller pickup location</Text><Text style={styles.pickupCopy}>{item.sellerAddress}</Text>
               <Text style={styles.pickupCopy}>{item.availability ? <><Text style={styles.bold}>Available: </Text>{item.availability}</> : 'Confirm the pickup point and availability with the seller.'}</Text>
-              <Text style={styles.pickupCopy}>The seller’s exact pickup pin appears in Order Status after placing the request, when provided.</Text>
+              <SellerPickupLocation key={item.id} listingId={item.id} loadPickupPin={loadPickupPin} />
             </View>
             <CheckoutDate label="Preferred pickup date" value={form.pickupDate} onSelect={(value) => update('pickupDate', value)} error={errors.pickupDate} excludedDays={item.unavailablePickupDays} />
             <CheckoutSelect label="Preferred time" required value={form.pickupTime} onSelect={(value) => update('pickupTime', value)} options={PICKUP_TIMES.map((time) => ({ label: time, value: time }))} placeholder="Select time" error={errors.pickupTime} />
