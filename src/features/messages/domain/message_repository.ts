@@ -6,6 +6,7 @@ export type MessagePage = { messages: ChatMessage[]; hasMore: boolean };
 export type MessageRepository = {
   sync(cursor: number | null, signal: AbortSignal): Promise<{ cursor: number; conversations: Conversation[] }>;
   messages(id: string, page: { before?: number; after?: number }): Promise<MessagePage>;
+  watchMessages?(id: string, receive: (page: MessagePage) => void, fail: (error: Error) => void): () => void;
   open(recipientId: string): Promise<Conversation>;
   search(query: string, signal?: AbortSignal): Promise<ChatUser[]>;
   send(id: string, text: string, clientId: string): Promise<ChatMessage>;

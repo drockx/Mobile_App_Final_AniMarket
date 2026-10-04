@@ -61,6 +61,7 @@
     "check:app": "node ./scripts/check_app.js",
     "server": "node ./server/server.js",
     "check:messages": "node --test ./scripts/check_messages.js",
+    "check:message-performance": "node --test ./scripts/check_message_performance.js",
     "check:calls": "node ./scripts/check_calls.js",
     "check:auth": "node ./scripts/check_auth.js",
     "check:verification": "node --test ./scripts/check_verification.js",

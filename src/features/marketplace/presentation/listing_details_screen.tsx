@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { MarketplaceService } from '../application/marketplace_service';
 import { formatListingAddress } from '../domain/listing';
 import { ListingPhoto } from './listing_photo';
+import { ListingPhotoViewer } from './listing_photo_viewer';
 
 const green = '#12372a';
 type IconName = React.ComponentProps<typeof SymbolView>['name'];
@@ -66,6 +67,7 @@ export function ListingDetailsScreen({
   const compact = width < 360 || fontScale > 1.2;
   const data = useSyncExternalStore(marketplace.subscribe, marketplace.getState, marketplace.getState);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
+  const [expandedPhoto, setExpandedPhoto] = useState<{ listingId: string; source: string } | null>(null);
   const listing = marketplace.getListing(listingId ?? '');
 
   if (!listing) {
@@ -104,8 +106,10 @@ export function ListingDetailsScreen({
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={{ paddingTop: insets.top, backgroundColor: '#1a1a1a' }}>
           <View style={styles.hero}>
-            <ListingPhoto source={imageSource} category={listing.category} label={listing.title} />
-            <View style={styles.heroActions}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`View full image of ${listing.title}`} accessibilityState={{ disabled: !imageSource }} disabled={!imageSource} onPress={() => { if (imageSource) setExpandedPhoto({ listingId: listing.id, source: imageSource }); }} style={StyleSheet.absoluteFill}>
+              <ListingPhoto source={imageSource} category={listing.category} label={listing.title} />
+            </Pressable>
+            <View pointerEvents="box-none" style={styles.heroActions}>
               <Pressable onPress={onBack} accessibilityRole="button" accessibilityLabel="Back" hitSlop={8} style={styles.heroButton}>
                 <NavigationIcon name="back" color="#fff" />
               </Pressable>
@@ -131,7 +135,7 @@ export function ListingDetailsScreen({
 
           <View style={styles.thumbnails}>
             {(photos.length ? photos : [null]).map((uri, index) => (
-              <Pressable key={`${uri ?? listing.id}-${index}`} accessibilityRole="button" accessibilityLabel={`View photo ${index + 1}`} accessibilityState={{ selected: selectedPhoto === index }} onPress={() => setSelectedPhoto(index)} style={[styles.thumbnail, selectedPhoto === index && styles.thumbnailActive]}>
+              <Pressable key={`${uri ?? listing.id}-${index}`} accessibilityRole="button" accessibilityLabel={`View full photo ${index + 1}`} accessibilityState={{ selected: selectedPhoto === index, disabled: !uri }} disabled={!uri} onPress={() => { setSelectedPhoto(index); if (uri) setExpandedPhoto({ listingId: listing.id, source: uri }); }} style={[styles.thumbnail, selectedPhoto === index && styles.thumbnailActive]}>
                 <ListingPhoto source={uri} category={listing.category} label={`${listing.title}, photo ${index + 1}`} />
               </Pressable>
             ))}
@@ -190,6 +194,7 @@ export function ListingDetailsScreen({
           <Text style={styles.orderText}>Order</Text>
         </Pressable>
       </View>
+      {expandedPhoto?.listingId === listing.id && <ListingPhotoViewer key={expandedPhoto.source} source={expandedPhoto.source} label={listing.title} onClose={() => setExpandedPhoto(null)} />}
     </View>
   );
 }

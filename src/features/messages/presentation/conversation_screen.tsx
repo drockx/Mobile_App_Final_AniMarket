@@ -1,5 +1,5 @@
 import { AppTextInput as TextInput } from '@/components/app_text_input';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -13,6 +13,17 @@ const forest = '#12372a';
 const muted = '#5b6d63';
 const sendIcon = { ios: 'paperplane.fill', android: 'send', web: 'send' } as const;
 const callIcon = { ios: 'phone', android: 'call', web: 'call' } as const;
+
+const MessageBubble = memo(function MessageBubble({ message, mine, read }: { message: ChatMessage; mine: boolean; read: boolean }) {
+  return <View style={[styles.messageRow, mine && styles.mineRow]}>
+    <View style={[styles.bubble, mine && styles.mineBubble]}>
+      <Text selectable style={[styles.messageText, mine && styles.mineText]}>{message.text}</Text>
+      <Text style={[styles.messageTime, mine && styles.mineTime]}>
+        {new Date(message.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}{mine ? read ? ' · Read' : ' · Sent' : ''}
+      </Text>
+    </View>
+  </View>;
+});
 
 export function ConversationScreen({ conversationId, service, focused, onBack, onCall, onViewProfile }: {
   conversationId: string; service: MessageService; focused: boolean; onBack: () => void; onCall: () => void;
@@ -48,18 +59,12 @@ export function ConversationScreen({ conversationId, service, focused, onBack, o
     } catch (error) { setSendError(error instanceof Error ? error.message : 'Message was not sent. Please try again.'); }
     finally { setSending(false); }
   }
-  function renderMessage({ item }: { item: ChatMessage }) {
-    const mine = item.senderId === service.getUserId();
-    const read = mine && item.seq <= (conversation?.otherReadSeq ?? 0);
-    return <View style={[styles.messageRow, mine && styles.mineRow]}>
-      <View style={[styles.bubble, mine && styles.mineBubble]}>
-        <Text selectable style={[styles.messageText, mine && styles.mineText]}>{item.text}</Text>
-        <Text style={[styles.messageTime, mine && styles.mineTime]}>
-          {new Date(item.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}{mine ? read ? ' · Read' : ' · Sent' : ''}
-        </Text>
-      </View>
-    </View>;
-  }
+  const userId = service.getUserId();
+  const otherReadSeq = conversation?.otherReadSeq ?? 0;
+  const renderMessage = useCallback(({ item }: { item: ChatMessage }) => {
+    const mine = item.senderId === userId;
+    return <MessageBubble message={item} mine={mine} read={mine && item.seq <= otherReadSeq} />;
+  }, [userId, otherReadSeq]);
   return <KeyboardAvoidingView style={styles.background} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
     <StatusBar style="dark" />
     <View style={styles.screen}>
@@ -80,6 +85,7 @@ export function ConversationScreen({ conversationId, service, focused, onBack, o
       <FlatList<ChatMessage>
         ref={list}
         data={thread.messages}
+        extraData={otherReadSeq}
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
         style={styles.list}

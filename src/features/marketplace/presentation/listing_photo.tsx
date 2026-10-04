@@ -11,5 +11,5 @@ export function ListingPhoto({ source, category, label }: {
   const sourceKey = typeof source === 'object' ? JSON.stringify(source) : String(source);
   const [failedSource, setFailedSource] = useState<string>();
   if (!source || sourceKey === failedSource) return <AnimalPlaceholder category={category} />;
-  return <Image source={source} contentFit="cover" accessibilityLabel={label} onError={() => setFailedSource(sourceKey)} style={StyleSheet.absoluteFill} />;
+  return <Image source={source} contentFit="cover" cachePolicy="memory-disk" recyclingKey={sourceKey} accessibilityLabel={label} onError={() => setFailedSource(sourceKey)} style={StyleSheet.absoluteFill} />;
 }

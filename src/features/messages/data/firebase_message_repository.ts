@@ -23,6 +23,16 @@ function ensure() {
 }
 export const firebaseMessageRepository: MessageRepository = {
   async sync(cursor, signal) { ensure(); const result = await state.wait(cursor, signal); return { cursor: result.cursor, conversations: result.value }; },
+  watchMessages(id, receive, fail) {
+    const current = requireFirebaseUser().uid;
+    const services = getFirebaseServices();
+    const ref = collection(services.firestore, 'conversations', id, 'messages');
+    // Stream only the newest page; older history stays paginated.
+    return onSnapshot(query(ref, orderBy('seq', 'desc'), limit(51)), { includeMetadataChanges: true }, (snapshot) => {
+      if (services.auth.currentUser?.uid !== current || snapshot.metadata.fromCache) return;
+      receive({ messages: snapshot.docs.slice(0, 50).map((item) => item.data() as ChatMessage).sort((a, b) => a.seq - b.seq), hasMore: snapshot.docs.length > 50 });
+    }, fail);
+  },
   async messages(id, page) {
     const current = requireFirebaseUser().uid; const ref = collection(getFirebaseServices().firestore, 'conversations', id, 'messages');
     const before = page.before !== undefined; const after = page.after !== undefined;
