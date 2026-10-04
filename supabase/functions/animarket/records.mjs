@@ -23,7 +23,7 @@ export function createAccounts({ store, now = Date.now }) {
   }
   async function account(uid) {
     const [person, role, review] = await Promise.all([profile(uid), store.get(`roles/${uid}`), store.get(`verifications/${uid}`)]);
-    return { id: uid, username: person.username, personal: person.personal, verification: status(review, person), isReviewer: role?.reviewer === true, avatarVersion: person.avatar?.version ?? null };
+    return { id: uid, username: person.username, personal: { ...person.personal, street: person.street ?? '', barangay: person.barangay ?? '', postalCode: person.postalCode ?? '' }, verification: status(review, person), isReviewer: role?.reviewer === true, avatarVersion: person.avatar?.version ?? null };
   }
   async function peer(uid, tx = store) {
     const person = await profile(uid, tx); const review = await tx.get(`verifications/${uid}`);

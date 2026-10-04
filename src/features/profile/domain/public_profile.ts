@@ -2,6 +2,8 @@ export type PublicProfile = {
   id: string;
   fullName: string;
   city: string;
+  purok: string;
+  barangay: string;
   phone: string;
   email: string;
   memberSince: string;

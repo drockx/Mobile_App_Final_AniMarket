@@ -35,8 +35,20 @@ function personalValues(body) {
   const email = emailAddress(body.email);
   const phone = requireText(body.phone, 'phone number', 20);
   if (!/^[+\d\s()-]{7,20}$/.test(phone)) throw new ApiError(400, 'Enter a valid phone number.');
-  if (!localities.has(body.city)) throw new ApiError(400, 'Choose a city or municipality in Davao del Norte.');
-  return { fullName, email, phone, city: body.city };
+  const city = body.city ?? '';
+  if (city !== '' && !localities.has(city)) throw new ApiError(400, 'Choose a city or municipality in Davao del Norte.');
+  return { fullName, email, phone, city };
+}
+function addressValues(body, previous = {}) {
+  const address = {};
+  for (const [key, max] of [['street', 150], ['barangay', 100], ['postalCode', 4]]) {
+    const value = body[key] === undefined ? previous[key] ?? '' : body[key];
+    if (typeof value !== 'string' || value.trim().length > max) throw new ApiError(400, 'Enter a valid address.');
+    address[key] = value.trim();
+  }
+  if (address.postalCode && !/^\d{4}$/.test(address.postalCode)) throw new ApiError(400, 'Postal code must contain four digits.');
+  if (!(body.city ?? '') && Object.values(address).some(Boolean)) throw new ApiError(400, 'Choose a city or municipality for your address.');
+  return address;
 }
 
 function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE || path.join(__dirname, 'data', 'animarket.sqlite'), allowedOrigins = process.env.ANIMARKET_ALLOWED_ORIGINS || '', pollTimeout = 25000, ringTimeout = 45000 } = {}) {
@@ -62,7 +74,7 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
   const profilePhotos = createProfilePhotos({ db, ApiError, notify });
   const calls = createVoiceCalls({ db, ApiError, notify, verification, ringTimeout });
   function publicAccount(row) {
-    return { id: row.id, username: row.email, personal: { fullName: row.full_name, email: row.email, phone: row.phone, city: row.city }, verification: verification.status(row.id), isReviewer: Boolean(row.is_reviewer), avatarVersion: profilePhotos.version(row.id) };
+    return { id: row.id, username: row.email, personal: { fullName: row.full_name, email: row.email, phone: row.phone, city: row.city, ...JSON.parse(row.address) }, verification: verification.status(row.id), isReviewer: Boolean(row.is_reviewer), avatarVersion: profilePhotos.version(row.id) };
   }
   function limit(key, count, windowMs) {
     const now = Date.now();
@@ -147,8 +159,7 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
         if (url.pathname === '/auth/register') {
           const person = personalValues(body); const password = passwordValue(body.password);
           if (body.acceptedTerms !== true) throw new ApiError(400, 'Please agree to the terms and privacy policy.');
-          const address = { street: requireText(body.street, 'street'), barangay: requireText(body.barangay, 'barangay'), postalCode: requireText(body.postalCode, 'postal code', 4) };
-          if (!/^\d{4}$/.test(address.postalCode)) throw new ApiError(400, 'Postal code must contain four digits.');
+          const address = addressValues(body);
           if (get('SELECT id FROM users WHERE email = ?', person.email)) throw new ApiError(409, 'This email address is already registered.');
           const salt = randomBytes(16).toString('hex');
           const passwordHash = (await hashPassword(password, salt, 64)).toString('hex');
@@ -204,7 +215,8 @@ function createMessagingServer({ databasePath = process.env.ANIMARKET_DATABASE |
           if (!timingSafeEqual(candidate, Buffer.from(freshUser.password_hash, 'hex'))) throw new ApiError(400, 'Current password is incorrect.');
         }
         const current = get('SELECT * FROM users WHERE id = ?', user.id);
-        run('UPDATE users SET email = ?, full_name = ?, phone = ?, city = ?, email_verified_at = ? WHERE id = ?', person.email, person.fullName, person.phone, person.city, emailChanged ? null : current.email_verified_at, user.id);
+        const address = addressValues(body, JSON.parse(current.address));
+        run('UPDATE users SET email = ?, full_name = ?, phone = ?, city = ?, address = ?, email_verified_at = ? WHERE id = ?', person.email, person.fullName, person.phone, person.city, JSON.stringify(address), emailChanged ? null : current.email_verified_at, user.id);
         if (person.fullName !== current.full_name) verification.invalidateName(user.id);
         const peers = all('SELECT DISTINCT other.user_id FROM members mine JOIN members other ON mine.conversation_id = other.conversation_id WHERE mine.user_id = ?', user.id).map((row) => row.user_id);
         notify([user.id, ...peers]); respond(200, { account: publicAccount(get('SELECT * FROM users WHERE id = ?', user.id)) }); return;

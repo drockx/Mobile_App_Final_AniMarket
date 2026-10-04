@@ -1,5 +1,3 @@
-import { DAVAO_DEL_NORTE, isDavaoDelNorteLocality } from '@/constants/davao_del_norte';
-import { isBarangayInLocality } from '../../../constants/davao_del_norte_barangays';
 import { emailError, passwordError } from './credential_policy';
 
 export type LoginValues = {
@@ -13,11 +11,6 @@ export type RegistrationValues = {
   lastName: string;
   phone: string;
   email: string;
-  purok: string;
-  barangay: string;
-  municipalityCity: string;
-  province: string;
-  postalCode: string;
   password: string;
   confirmPassword: string;
 };
@@ -46,19 +39,6 @@ export function validateRegistrationFields(
   else if (!/^[+\d\s()-]{7,20}$/.test(values.phone.trim())) errors.phone = 'Enter a valid phone number.';
   const emailIssue = emailError(values.email);
   if (emailIssue) errors.email = emailIssue;
-
-  if (!values.purok.trim()) errors.purok = 'Purok or street is required.';
-  if (!isBarangayInLocality(values.municipalityCity, values.barangay)) errors.barangay = 'Choose a barangay in the selected city or municipality.';
-  if (!isDavaoDelNorteLocality(values.municipalityCity)) {
-    errors.municipalityCity = 'Choose a city or municipality in Davao del Norte.';
-  }
-  if (values.province !== DAVAO_DEL_NORTE) errors.province = 'Province must be Davao del Norte.';
-
-  if (!values.postalCode.trim()) {
-    errors.postalCode = 'Postal code is required.';
-  } else if (!/^\d{4}$/.test(values.postalCode.trim())) {
-    errors.postalCode = 'Postal code must contain four digits.';
-  }
 
   const passwordIssue = passwordError(values.password);
   if (passwordIssue) errors.password = passwordIssue;

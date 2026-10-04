@@ -28,3 +28,22 @@ test('registration works without an email code while server password rules remai
   assert.equal((await request('/auth/password',{current:person.password,next:'A1!' + 'a'.repeat(19)},result.token)).status,400);
   assert.equal((await request('/auth/password',{current:person.password,next:'A1!' + 'a'.repeat(18)},result.token)).status,200);
 });
+test('an address can be added after registration and survives profile edits and sign-in', async (t) => {
+  const app = createMessagingServer({ databasePath: ':memory:' });
+  await new Promise(resolve => app.server.listen(0, '127.0.0.1', resolve)); t.after(() => app.close());
+  const person = { fullName: 'Address Test', email: 'address@example.test', phone: '09123456789', password: 'StrongPass1!', acceptedTerms: true };
+  async function request(path, body, token, method = 'POST') {
+    const response = await fetch('http://127.0.0.1:' + app.server.address().port + path, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+    return { status: response.status, ...await response.json() };
+  }
+  const created = await request('/auth/register', person); assert.equal(created.status, 201);
+  assert.equal(created.account.personal.city, ''); assert.equal(created.account.personal.street, '');
+  const personal = { ...created.account.personal, city: 'Tagum City', street: 'Purok 2', barangay: 'Visayan Village', postalCode: '8100' };
+  const saved = await request('/auth/me', personal, created.token, 'PATCH'); assert.equal(saved.status, 200);
+  assert.deepEqual(saved.account.personal, personal);
+  const contactOnly = await request('/auth/me', { fullName: person.fullName, email: person.email, phone: '09987654321', city: 'Tagum City' }, created.token, 'PATCH');
+  assert.equal(contactOnly.status, 200); assert.equal(contactOnly.account.personal.street, 'Purok 2');
+  assert.equal((await request('/auth/me', { ...personal, postalCode: 'bad' }, created.token, 'PATCH')).status, 400);
+  const restored = await request('/auth/login', { email: person.email, password: person.password });
+  assert.equal(restored.account.personal.barangay, 'Visayan Village'); assert.equal(restored.account.personal.postalCode, '8100');
+});

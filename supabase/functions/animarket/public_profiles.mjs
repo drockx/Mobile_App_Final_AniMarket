@@ -13,7 +13,7 @@ export function createPublicProfiles({ store, accounts, now = Date.now }) {
   function view(person, review, summary, ownRating, viewer) {
     const count = summary?.count ?? 0;
     return { profile: {
-      id: person.id, fullName: person.personal.fullName, city: person.personal.city,
+      id: person.id, fullName: person.personal.fullName, city: person.personal.city, purok: person.street ?? '', barangay: person.barangay ?? '',
       phone: person.personal.phone ?? '', email: person.personal.email ?? '',
       memberSince: person.createdAt, verified: accounts.status(review, person).status === 'verified',
       photoUrl: person.avatar?.url ?? null,

@@ -1,10 +1,6 @@
 import { NavigationIcon } from '@/components/navigation_icon';
-import { AddressSelect } from '@/components/address_select';
 import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-
-import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel } from '@/constants/davao_del_norte';
-import { barangaysForLocality } from '@/constants/davao_del_norte_barangays';
 
 import {
   validateRegistrationFields,
@@ -24,7 +20,6 @@ type RegisterScreenProps = {
 
 const initialValues: RegistrationValues = {
   firstName: '', middleName: '', lastName: '', phone: '', email: '',
-  purok: '', barangay: '', municipalityCity: '', province: DAVAO_DEL_NORTE, postalCode: '',
   password: '', confirmPassword: '',
 };
 
@@ -37,7 +32,7 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
   const submitting = useRef(false);
 
   function updateField(field: keyof RegistrationValues, value: string) {
-    setValues((current) => ({ ...current, [field]: value, ...(field === 'municipalityCity' && value !== current.municipalityCity ? { barangay: '' } : {}) }));
+    setValues((current) => ({ ...current, [field]: value }));
     if (errors[field]) {
       setErrors((current) => ({ ...current, [field]: undefined }));
     }
@@ -89,18 +84,6 @@ export function RegisterScreen({ onBackToLogin, onRegister }: RegisterScreenProp
         <AuthField compact label="Email Address" autoComplete="email" keyboardType="email-address" autoCapitalize="none" returnKeyType="next" error={errors.email} value={values.email} onChangeText={(value) => updateField('email', value)} />
       </View>
 
-      <Text style={styles.sectionLabel}>Address</Text>
-      <View style={styles.fieldGroup}>
-        <AddressSelect dark required={false} label="Municipality / City" value={values.municipalityCity} options={DAVAO_DEL_NORTE_LOCALITIES.map((city) => ({ label: davaoDelNorteLocalityLabel(city), value: city }))} onSelect={(value) => updateField('municipalityCity', value)} placeholder="Choose city or municipality" error={errors.municipalityCity} />
-        <AddressSelect dark required={false} label="Barangay" value={values.barangay} options={barangaysForLocality(values.municipalityCity).map((name) => ({ label: name, value: name }))} onSelect={(value) => updateField('barangay', value)} disabled={!values.municipalityCity} placeholder={values.municipalityCity ? 'Choose barangay' : 'Choose city or municipality first'} dialogTitle={`Barangays in ${values.municipalityCity}`} error={errors.barangay} />
-        <AuthField compact label="Purok / Street" autoComplete="address-line1" returnKeyType="next" error={errors.purok} value={values.purok} onChangeText={(value) => updateField('purok', value)} />
-        <View>
-          <Text style={styles.addressLabel}>Province</Text>
-          <View style={styles.addressSelect}><Text style={styles.addressValue}>{DAVAO_DEL_NORTE}</Text></View>
-        </View>
-        <AuthField compact label="Postal Code" autoComplete="postal-code" keyboardType="number-pad" maxLength={4} returnKeyType="next" error={errors.postalCode} value={values.postalCode} onChangeText={(value) => updateField('postalCode', value)} />
-      </View>
-
       <Text style={styles.sectionLabel}>Security</Text>
       <View style={styles.fieldGroup}>
         <AuthField compact label="Password" autoComplete="new-password" secure returnKeyType="next" error={errors.password} value={values.password} onChangeText={(value) => updateField('password', value)} />
@@ -150,9 +133,6 @@ const styles = StyleSheet.create({
   passwordRules: { backgroundColor: 'rgba(0,0,0,0.28)', borderRadius: 12, padding: 12, gap: 4 },
   rulesTitle: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700', marginBottom: 2 },
   ruleText: { color: '#fff', fontSize: 14, lineHeight: 21, flexShrink: 1 },
-  addressLabel: { color: '#fff', fontSize: 14, lineHeight: 20, fontWeight: '700', includeFontPadding: false, marginBottom: 8 },
-  addressSelect: { minHeight: 52, borderRadius: 15, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.78)', backgroundColor: 'rgba(0,0,0,0.24)', paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  addressValue: { flex: 1, minWidth: 0, color: '#fff', fontSize: 16, lineHeight: 22, includeFontPadding: false },
   terms: { marginTop: 16, marginBottom: 14 },
   termsError: { color: '#ffd2ca', fontSize: 14, lineHeight: 20, marginTop: 4, marginLeft: 38 },
   message: { color: '#fff', backgroundColor: 'rgba(20,31,24,0.5)', borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 13, lineHeight: 18 },

@@ -5,17 +5,18 @@ import { appFormStyles } from '@/constants/app_theme';
 
 import { accountColors } from './account_screen_layout';
 
-export function AccountField({ label, value, onChangeText, required = false, secureTextEntry = false, ...props }: Pick<TextInputProps, 'autoCapitalize' | 'autoComplete' | 'keyboardType' | 'secureTextEntry' | 'returnKeyType'> & {
+export function AccountField({ label, value, onChangeText, required = false, secureTextEntry = false, error, ...props }: Pick<TextInputProps, 'autoCapitalize' | 'autoComplete' | 'keyboardType' | 'secureTextEntry' | 'returnKeyType' | 'maxLength'> & {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   required?: boolean;
+  error?: string;
 }) {
   const [visible, setVisible] = useState(false);
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}{required && <Text style={styles.required}> *</Text>}</Text>
-      <View style={styles.inputWrap}>
+      <View style={[styles.inputWrap, !!error && styles.invalid]}>
         <TextInput
           {...props}
           accessibilityLabel={label}
@@ -32,6 +33,7 @@ export function AccountField({ label, value, onChangeText, required = false, sec
           <Text style={styles.toggleText}>{visible ? 'Hide' : 'Show'}</Text>
         </Pressable>}
       </View>
+      {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
     </View>
   );
 }
@@ -44,4 +46,6 @@ const styles = StyleSheet.create({
   toggle: { flexShrink: 0, minWidth: 60, minHeight: 44, paddingHorizontal: 12, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
   toggleText: { color: accountColors.forest, fontSize: 14, lineHeight: 20, fontWeight: '700', textAlign: 'center', includeFontPadding: false },
   input: { ...appFormStyles.value, flex: 1, minWidth: 0, minHeight: 50, paddingHorizontal: 14, paddingVertical: 12, color: accountColors.text },
+  invalid: { borderColor: accountColors.red },
+  error: { color: accountColors.red, fontSize: 14, lineHeight: 20 },
 });

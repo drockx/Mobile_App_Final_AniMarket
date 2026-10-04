@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { DataFeedback } from '@/components/data_feedback';
 import type { PublicProfile } from '../domain/public_profile';
+import { profileAddress } from '../domain/personal_information';
 import { AccountScreenLayout, accountColors as color } from './components/account_screen_layout';
 
 export type { PublicProfile } from '../domain/public_profile';
@@ -36,7 +37,7 @@ export function PublicProfileScreen({ profile, loading, error, busy, onBack, onR
           {profile.photoUrl ? <Image source={profile.photoUrl} contentFit="cover" accessibilityLabel={`${profile.fullName}'s profile photo`} style={styles.photo} /> : <Text style={styles.initials}>{initials}</Text>}
         </View>
         <Text accessibilityRole="header" style={styles.name}>{profile.fullName}</Text>
-        <Text style={styles.body}>{profile.city}, Davao del Norte</Text>
+        <Text style={styles.body}>{profileAddress(profile) || 'Address not provided'}</Text>
         <Text style={styles.identity}>{profile.verified ? 'Identity verified' : 'AniMarket member'}</Text>
         {joinedText && <Text style={styles.body}>Member since {joinedText}</Text>}
       </View>

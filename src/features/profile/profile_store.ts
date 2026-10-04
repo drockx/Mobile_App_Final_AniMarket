@@ -2,11 +2,12 @@ import { useSyncExternalStore } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-import { DAVAO_DEL_NORTE, isDavaoDelNorteLocality } from '@/constants/davao_del_norte';
+import { isDavaoDelNorteLocality } from '@/constants/davao_del_norte';
 import { ApiError, apiRequest, getAccessToken, onUnauthorized, setAccessToken } from '@/services/api';
 import type { IdentityVerification, ValidIdType } from './domain/identity_verification';
 import { emailError, passwordError } from '../auth/domain/credential_policy';
 import type { Account, AccountSession as Session, PersonalInformation } from './domain/account';
+import { validatePersonalAddress } from './domain/personal_information';
 import { firebaseEnabled } from '@/services/firebase_config';
 import { getFirebaseServices } from '@/services/firebase';
 import { readFirebaseAccount } from '@/services/firebase_account';
@@ -16,7 +17,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 
 export type { PersonalInformation } from './domain/account';
 type AccountSnapshot = { signedIn: boolean; loading: boolean; error: string | null; userId: string; username: string; personal: PersonalInformation; verification: IdentityVerification; isReviewer: boolean; isStaff: boolean; avatarVersion: string | null };
-const empty: AccountSnapshot = { signedIn: false, loading: false, error: null, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: 'Tagum City' }, verification: { status: 'unverified' }, isReviewer: false, isStaff: false, avatarVersion: null };
+const empty: AccountSnapshot = { signedIn: false, loading: false, error: null, userId: '', username: '', personal: { fullName: '', email: '', phone: '', city: '', street: '', barangay: '', postalCode: '' }, verification: { status: 'unverified' }, isReviewer: false, isStaff: false, avatarVersion: null };
 let snapshot: AccountSnapshot = { ...empty, loading: true };
 const listeners = new Set<() => void>();
 let initialized: Promise<void> | undefined;
@@ -88,7 +89,7 @@ export function initializeAccount() {
       if (epoch !== generation) return;
       if (!saved) { publish({ ...empty }); return; }
       const session: Session = JSON.parse(saved);
-      if (!/^[a-f0-9]{64}$/.test(session.token) || !session.account?.id || !session.account?.personal || !isDavaoDelNorteLocality(session.account.personal.city)) throw new Error('Invalid session');
+      if (!/^[a-f0-9]{64}$/.test(session.token) || !session.account?.id || !session.account?.personal || (session.account.personal.city !== '' && !isDavaoDelNorteLocality(session.account.personal.city))) throw new Error('Invalid session');
       setAccessToken(session.token);
       try {
         const result = await apiRequest<{ account: Account }>('/auth/me');
@@ -128,13 +129,13 @@ export async function signIn(email: string, password: string): Promise<string | 
   catch (error) { return error instanceof Error ? error.message : 'Unable to sign in.'; }
   finally { finishAuthMutation(); }
 }
-export async function registerAccount(values: { firstName: string; middleName: string; lastName: string; email: string; phone: string; municipalityCity: string; purok: string; barangay: string; postalCode: string; password: string }): Promise<string | null> {
+export async function registerAccount(values: { firstName: string; middleName: string; lastName: string; email: string; phone: string; password: string }): Promise<string | null> {
   const epoch = ++generation;
   authMutations++;
   try {
     const session = await apiRequest<Session>('/auth/register', { public: true, method: 'POST', body: {
       fullName: [values.firstName, values.middleName, values.lastName].map((part) => part.trim()).filter(Boolean).join(' '),
-      email: values.email, phone: values.phone, city: values.municipalityCity, street: values.purok, barangay: values.barangay, postalCode: values.postalCode, password: values.password, acceptedTerms: true,
+      email: values.email, phone: values.phone, password: values.password, acceptedTerms: true,
     } });
     return await acceptSession(session, epoch);
   } catch (error) { return error instanceof Error ? error.message : 'Unable to create your account.'; }
@@ -154,8 +155,7 @@ export function validatePersonalInformation(personal: PersonalInformation): stri
   const emailIssue = emailError(personal.email);
   if (emailIssue) return emailIssue;
   if (!/^[+\d\s()-]{7,20}$/.test(personal.phone.trim())) return 'Enter a valid phone number.';
-  if (!isDavaoDelNorteLocality(personal.city)) return `${DAVAO_DEL_NORTE}: choose a city or municipality.`;
-  return null;
+  return Object.values(validatePersonalAddress(personal))[0] ?? null;
 }
 export async function savePersonalInformation(personal: PersonalInformation, emailChange?: { currentPassword: string }): Promise<string | null> {
   const issue = validatePersonalInformation(personal); if (issue) return issue;

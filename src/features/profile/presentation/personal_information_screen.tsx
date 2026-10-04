@@ -1,9 +1,11 @@
-import { NavigationIcon } from '@/components/navigation_icon';
+import { AddressSelect } from '@/components/address_select';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { appFormStyles } from '@/constants/app_theme';
 
-import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel } from '@/constants/davao_del_norte';
+import { DAVAO_DEL_NORTE, DAVAO_DEL_NORTE_LOCALITIES, davaoDelNorteLocalityLabel, isDavaoDelNorteLocality } from '@/constants/davao_del_norte';
+import { barangaysForLocality } from '@/constants/davao_del_norte_barangays';
+import { updatePersonalInformation, validatePersonalAddress, type AddressErrors } from '../domain/personal_information';
 
 import { savePersonalInformation, useAccount } from '../profile_store';
 import { AccountField } from './components/account_field';
@@ -13,7 +15,7 @@ import { ProfilePicture } from './components/profile_picture';
 export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
   const account = useAccount();
   const [values, setValues] = useState(account.personal);
-  const [cityOpen, setCityOpen] = useState(false);
+  const [errors, setErrors] = useState<AddressErrors>({});
   const [message, setMessage] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -22,13 +24,17 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
 
   function update<K extends keyof typeof values>(key: K, value: typeof values[K]) {
     if (key === 'email') { setCurrentPassword(''); }
-    setValues((current) => ({ ...current, [key]: value }));
+    setValues((current) => updatePersonalInformation(current, key, value));
+    setErrors((current) => ({ ...current, [key]: undefined, ...(key === 'city' ? { barangay: undefined } : {}) }));
     setMessage(null);
     setSaved(false);
   }
 
   async function save() {
     if (busy) return;
+    const addressErrors = validatePersonalAddress(values);
+    setErrors(addressErrors);
+    if (Object.keys(addressErrors).length) { setSaved(false); setMessage('Please review the highlighted address fields.'); return; }
     setBusy(true);
     const error = await savePersonalInformation(values, emailChanged ? { currentPassword } : undefined);
     setBusy(false);
@@ -38,7 +44,7 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <AccountScreenLayout title="Edit Profile" subtitle="Update your profile photo, contact information and livestock location." onBack={onBack}>
+    <AccountScreenLayout title="Personal Information" subtitle="Update your photo, contact information and address." onBack={onBack}>
       <View style={[styles.card, styles.photoCard]}>
         <Text style={styles.label}>Profile Photo</Text>
         <ProfilePicture key={account.userId} initials={account.personal.fullName.trim().split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'AM'} editable />
@@ -51,38 +57,23 @@ export function PersonalInformationScreen({ onBack }: { onBack: () => void }) {
           <AccountField label="Current Password to Change Email" autoComplete="current-password" secureTextEntry value={currentPassword} onChangeText={setCurrentPassword} />
         </>}
         <AccountField label="Phone Number" autoComplete="tel" keyboardType="phone-pad" value={values.phone} onChangeText={(value) => update('phone', value)} />
-        <View style={styles.field}>
-          <Text style={styles.label}>Municipality / City <Text style={styles.required}>*</Text></Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Municipality or City, ${values.city}`} onPress={() => setCityOpen(true)} style={styles.select}>
-            <Text style={styles.selectText}>{davaoDelNorteLocalityLabel(values.city)}</Text>
-            <NavigationIcon name={cityOpen ? 'up' : 'down'} />
-          </Pressable>
-        </View>
+      </View>
+      <View style={styles.card}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>Address</Text>
+        <Text style={styles.note}>Choose your city or municipality first, then your barangay.</Text>
+        <AddressSelect label="City / Municipality" value={values.city} options={DAVAO_DEL_NORTE_LOCALITIES.map((city) => ({ label: davaoDelNorteLocalityLabel(city), value: city }))} onSelect={(value) => { if (isDavaoDelNorteLocality(value)) update('city', value); }} placeholder="Choose city or municipality" error={errors.city} />
+        <AddressSelect label="Barangay" value={values.barangay ?? ''} options={barangaysForLocality(values.city).map((name) => ({ label: name, value: name }))} onSelect={(value) => update('barangay', value)} disabled={!values.city} placeholder={values.city ? 'Choose barangay' : 'Choose city or municipality first'} dialogTitle={values.city ? `Barangays in ${davaoDelNorteLocalityLabel(values.city)}` : 'Choose barangay'} error={errors.barangay} />
+        <AccountField label="Purok" required autoComplete="address-line1" autoCapitalize="words" maxLength={150} returnKeyType="next" value={values.street ?? ''} onChangeText={(value) => update('street', value)} error={errors.street} />
         <View style={styles.field}>
           <Text style={styles.label}>Province</Text>
           <View style={styles.readonlyField}><Text style={styles.readonlyText}>{DAVAO_DEL_NORTE}</Text></View>
         </View>
+        <AccountField label="Postal Code" required autoComplete="postal-code" keyboardType="number-pad" maxLength={4} returnKeyType="done" value={values.postalCode ?? ''} onChangeText={(value) => update('postalCode', value)} error={errors.postalCode} />
       </View>
 
       {message && <Text accessibilityRole="alert" style={[styles.message, saved ? styles.success : styles.error]}>{message}</Text>}
       <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy }} disabled={busy} onPress={save} style={styles.saveButton}><Text style={styles.saveText}>{busy ? 'Saving…' : 'Save Changes'}</Text></Pressable>
 
-      <Modal visible={cityOpen} transparent animationType="fade" onRequestClose={() => setCityOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close city list" onPress={() => setCityOpen(false)} style={StyleSheet.absoluteFill} />
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Choose Municipality / City</Text>
-            <ScrollView style={styles.cityList} keyboardShouldPersistTaps="handled">
-              {DAVAO_DEL_NORTE_LOCALITIES.map((city) => (
-                <Pressable key={city} accessibilityRole="button" accessibilityState={{ selected: values.city === city }} onPress={() => { update('city', city); setCityOpen(false); }} style={styles.cityOption}>
-                  <Text style={[styles.cityText, values.city === city && styles.citySelected]}>{davaoDelNorteLocalityLabel(city)}</Text>
-                  {values.city === city && <Text style={styles.citySelected}>✓</Text>}
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
     </AccountScreenLayout>
   );
 }
@@ -92,9 +83,7 @@ const styles = StyleSheet.create({
   photoCard: { alignItems: 'center' },
   field: { ...appFormStyles.field },
   label: { ...appFormStyles.label, color: accountColors.text },
-  required: { color: accountColors.red },
-  select: { ...appFormStyles.control, gap: 8, borderColor: accountColors.line, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff' },
-  selectText: { ...appFormStyles.value, flex: 1, minWidth: 0, color: accountColors.text },
+  sectionTitle: { color: accountColors.forest, fontSize: 18, lineHeight: 25, fontWeight: '700' },
   readonlyField: { ...appFormStyles.control, borderColor: accountColors.line, justifyContent: 'center', backgroundColor: accountColors.surface },
   readonlyText: { ...appFormStyles.value, color: accountColors.muted },
   message: { padding: 11, borderRadius: 10, fontSize: 13, lineHeight: 18 },
@@ -103,11 +92,4 @@ const styles = StyleSheet.create({
   saveButton: { minHeight: 48, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: accountColors.forest },
   saveText: { color: '#fff', fontSize: 14, lineHeight: 19, fontWeight: '800' },
   note: { color: accountColors.muted, fontSize: 13, lineHeight: 18 },
-  modalBackdrop: { flex: 1, padding: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(10,28,20,0.5)' },
-  modalCard: { width: '100%', maxWidth: 380, maxHeight: '85%', padding: 14, borderRadius: 16, backgroundColor: '#fff' },
-  modalTitle: { color: accountColors.forest, fontSize: 16, lineHeight: 22, fontWeight: '800', marginBottom: 8 },
-  cityList: { maxHeight: 420, flexShrink: 1 },
-  cityOption: { minHeight: 48, paddingHorizontal: 8, paddingVertical: 10, gap: 8, borderTopWidth: 1, borderTopColor: '#edf2ee', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cityText: { flex: 1, minWidth: 0, color: accountColors.text, fontSize: 14, lineHeight: 20 },
-  citySelected: { color: accountColors.forest, fontWeight: '800' },
 });

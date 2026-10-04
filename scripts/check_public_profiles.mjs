@@ -17,7 +17,7 @@ function fixture() {
   } };
   for (const uid of ['seller', 'buyer', 'another']) rows.set(`users/${uid}`, {
     id: uid, personal: { fullName: `${uid} User`, city: 'Tagum City', email: `${uid}@example.invalid`, phone: '09123456789' },
-    acceptedTerms: true, createdAt: '2026-10-01T00:00:00Z', street: 'Private street', barangay: 'Private barangay',
+    acceptedTerms: true, createdAt: '2026-10-01T00:00:00Z', street: 'Purok 2', barangay: 'Visayan Village', postalCode: '8100',
     avatar: { url: 'https://res.cloudinary.com/dnbmd5qhj/image/upload/profile.png', publicId: 'private-metadata' },
   });
   rows.set('verifications/seller', { status: 'verified', fullName: 'seller User', idType: 'National ID', photoPath: 'private/id.jpg', reason: 'Private' });
@@ -30,10 +30,12 @@ function fixture() {
 
 test('Profiles expose only public fields, genuine verification, photos and rating summaries', async () => {
   const f = fixture(); const { profile } = await f.read('buyer');
-  assert.deepEqual(Object.keys(profile).sort(), ['canRate', 'city', 'email', 'fullName', 'id', 'memberSince', 'myRating', 'phone', 'photoUrl', 'rating', 'verified'].sort());
+  assert.deepEqual(Object.keys(profile).sort(), ['canRate', 'city', 'purok', 'barangay', 'email', 'fullName', 'id', 'memberSince', 'myRating', 'phone', 'photoUrl', 'rating', 'verified'].sort());
+  assert.equal(profile.purok, 'Purok 2'); assert.equal(profile.barangay, 'Visayan Village');
   assert.equal(profile.email, 'seller@example.invalid'); assert.equal(profile.phone, '09123456789');
   assert.equal(profile.verified, true); assert.equal(profile.rating.average, null); assert.equal(profile.rating.count, 0);
-  for (const privateValue of ['Private street', 'Private barangay', 'private-metadata', 'private/id.jpg', 'National ID']) assert.equal(JSON.stringify(profile).includes(privateValue), false);
+  for (const privateValue of ['8100', 'private-metadata', 'private/id.jpg', 'National ID']) assert.equal(JSON.stringify(profile).includes(privateValue), false);
+  assert.equal(Object.hasOwn(profile, 'street'), false); assert.equal(Object.hasOwn(profile, 'postalCode'), false);
   assert.equal((await f.read('seller', 'buyer')).profile.verified, false);
   f.rows.get('users/seller').personal.fullName = 'Changed name';
   assert.equal((await f.read('buyer')).profile.verified, false);

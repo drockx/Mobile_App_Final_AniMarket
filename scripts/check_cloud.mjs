@@ -147,6 +147,18 @@ test('Email changes require recent password confirmation and only change the ver
   await f.account(session, '/auth/email', { email: 'NEW@example.invalid', uid: 'seller' }, 'POST');
   assert.equal((await f.accounts.account('buyer')).personal.email, 'new@example.invalid'); assert.equal((await f.accounts.account('seller')).personal.email, 'seller@example.invalid'); assert.equal(f.authChanges[0].localId, 'buyer');
 });
+test('personal address saves retain legacy values and reject invalid locality and postal code', async () => {
+  const f = fixture(); const session = { uid: 'buyer', record: { email: 'buyer@example.invalid' } };
+  f.rows.get('users/buyer').personal.city = '';
+  const personal = { fullName: 'buyer User', phone: '09123456789', city: 'Tagum City', street: 'Purok 2', barangay: 'Visayan Village', postalCode: '8100' };
+  const saved = await f.account(session, '/auth/me', personal, 'PATCH');
+  assert.equal(saved.account.personal.street, 'Purok 2'); assert.equal(saved.account.personal.barangay, 'Visayan Village');
+  const contact = await f.account(session, '/auth/me', { fullName: personal.fullName, phone: '09987654321', city: personal.city }, 'PATCH');
+  assert.equal(contact.account.personal.postalCode, '8100'); assert.equal(contact.account.personal.street, 'Purok 2');
+  await assert.rejects(f.account(session, '/auth/me', { ...personal, city: 'Davao City' }, 'PATCH'), /locality/);
+  await assert.rejects(f.account(session, '/auth/me', { ...personal, postalCode: 'abcd' }, 'PATCH'), /postal/);
+  assert.equal((await f.store.get('directory/buyer')).city, personal.city);
+});
 test('Maintenance expires pending IDs and deletes orphan media without touching referenced photos', async () => {
   const f = fixture(); await f.account({ uid: 'buyer' }, '/verification/id', { idType: 'National ID', fullName: 'buyer User', photo: png, consent: true }, 'POST');
   const idPhoto = (await f.store.get('verifications/buyer')).photoPath;

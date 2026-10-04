@@ -9,6 +9,7 @@ import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
 import { useAccount } from '../profile_store';
 import { verificationLabels } from '../domain/identity_verification';
 import { ProfilePicture } from './components/profile_picture';
+import { profileAddress } from '../domain/personal_information';
 
 const color = {
   forest: '#12372a',
@@ -154,7 +155,7 @@ export function ProfileScreen({ activeListingCount, orderCount, unreadMessageCou
                     <Text style={styles.editText}>Edit Profile</Text>
                   </Pressable>
                 </View>
-                <Text style={styles.location}>{account.personal.city}, Davao del Norte</Text>
+                <Text style={styles.location}>{profileAddress(account.personal) || 'Address not provided'}</Text>
                 <View style={styles.verifiedRow}>
                   {account.verification.status === 'verified' && <View style={styles.verifiedIcon}><Icon name={icon.check} size={14} tintColor={color.green} /></View>}
                   <Text style={styles.verifiedText}>{account.verification.status === 'verified' ? 'Identity verified' : 'AniMarket member'}</Text>

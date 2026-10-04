@@ -16,6 +16,7 @@ require.extensions['.ts'] = (module, filename) => {
 const { DAVAO_DEL_NORTE_LOCALITIES } = require('../src/constants/davao_del_norte.ts');
 const { barangaysForLocality, isBarangayInLocality, canonicalBarangay } = require('../src/constants/davao_del_norte_barangays.ts');
 const { validateRegistrationFields } = require('../src/features/auth/domain/validation.ts');
+const { validatePersonalAddress, updatePersonalInformation, profileAddress } = require('../src/features/profile/domain/personal_information.ts');
 const { emptyCheckoutForm, updateCheckoutField, selectDeliveryLocation, validateCheckout, tomorrowKey } = require('../src/features/orders/domain/checkout.ts');
 
 test('all 223 PSA barangays are available under the correct 11 localities', () => {
@@ -47,12 +48,32 @@ test('map names normalize only to unique known barangays', () => {
   assert.equal(canonicalBarangay('Tagum City', 'Gredu'), '');
 });
 
-test('registration rejects barangays outside the selected locality', () => {
-  const values = { firstName: 'Address', middleName: '', lastName: 'Test', phone: '09123456789', email: 'address@example.com', purok: 'Purok 2', barangay: 'Visayan Village', municipalityCity: 'Tagum City', province: 'Davao del Norte', postalCode: '8100', password: 'StrongPass1!', confirmPassword: 'StrongPass1!' };
+test('registration validates credentials without requiring an address', () => {
+  const values = { firstName: 'Address', middleName: '', lastName: 'Test', phone: '09123456789', email: 'address@example.com', password: 'StrongPass1!', confirmPassword: 'StrongPass1!' };
   assert.deepEqual(validateRegistrationFields(values, true), {});
-  for (const changed of [{ municipalityCity: 'Panabo City' }, { municipalityCity: '' }, { barangay: 'Typed barangay' }, { barangay: '' }]) {
-    assert.ok(validateRegistrationFields({ ...values, ...changed }, true).barangay);
-  }
+  assert.ok(validateRegistrationFields({ ...values, email: 'invalid' }, true).email);
+  assert.ok(validateRegistrationFields(values, false).terms);
+});
+
+test('personal information owns full address validation and dependent barangay selection', () => {
+  const values = { fullName: 'Address Test', email: 'address@example.com', phone: '09123456789', street: 'Purok 2', barangay: 'Visayan Village', city: 'Tagum City', postalCode: '8100' };
+  assert.deepEqual(validatePersonalAddress(values), {});
+  assert.ok(validatePersonalAddress({ ...values, city: 'Panabo City' }).barangay);
+  assert.ok(validatePersonalAddress({ ...values, city: 'Davao City' }).city);
+  assert.ok(validatePersonalAddress({ ...values, street: ' ' }).street);
+  assert.ok(validatePersonalAddress({ ...values, postalCode: '123' }).postalCode);
+  const shared = { ...values, barangay: 'San Miguel' };
+  assert.equal(updatePersonalInformation(shared, 'city', 'Tagum City').barangay, 'San Miguel');
+  const changed = updatePersonalInformation(shared, 'city', 'Santo Tomas');
+  assert.equal(changed.barangay, ''); assert.equal(changed.street, 'Purok 2'); assert.equal(changed.postalCode, '8100');
+  assert.equal(shared.barangay, 'San Miguel');
+});
+
+test('profile address contains only purok, barangay and city without extra separators', () => {
+  assert.equal(profileAddress({ street: 'Purok 2', barangay: 'Visayan Village', city: 'Tagum City', postalCode: '8100', province: 'Davao del Norte' }), 'Purok 2, Visayan Village, Tagum City');
+  assert.equal(profileAddress({ purok: 'Purok 2', barangay: 'Visayan Village', city: 'Tagum City' }), 'Purok 2, Visayan Village, Tagum City');
+  assert.equal(profileAddress({ city: 'Tagum City' }), 'Tagum City');
+  assert.equal(profileAddress({ city: '' }), '');
 });
 
 test('changing the city clears the barangay even when both cities share its name', () => {

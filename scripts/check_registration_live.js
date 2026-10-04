@@ -8,6 +8,7 @@ const ts = require('typescript');
 
 if (!process.argv.includes('--live')) throw new Error('Pass --live to test the deployed registration flow.');
 const adminOnly = process.argv.includes('--admin-only');
+const registrationOnly = process.argv.includes('--registration-only');
 const root = path.resolve(__dirname, '..');
 for (const line of fs.readFileSync(path.join(root, '.env.local'), 'utf8').split(/\r?\n/)) {
   if (!line.startsWith('EXPO_PUBLIC_')) continue;
@@ -70,7 +71,7 @@ async function main() {
   const store = require('../src/features/profile/profile_store.ts');
   const { doc, getDoc } = require('firebase/firestore');
   const values = { firstName: 'Registration', middleName: '', lastName: 'Probe', email: `registration-probe-${run}-new@example.invalid`,
-    phone: '09123456789', municipalityCity: 'Tagum City', purok: 'Purok 1', barangay: 'Magugpo', postalCode: '8100', password: `Probe1!${run.slice(0, 8)}` };
+    phone: '09123456789', password: `Probe1!${run.slice(0, 8)}` };
   try {
     await store.initializeAccount();
     if (!adminOnly) {
@@ -79,9 +80,15 @@ async function main() {
     const uid = auth.currentUser.uid;
     const profile = (await getDoc(doc(firestore, 'users', uid))).data();
     assert.equal(profile.personal.email, values.email);
-    assert.equal(profile.street, values.purok);
-    assert.equal(profile.postalCode, values.postalCode);
+    assert.equal(profile.personal.city, ''); assert.equal(profile.street, ''); assert.equal(profile.postalCode, '');
     assert.equal((await getDoc(doc(firestore, 'directory', uid))).data().fullName, 'Registration Probe');
+    const personal = { ...store.getAccountSnapshot().personal, city: 'Tagum City', street: 'Purok 2', barangay: 'Visayan Village', postalCode: '8100' };
+    assert.equal(await store.savePersonalInformation(personal), null);
+    const addressed = (await getDoc(doc(firestore, 'users', uid))).data();
+    assert.equal(addressed.street, personal.street); assert.equal(addressed.barangay, personal.barangay); assert.equal(addressed.postalCode, personal.postalCode);
+    const { profile: publicProfile } = await require('../src/services/supabase.ts').cloudBackendRequest(`/users/${uid}`);
+    assert.equal(publicProfile.purok, personal.street); assert.equal(publicProfile.barangay, personal.barangay); assert.equal(publicProfile.city, personal.city);
+    assert.equal(Object.hasOwn(publicProfile, 'postalCode'), false);
     store.signOut(); await until(() => auth.currentUser === null);
     assert.match(await store.registerAccount({ ...values, password: 'DifferentPass2!' }), /email already has an account/);
     assert.equal(store.getAccountSnapshot().signedIn, false);
@@ -89,8 +96,9 @@ async function main() {
     await until(() => auth.currentUser === null);
     assert.equal(await store.signIn(values.email, values.password), null);
     assert.equal(store.getAccountSnapshot().userId, uid);
+    assert.equal(store.getAccountSnapshot().personal.street, personal.street); assert.equal(store.getAccountSnapshot().personal.barangay, personal.barangay);
     store.signOut(); await until(() => auth.currentUser === null);
-    console.log('Live app registration, saved address/directory, duplicate-email feedback, login and logout passed.');
+    console.log('Live app registration without an address, later address saving, profile address, duplicate-email feedback, login and logout passed.');
 
     const incomplete = { ...values, email: `registration-probe-${run}-repair@example.invalid` };
     const { user } = await require('firebase/auth').createUserWithEmailAndPassword(auth, incomplete.email, incomplete.password);
@@ -100,6 +108,7 @@ async function main() {
     console.log('Live interrupted-registration recovery passed without creating a second account.');
     store.signOut(); await until(() => auth.currentUser === null);
     }
+    if (!registrationOnly) {
     const savedLogin = fs.readFileSync(path.join(root, 'admin-login.local.txt'), 'utf8');
     const credentialValue = (label) => savedLogin.match(new RegExp(`^${label}: (.+)$`, 'm'))?.[1].trim();
     assert.equal(await store.signIn(credentialValue('Email'), credentialValue('Password')), null);
@@ -112,6 +121,7 @@ async function main() {
     assert.ok(Array.isArray((await cloudBackendRequest('/verification/reviews')).reviews));
     await assert.rejects(cloudBackendRequest('/uploads', {}, undefined, 'POST'), (error) => error.status === 403);
     console.log('Live app admin login, staff-only destination, private review queue and customer-action denial passed. No admin or customer records changed.');
+    }
   } finally {
     store.signOut(); await until(() => auth.currentUser === null);
     try {

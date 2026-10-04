@@ -36,11 +36,18 @@ export function createAccountActions({ store, media, accounts, authAdmin, now = 
     }
     if (path === '/auth/me' && method === 'PATCH') {
       const personal = { fullName: text(body.fullName, 'full name', 100), email: session.record.email, phone: text(body.phone, 'phone number', 20), city: body.city };
-      if (!/^[+\d\s()-]{7,20}$/.test(personal.phone) || !localities.includes(personal.city)) throw new BackendError('Choose a valid phone number and Davao del Norte locality.', 400);
+      if (!/^[+\d\s()-]{7,20}$/.test(personal.phone) || (personal.city !== '' && !localities.includes(personal.city))) throw new BackendError('Choose a valid phone number and Davao del Norte locality.', 400);
+      const address = Object.fromEntries(['street', 'barangay', 'postalCode'].filter((key) => body[key] !== undefined).map((key) => {
+        const value = body[key]; const max = key === 'street' ? 150 : key === 'barangay' ? 100 : 4;
+        if (typeof value !== 'string' || value.trim().length > max) throw new BackendError('Enter a valid address.', 400);
+        return [key, value.trim()];
+      }));
+      if (address.postalCode && !/^\d{4}$/.test(address.postalCode)) throw new BackendError('Enter a four-digit postal code.', 400);
+      if (personal.city === '' && Object.values(address).some(Boolean)) throw new BackendError('Choose a city or municipality for your address.', 400);
       const old = await store.transact(async (tx) => {
         const before = await accounts.profile(uid, tx); const review = await tx.get(`verifications/${uid}`);
         const changed = before.personal.fullName !== personal.fullName;
-        const next = { ...before, personal, username: personal.fullName }; tx.set(`users/${uid}`, next);
+        const next = { ...before, ...address, personal, username: personal.fullName }; tx.set(`users/${uid}`, next);
         if (changed && review) tx.set(`verifications/${uid}`, { ...review, status: 'expired', reason: 'Submit a new ID matching your updated full name.', photoPath: null, expiresAt: null });
         await directory(tx, uid, next, !changed && accounts.status(review, next).status === 'verified');
         return changed ? review : null;

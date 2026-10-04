@@ -28,8 +28,9 @@ function personalInformation(body: Record<string, unknown>): PersonalInformation
   const phone = requireText(body.phone, 'phone number', 20);
   if (emailError(email)) throw new ApiError(emailError(email)!, 400);
   if (!/^[+\d\s()-]{7,20}$/.test(phone)) throw new ApiError('Enter a valid phone number.', 400);
-  if (!isDavaoDelNorteLocality(String(body.city))) throw new ApiError('Choose a city or municipality in Davao del Norte.', 400);
-  return { fullName, email, phone, city: body.city as PersonalInformation['city'] };
+  const city = body.city ?? '';
+  if (city !== '' && !isDavaoDelNorteLocality(String(city))) throw new ApiError('Choose a city or municipality in Davao del Norte.', 400);
+  return { fullName, email, phone, city: city as PersonalInformation['city'] };
 }
 export async function readFirebaseAccount(user = requireFirebaseUser()): Promise<Account> {
   const { firestore, auth } = getFirebaseServices();
@@ -46,12 +47,13 @@ export async function readFirebaseAccount(user = requireFirebaseUser()): Promise
   }
   if (!profile.exists()) throw new ApiError('Your Firebase account exists, but its profile is incomplete. Register again using the same email and password to finish setup.', 409);
   const record = profile.data() as Profile;
-  if (record.id !== user.uid || !record.personal || !isDavaoDelNorteLocality(record.personal.city)) throw new ApiError('Your saved profile needs an administrator to correct it.', 409);
+  if (record.id !== user.uid || !record.personal || (record.personal.city !== '' && !isDavaoDelNorteLocality(record.personal.city))) throw new ApiError('Your saved profile needs an administrator to correct it.', 409);
   const review = verification.data();
   const status: IdentityVerification = review?.fullName === record.personal.fullName && ['pending', 'verified', 'rejected', 'expired'].includes(review?.status)
     ? { status: review.status, idType: review.idType, submittedAt: review.submittedAt, reviewedAt: review.reviewedAt ?? null, reason: review.reason ?? '' }
     : { status: 'unverified' };
-  return { id: user.uid, username: record.username, personal: { ...record.personal, email: user.email ?? record.personal.email },
+  return { id: user.uid, username: record.username, personal: { ...record.personal, email: user.email ?? record.personal.email,
+    street: record.street ?? '', barangay: record.barangay ?? '', postalCode: record.postalCode ?? '' },
     verification: status, isReviewer: role.data()?.reviewer === true, isStaff: false, avatarVersion: record.avatar?.version ?? null };
 }
 async function saveProfile(profile: Profile) {
@@ -72,7 +74,7 @@ async function register(body: Record<string, unknown>): Promise<AccountSession> 
     barangay: requireText(body.barangay ?? '', 'barangay', 100, true),
     postalCode: requireText(body.postalCode ?? '', 'postal code', 4, true),
   };
-  if (!isBarangayInLocality(personal.city, address.barangay)) throw new ApiError('Choose a barangay in the selected city or municipality.', 400);
+  if (address.barangay && !isBarangayInLocality(personal.city, address.barangay)) throw new ApiError('Choose a barangay in the selected city or municipality.', 400);
   const { auth, firestore } = getFirebaseServices();
   let user: User;
   let existingAccount = auth.currentUser?.email?.toLowerCase() === personal.email;
@@ -106,6 +108,9 @@ async function register(body: Record<string, unknown>): Promise<AccountSession> 
 }
 async function changePersonal(body: Record<string, unknown>, user: User) {
   const personal = personalInformation(body);
+  const address = Object.fromEntries(['street', 'barangay', 'postalCode'].filter((key) => body[key] !== undefined).map((key) => [key, requireText(body[key], key === 'street' ? 'purok' : key === 'postalCode' ? 'postal code' : key, key === 'street' ? 150 : key === 'barangay' ? 100 : 4, true)]));
+  if (address.barangay && !isBarangayInLocality(personal.city, address.barangay)) throw new ApiError('Choose a barangay in the selected city or municipality.', 400);
+  if (address.postalCode && !/^\d{4}$/.test(address.postalCode)) throw new ApiError('Enter a four-digit postal code.', 400);
   const { firestore } = getFirebaseServices();
   const current = await getDoc(doc(firestore, 'users', user.uid));
   if (!current.exists()) throw new ApiError('Finish your account registration first.', 409);
@@ -120,7 +125,7 @@ async function changePersonal(body: Record<string, unknown>, user: User) {
     if (refreshed.uid !== user.uid) throw new ApiError('Your account changed. Sign in again.', 401);
     user = refreshed;
   }
-  await cloudBackendRequest('/auth/me', personal, undefined, 'PATCH');
+  await cloudBackendRequest('/auth/me', { ...personal, ...address }, undefined, 'PATCH');
   if (user.displayName !== personal.fullName) await updateProfile(user, { displayName: personal.fullName });
   return { account: await readFirebaseAccount(user) };
 }

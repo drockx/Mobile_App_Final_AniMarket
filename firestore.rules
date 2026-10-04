@@ -23,7 +23,11 @@ service cloud.firestore {
         && value.username == value.personal.fullName
         && value.personal.email is string && value.personal.email == request.auth.token.email
         && value.personal.phone is string && value.personal.phone.matches('[+0-9 ()-]{7,20}')
-        && locality(value.personal.city)
+        && (value.personal.city == '' || locality(value.personal.city))
+        && (value.personal.city != '' || (
+          (!('street' in value) || value.street == '')
+          && (!('barangay' in value) || value.barangay == '')
+          && (!('postalCode' in value) || value.postalCode == '')))
         && (!('street' in value) || (value.street is string && value.street.size() <= 150))
         && (!('barangay' in value) || (value.barangay is string && value.barangay.size() <= 100))
         && (!('postalCode' in value) || (value.postalCode is string && value.postalCode.size() <= 4));
