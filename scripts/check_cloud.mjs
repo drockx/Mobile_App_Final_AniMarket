@@ -5,7 +5,7 @@ import { createChat } from '../supabase/functions/animarket/chat.mjs';
 import { createCalls } from '../supabase/functions/animarket/calls.mjs';
 import { createCommerce } from '../supabase/functions/animarket/commerce.mjs';
 import { createAccountActions } from '../supabase/functions/animarket/account_actions.mjs';
-import { decodeValue, encodeValue } from '../supabase/functions/animarket/firestore.mjs';
+import { createFirestore, decodeValue, encodeValue, encodeFields } from '../supabase/functions/animarket/firestore.mjs';
 import { documentBytes, imageBytes } from '../supabase/functions/animarket/media.mjs';
 import { inside } from '../supabase/functions/animarket/geofence.mjs';
 import { createMaintenance } from '../supabase/functions/animarket/maintenance.mjs';
@@ -31,7 +31,7 @@ function fixture() {
     return f.op === 'ARRAY_CONTAINS' ? actual?.includes(expected) : f.op === 'LESS_THAN_OR_EQUAL' ? actual != null && actual <= expected : actual === expected;
   })).map(([, value]) => clone(value));
   const store = { get, query, transact(action) {
-    const task = queue.catch(() => {}).then(async () => { const changes = []; const value = await action({ get, query, set: (path, row) => changes.push([path, clone(row)]), delete: (path) => changes.push([path, null]) }); for (const [path, row] of changes) if (row === null) rows.delete(path); else rows.set(path, row); return value; }); queue = task; return task;
+    const task = queue.catch(() => {}).then(async () => { const changes = []; const value = await action({ get, getAll: (paths) => Promise.all(paths.map(get)), query, set: (path, row) => changes.push([path, clone(row)]), delete: (path) => changes.push([path, null]) }); for (const [path, row] of changes) if (row === null) rows.delete(path); else rows.set(path, row); return value; }); queue = task; return task;
   } };
   const deleted = [];
   const media = { publicPhoto: async (uid, photo, id) => { imageBytes(photo); return { url: `https://res.cloudinary.com/dnbmd5qhj/image/upload/animarket/${uid}/${id}.png`, publicId: `animarket/${uid}/${id}` }; }, deletePublic: async (path) => deleted.push(path), privatePhoto: async (_bucket, _path, photo) => imageBytes(photo), privateDocument: async (_bucket, _path, photo) => documentBytes(photo), privateRead: async () => 'data:image/png;base64,test', privateDelete: async (_bucket, path) => deleted.push(path) };
@@ -51,6 +51,27 @@ test('Firestore serialization and province geometry agree with strict media vali
   const value = { strings: ['Cow'], nested: { pin }, price: 45.25, nothing: null, verified: false }; assert.deepEqual(decodeValue(encodeValue(value)), value);
   assert.equal(inside(pin), true); assert.equal(inside({ latitude: 14.5995, longitude: 120.9842 }), false); assert.equal(inside({ latitude: NaN, longitude: 125 }), false);
   assert.equal(imageBytes(png).mime, 'image/png'); assert.throws(() => imageBytes('aGVsbG8=')); assert.equal(documentBytes(btoa('%PDF-1.4\ncontent\n%%EOF')).mime, 'application/pdf'); assert.throws(() => imageBytes(btoa('%PDF-1.4\ncontent\n%%EOF')));
+});
+
+test('transaction batch reads preserve request order, missing documents and the same transaction', async () => {
+  const requests = [];
+  const prefix = 'projects/test-project/databases/(default)/documents';
+  const store = createFirestore({ project: 'test-project', accessToken: async () => 'test-token', fetcher: async (url, options) => {
+    const body = JSON.parse(options.body); requests.push({ url, body });
+    if (url.endsWith(':beginTransaction')) return Response.json({ transaction: 'transaction-id' });
+    if (url.endsWith(':batchGet')) return Response.json([
+      { missing: `${prefix}/rows/missing` },
+      { found: { name: `${prefix}/rows/last`, fields: encodeFields({ id: 'last' }) } },
+      { found: { name: `${prefix}/rows/first`, fields: encodeFields({ id: 'first' }) } },
+    ]);
+    assert.ok(url.endsWith(':commit')); return Response.json({});
+  } });
+  const result = await store.transact((tx) => tx.getAll(['rows/first', 'rows/missing', 'rows/last', 'rows/first']));
+  assert.deepEqual(result, [{ id: 'first' }, null, { id: 'last' }, { id: 'first' }]);
+  assert.equal(requests.length, 3);
+  assert.equal(requests[1].body.transaction, 'transaction-id');
+  assert.equal(requests[2].body.transaction, 'transaction-id');
+  assert.deepEqual(requests[1].body.documents, ['first', 'missing', 'last', 'first'].map((id) => `${prefix}/rows/${id}`));
 });
 test('Listings enforce seller verification, real image ownership, geofence, and idempotence', async () => {
   const f = fixture(); await assert.rejects(f.commerce('buyer', '/listings/publish', { listing: listing(), pickupPin: pin }, 'POST'), /government/);
@@ -98,6 +119,17 @@ test('Calls enforce participants, callee answer, locks, voice-only signals and s
   await f.calls.handle('seller', `${path}/connected`, {}, 'POST'); assert.ok((await f.store.get(`voiceCalls/${call.id}`)).connectedAt);
   f.tick(46000); const ended = await f.calls.handle('buyer', `${path}/expire`, {}, 'POST'); assert.equal(ended.call.status, 'ended'); assert.equal((await f.store.query(`voiceCalls/${call.id}/signals`)).length, 0); assert.equal((await f.store.get('callState/seller')).callId, null);
   assert.equal((await f.store.query(`conversations/${conversation.id}/messages`)).length, 1);
+});
+test('Call summaries preserve unread messages until the recipient opens the conversation', async () => {
+  const f = fixture(); const { conversation } = await f.chat.handle('buyer', '/conversations', { recipientId: 'seller' }, 'POST');
+  const path = `/conversations/${conversation.id}`;
+  await f.chat.handle('seller', `${path}/messages`, { text: 'Unread reply', clientId: 'reply' }, 'POST');
+  const { call } = await f.calls.handle('buyer', '/calls', { conversationId: conversation.id, clientId: 'unread-call' }, 'POST');
+  await f.calls.handle('buyer', `/calls/${call.id}/end`, { reason: 'hangup' }, 'POST');
+  const afterCall = await f.store.get(`conversations/${conversation.id}`);
+  assert.equal(afterCall.seq, 2); assert.deepEqual(afterCall.readBy, { buyer: 0, seller: 1 });
+  await f.chat.handle('buyer', `${path}/read`, { throughSeq: 2 }, 'POST');
+  assert.equal((await f.store.get(`conversations/${conversation.id}`)).readBy.buyer, 2);
 });
 test('Government ID review is private, immutable while pending, rejects self-review and cleans photos', async () => {
   const f = fixture(); const submit = await f.account({ uid: 'buyer' }, '/verification/id', { idType: 'National ID', fullName: 'buyer User', photo: png, consent: true }, 'POST'); assert.equal(submit.account.verification.status, 'pending');

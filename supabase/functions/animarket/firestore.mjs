@@ -46,6 +46,13 @@ export function createFirestore({ project, accessToken, fetcher = fetch, origin 
     }
     return decodeDocument(await request(`${base}/${path.split('/').map(encodeURIComponent).join('/')}`, 'GET', undefined, true));
   };
+  const getAll = async (paths, transaction) => {
+    const names = paths.map((path) => `${name}/${path}`);
+    const result = await request(`${base}:batchGet`, 'POST', { documents: names, transaction });
+    // Firestore may return results in a different order, including missing documents.
+    const found = new Map(result.filter((row) => row.found).map((row) => [row.found.name, decodeDocument(row.found)]));
+    return names.map((name) => found.get(name) ?? null);
+  };
   const query = async (collection, filters = [], options = {}) => {
     const parts = collection.split('/'); const collectionId = parts.pop(); const parent = parts.length ? '/' + parts.map(encodeURIComponent).join('/') : '';
     const structuredQuery = { from: [{ collectionId }], limit: options.limit ?? 100,
@@ -60,7 +67,7 @@ export function createFirestore({ project, accessToken, fetcher = fetch, origin 
       for (let attempt = 0; attempt < 5; attempt++) {
         const { transaction } = await request(`${base}:beginTransaction`, 'POST', { options: { readWrite: {} } });
         const writes = [];
-        const tx = { get: (path) => get(path, transaction), query: (collection, filters, options) => query(collection, filters, { ...options, transaction }),
+        const tx = { get: (path) => get(path, transaction), getAll: (paths) => getAll(paths, transaction), query: (collection, filters, options) => query(collection, filters, { ...options, transaction }),
           set: (path, value) => writes.push({ update: { name: `${name}/${path}`, fields: encodeFields(value) } }),
           delete: (path) => writes.push({ delete: `${name}/${path}` }) };
         try {

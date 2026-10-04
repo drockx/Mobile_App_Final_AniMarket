@@ -9,7 +9,7 @@ const errorText = (error: unknown) => error instanceof Error ? error.message : '
 export function createVoiceService(repository: VoiceRepository, createMedia: () => VoiceMedia) {
   let snapshot = { ...empty }; let userId = ''; let accountKey = ''; let epoch = 0; let foreground = true;
   let controller: AbortController | null = null; let cursor: number | null = null;
-  let media: VoiceMedia | null = null; let ready = false; let after = 0; let remoteReady = false;
+  let media: VoiceMedia | null = null; let ready = false; let after = 0; let remoteReady = false; let localReady = false;
   let signals: VoiceSignal[] = []; let candidates: VoiceCandidate[] = []; let processing: VoiceMedia | null = null; let attempt = 0;
   let sending: Promise<void> = Promise.resolve(); let heartbeat: ReturnType<typeof setInterval> | undefined;
   let connectionTimer: ReturnType<typeof setTimeout> | undefined;
@@ -18,7 +18,7 @@ export function createVoiceService(repository: VoiceRepository, createMedia: () 
   function cleanMedia() {
     attempt++; processing = null;
     clearInterval(heartbeat); clearTimeout(connectionTimer); heartbeat = undefined; connectionTimer = undefined;
-    const current = media; media = null; ready = false; remoteReady = false; signals = []; candidates = []; after = 0;
+    const current = media; media = null; ready = false; remoteReady = false; localReady = false; signals = []; candidates = []; after = 0;
     current?.close();
   }
   function updateCall(call: VoiceCall) {
@@ -28,7 +28,14 @@ export function createVoiceService(repository: VoiceRepository, createMedia: () 
     if (!isActiveCall(call)) {
       completed.add(call.id); cleanMedia();
       publish({ call, phase: 'ended', busy: false, muted: false, speaker: false });
-    } else publish({ call, ...(call.status === 'accepted' && ['incoming', 'outgoing'].includes(snapshot.phase) ? { phase: 'connecting' as const } : {}) });
+    } else {
+      if (call.status === 'accepted' && snapshot.call.status === 'ringing' && media && snapshot.phase !== 'connected') {
+        const peer = media;
+        clearTimeout(connectionTimer);
+        connectionTimer = setTimeout(() => { if (media === peer && snapshot.phase !== 'connected') fail(new Error('The audio connection timed out. Check your network and call again.')); }, 30000);
+      }
+      publish({ call, ...(call.status === 'accepted' && ['incoming', 'outgoing'].includes(snapshot.phase) ? { phase: 'connecting' as const } : {}) });
+    }
   }
   async function terminate(reason?: string) {
     const call = snapshot.call; const requestEpoch = epoch;
@@ -53,7 +60,11 @@ export function createVoiceService(repository: VoiceRepository, createMedia: () 
   }
   async function flushCandidates() {
     const queued = candidates; candidates = [];
-    for (const value of queued) await sendSignal('ice', value);
+    const requestEpoch = epoch, peer = media, callId = snapshot.call?.id;
+    for (const value of queued) {
+      if (requestEpoch !== epoch || media !== peer || snapshot.call?.id !== callId || completed.has(callId ?? '')) return;
+      await sendSignal('ice', value);
+    }
   }
   async function processSignals() {
     if (!ready || !media || processing === media || !snapshot.call || completed.has(snapshot.call.id)
@@ -71,8 +82,14 @@ export function createVoiceService(repository: VoiceRepository, createMedia: () 
         if (signal.type === 'offer') {
           const answer = await peer.answer(signal.payload as VoiceDescription);
           if (requestEpoch !== epoch || media !== peer) return;
-          remoteReady = true; await sendSignal('answer', answer); await flushCandidates();
-        } else if (signal.type === 'answer') { await peer.applyAnswer(signal.payload as VoiceDescription); remoteReady = true; }
+          remoteReady = true; await sendSignal('answer', answer);
+          if (requestEpoch !== epoch || media !== peer) return;
+          localReady = true; await flushCandidates();
+        } else if (signal.type === 'answer') {
+          await peer.applyAnswer(signal.payload as VoiceDescription);
+          if (requestEpoch !== epoch || media !== peer) return;
+          remoteReady = true;
+        }
         else await peer.addCandidate(signal.payload as VoiceCandidate);
       }
     } catch (error) { if (requestEpoch === epoch && media === peer) fail(error); }
@@ -86,7 +103,8 @@ export function createVoiceService(repository: VoiceRepository, createMedia: () 
       await peer.prepare(ice, {
         candidate(value) {
           if (requestEpoch !== epoch || media !== peer) return;
-          if (ready && snapshot.call && (snapshot.call.callerId === userId || remoteReady)) void sendSignal('ice', value).catch(() => {});
+          // Send the description first so early candidates cannot delay the offer/answer.
+          if (ready && localReady && snapshot.call) void sendSignal('ice', value).catch(() => {});
           else candidates.push(value);
         },
         connection(state) {
@@ -171,10 +189,12 @@ export function createVoiceService(repository: VoiceRepository, createMedia: () 
         }
         if (requestEpoch !== epoch) return;
         if (operation !== attempt || !media) { await repository.action(call.id, 'end'); return; }
-        publish({ call, phase: 'outgoing' }); cursor = null;
+        publish({ call, phase: 'outgoing' }); cursor = null; startHeartbeat();
         const offer = await media.offer();
         if (requestEpoch !== epoch || completed.has(call.id)) return;
-        await sendSignal('offer', offer); await flushCandidates(); startHeartbeat(); publish({ busy: false });
+        await sendSignal('offer', offer);
+        if (requestEpoch !== epoch || operation !== attempt || !media || completed.has(call.id)) return;
+        localReady = true; publish({ busy: false }); await flushCandidates();
       } catch (error) {
         if (requestEpoch === epoch && operation === attempt) { if (snapshot.call) await terminate('connection-lost'); else { cleanMedia(); publish({ phase: 'error', busy: false }); } publish({ error: errorText(error) }); }
         throw error;

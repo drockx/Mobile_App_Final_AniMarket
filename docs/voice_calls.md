@@ -2,9 +2,15 @@
 
 Open a conversation with another registered account and tap the phone icon. The other user receives an incoming-call banner while AniMarket is open, can answer or decline, and is asked for microphone access before answering. Calls support mute, native speaker/earpiece routing, messaging while on the call, minimizing, and ending from either side. The call screen follows the supplied reference using the app's forest/mint colors, readable text, real account initials, and actual verification status.
 
-Audio uses WebRTC, not a phone-number dialer. Authenticated HTTP long polling carries private SDP/ICE signals through the existing Node/SQLite messaging server. Audio is sent over the WebRTC connection, not stored in SQLite. Either participant can hang up. Unanswered calls expire after 45 seconds; disconnected clients and failed audio connections time out. Call summaries appear in the conversation, and transient SDP/ICE records are deleted at call end. Other accounts cannot read, answer, signal, or terminate the call. Opening an incoming call does not activate the microphone; answering does. Ending, signing out, changing accounts, or backgrounding the app releases microphone tracks and closes the peer connection.
+Audio uses WebRTC. In the Firebase cloud configuration, the authenticated Supabase function writes private SDP/ICE signals and call state to Firestore; participant listeners deliver updates to the app. The optional local Node/SQLite backend uses authenticated HTTP long polling. Audio travels over the WebRTC connection. Either participant can hang up. Unanswered cloud calls expire after 40 seconds; disconnected clients and failed audio connections time out. Call summaries appear in the conversation without marking unread messages as seen, and transient SDP/ICE records are deleted at call end. Other accounts cannot read, answer, signal, or terminate the call. Opening an incoming call does not activate the microphone; answering does. Ending, signing out, changing accounts, or backgrounding the app releases microphone tracks and closes the peer connection.
 
 The listing and order-status **Call Seller** buttons also use this in-app flow for a registered seller. A phone number is not required. Self-calling is disabled, and the server rejects unknown sample account IDs.
+
+## Standalone cloud app
+
+The configured Firebase/Supabase backend works over the internet. An installed standalone build does not need the PC, the same Wi-Fi, a development server, or a launch QR code. Android and iOS require a native AniMarket build containing the call modules; Expo Go cannot make these calls. Build instructions are in [app_build_readiness.md](app_build_readiness.md). Build and install the updated app yourself to include the messaging and call changes.
+
+The live cloud probe verifies ringing, answer, private offer/answer and ICE delivery, retry deduplication, hangup, busy-lock cleanup, and read receipts in both directions. It does not verify microphone audio on phones. No TURN relay was configured when tested, so successful signaling alone does not establish reliable audio across different networks.
 
 ## Native development build
 
@@ -21,11 +27,27 @@ npm run start:dev
 npm run server
 ```
 
-No EAS build was submitted by this change. Set up the app's Android package/iOS bundle identifier and EAS project when making the build. Restart the Node server after updating its code. For local testing, both phones and the PC must share Wi-Fi; configure `EXPO_PUBLIC_API_URL` to the PC's reachable LAN URL when needed. Sign into two different registered accounts and open a conversation. A release server needs HTTPS and persistent SQLite storage.
+No EAS build was submitted by this change. The command above creates a development build that still loads code from Metro. `npm run server` is only needed when deliberately selecting the optional local backend. In that local configuration, configure `EXPO_PUBLIC_API_URL` to the PC's reachable LAN URL; both phones and the PC must share Wi-Fi. The cloud-backed standalone app does not have this requirement. Sign into two different registered accounts and open a conversation.
 
 ## Network relay and web
 
-Development uses Google's public STUN endpoint. For calls across different networks, mobile data, or restrictive NAT/firewalls, configure an authenticated TURN relay such as coturn on the **server**, not in the public app environment:
+The backend provides Google's public STUN endpoints. For calls across different networks, mobile data, or restrictive NAT/firewalls, configure an authenticated [TURN relay](https://webrtc.org/getting-started/turn-server) on the server. For the current cloud backend, obtain real credentials from your TURN provider and put them in an ignored `.env.turn.local` file:
+
+```dotenv
+TURN_URL=turns:your-real-relay-host:5349?transport=tcp
+TURN_USERNAME=your-provider-username
+TURN_CREDENTIAL=your-provider-password
+```
+
+Use the provider's actual URL, port, transport, username, and password. Keep these credentials out of `EXPO_PUBLIC_*` variables and source control. Apply them to the cloud function with the documented [Supabase secrets command](https://supabase.com/docs/reference/cli/supabase-secrets-set):
+
+```sh
+npx supabase secrets set --env-file .env.turn.local --project-ref yvamvsbfbknnasfvqdto
+```
+
+The backend already returns a configured relay to authenticated call participants. Test actual two-way audio on phones using separate Wi-Fi/mobile-data networks after configuration. A relay still cannot guarantee calls when a device has no usable internet connection.
+
+For the optional local Node server with coturn, use its separate REST-credential settings:
 
 ```powershell
 $env:ANIMARKET_TURN_URLS = 'turn:relay.example.com:3478?transport=udp,turns:relay.example.com:5349?transport=tcp'
@@ -33,12 +55,12 @@ $env:ANIMARKET_TURN_SECRET = '<coturn shared authentication secret>'
 npm run server
 ```
 
-The server issues one-hour TURN credentials using coturn's REST authentication mechanism. Configure coturn with the matching shared secret and test UDP/TCP/TLS reachability. This change does not provision or contact a TURN provider, deploy the API, or connect Firebase. Without TURN, peer-to-peer calls can fail on some networks.
+The local server issues one-hour TURN credentials using coturn's REST authentication mechanism. Configure coturn with the matching shared secret and test UDP/TCP/TLS reachability. A TURN provider has not been provisioned. Without TURN, peer-to-peer calls can fail on some networks.
 
 Web uses the browser's microphone and WebRTC implementation. Serve it over HTTPS or localhost. Audio output follows the browser/device; the native speaker-routing control is omitted on web. Native incoming calls vibrate while the app is open. There is no OS call screen or push wakeup when the app is backgrounded or closed; both users must keep AniMarket open. Backgrounding an active call ends it rather than retaining a hidden microphone session.
 
 ## Validation
 
-`npm run check:calls` exercises real HTTP/SQLite authentication, private participant access, busy/idempotent requests, accept/decline, SDP/ICE validation, call timeouts, logout, history, and two app services with simulated audio adapters. It checks delayed/denied microphone acquisition and account switching. Existing messaging and navigation checks protect their integrations. Expo config introspection validates native permission configuration without creating native folders.
+`npm run check:calls` exercises real HTTP/SQLite authentication, private participant access, busy/idempotent requests, accept/decline, SDP/ICE validation, call timeouts, logout, history, and two app services with simulated audio adapters. It checks delayed/denied microphone acquisition, description-before-ICE ordering, accepted-call audio timeouts, listener recovery, and account switching. `npm run check:app` includes these checks plus messaging, cloud-backend, lint, and type checks. Expo config introspection validates native permission configuration without creating native folders.
 
 These checks do not capture or play microphone audio. Before release, test a built app on two physical devices: microphone permission denied/allowed, two-way audio, speaker/earpiece/headsets, mute, incoming vibration, decline/missed calls, minimizing to messages, hangup from both sides, sign-out, backgrounding, server loss, and calls over separate Wi-Fi/mobile networks with TURN enabled. Native compilation and SDK 57 device compatibility require an EAS/device build; JavaScript bundle export is not a native build.

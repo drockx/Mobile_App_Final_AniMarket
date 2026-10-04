@@ -9,16 +9,17 @@ export function conversationDto(record, uid) {
     otherReadSeq: record.readBy?.[other] ?? 0, empty: !record.seq };
 }
 export function createChat({ store, accounts, now = Date.now }) {
-  async function append(tx, record, uid, message, clientId) {
+  async function append(tx, record, uid, message, clientId, options = {}) {
     member(record, uid); const messageId = `${uid}_${id(clientId)}`;
-    const previous = await tx.get(`conversations/${record.id}/messages/${messageId}`);
+    const previous = options.previous === undefined ? await tx.get(`conversations/${record.id}/messages/${messageId}`) : options.previous;
     if (previous) {
       if (previous.text !== message) throw new BackendError('This message request was already used.', 409); return previous;
     }
     const seq = record.seq + 1; const createdAt = new Date(now()).toISOString();
     const value = { id: messageId, conversationId: record.id, senderId: uid, clientId, text: message, seq, createdAt };
     tx.set(`conversations/${record.id}/messages/${messageId}`, value);
-    tx.set(`conversations/${record.id}`, { ...record, seq, preview: message, updatedAt: createdAt, readBy: { ...record.readBy, [uid]: seq } });
+    tx.set(`conversations/${record.id}`, { ...record, seq, preview: message, updatedAt: createdAt,
+      readBy: options.markRead === false ? record.readBy : { ...record.readBy, [uid]: seq } });
     return value;
   }
   return {
@@ -38,9 +39,17 @@ export function createChat({ store, accounts, now = Date.now }) {
       }
       const match = path.match(/^\/conversations\/([\w-]+)\/(messages|read)$/);
       if (!match || method !== 'POST') return undefined;
+      if (match[2] === 'messages') {
+        const conversationPath = `conversations/${id(match[1])}`;
+        const clientId = id(body.clientId), message = text(body.text, 'message', 2000);
+        return store.transact(async (tx) => {
+          // Read membership and the retry record together within the same transaction.
+          const [record, previous] = await tx.getAll([conversationPath, `${conversationPath}/messages/${uid}_${clientId}`]);
+          return { message: await append(tx, member(record, uid), uid, message, clientId, { previous }) };
+        });
+      }
       return store.transact(async (tx) => {
         const record = member(await tx.get(`conversations/${id(match[1])}`), uid);
-        if (match[2] === 'messages') return { message: await append(tx, record, uid, text(body.text, 'message', 2000), id(body.clientId)) };
         if (!Number.isSafeInteger(body.throughSeq) || body.throughSeq < 0 || body.throughSeq > record.seq) throw new BackendError('Invalid message read position.', 400);
         tx.set(`conversations/${record.id}`, { ...record, readBy: { ...record.readBy, [uid]: Math.max(record.readBy[uid] ?? 0, body.throughSeq) } }); return {};
       });

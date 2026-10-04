@@ -8,18 +8,27 @@ import type { Conversation } from '../domain/conversation';
 import type { ChatMessage, ChatUser, MessageRepository } from '../domain/message_repository';
 
 const state = createLiveSync<Conversation[]>([]);
-let uid = ''; let stop: (() => void) | undefined; let initialized = false;
+let uid = ''; let stop: (() => void) | undefined; let initialized = false; let listenerVersion = 0;
 function ensure() {
   const services = getFirebaseServices();
-  if (!initialized) { initialized = true; onAuthStateChanged(services.auth, (user) => { if (user?.uid !== uid) { stop?.(); stop = undefined; uid = ''; state.reset(); } }); }
+  if (!initialized) { initialized = true; onAuthStateChanged(services.auth, (user) => { if (user?.uid !== uid) { listenerVersion++; stop?.(); stop = undefined; uid = ''; state.reset(); } }); }
   const current = requireFirebaseUser().uid; if (current === uid && stop) return;
-  stop?.(); uid = current; state.reset();
-  stop = onSnapshot(query(collection(services.firestore, 'conversations'), where('participants', 'array-contains', uid)), (snapshot) => {
+  stop?.(); stop = undefined; uid = current; state.reset();
+  const version = ++listenerVersion;
+  let failed = false;
+  const isCurrent = () => version === listenerVersion && services.auth.currentUser?.uid === current;
+  const unsubscribe = onSnapshot(query(collection(services.firestore, 'conversations'), where('participants', 'array-contains', uid)), (snapshot) => {
+    if (!isCurrent() || failed) return;
     const rows = snapshot.docs.map((document) => {
       const data = document.data(); const other = data.participants.find((participant: string) => participant !== current); const peer = data.peers[other];
       return { id: document.id, side: current === data.initiatorId ? 'buying' : 'selling', participant: peer.name, initials: peer.initials, participantId: other, listing: 'Direct conversation', preview: data.preview, time: '', unreadCount: data.seq - (data.readBy[current] ?? 0), verifiedSeller: peer.verified, updatedAt: data.updatedAt, lastMessageSeq: data.seq, readSeq: data.readBy[current] ?? 0, otherReadSeq: data.readBy[other] ?? 0, empty: !data.seq } as Conversation;
     }); state.update(rows.sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? '')));
-  }, (error) => state.fail(error));
+  }, (error) => {
+    if (!isCurrent() || failed) return;
+    // Firestore terminates listeners after an error. Let the sync retry attach a new one.
+    failed = true; stop = undefined; state.fail(error);
+  });
+  if (isCurrent() && !failed) stop = unsubscribe; else unsubscribe();
 }
 export const firebaseMessageRepository: MessageRepository = {
   async sync(cursor, signal) { ensure(); const result = await state.wait(cursor, signal); return { cursor: result.cursor, conversations: result.value }; },

@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const { createMessagingServer } = require('../server/server');
 require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, filename);
 const { createVoiceService } = require('../src/features/calls/application/voice_service.ts');
+const { createLiveSync } = require('../src/services/live_sync.ts');
 const person = (name) => ({ fullName: name, email: `${name}@example.test`, password: 'Secure-test-2468', phone: '09123456789', city: 'Tagum City', street: 'Purok 1', barangay: 'Magugpo', postalCode: '8100', acceptedTerms: true });
 const sdp = (type) => ({ type, sdp: 'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n' });
 
@@ -209,4 +210,129 @@ test('leaving the app stops an active microphone and informs the other user', as
   service.setActive(false); assert.equal(state.peer.closed, true);
   await until(() => app.db.prepare('SELECT status FROM voice_calls WHERE id = ?').get(id).status === 'ended');
   assert.equal((await request(app, '/calls/sync', b.token)).call.reason, 'connection-lost');
+});
+
+function voiceFixture(t, userId = 'alice') {
+  const live = createLiveSync({ call: null, signals: [] });
+  const state = {}, sent = [];
+  const call = { id: 'test-call', conversationId: 'test-chat', callerId: 'alice', calleeId: 'bob', status: 'ringing',
+    createdAt: Date.now(), acceptedAt: null, connectedAt: null, endedAt: null, reason: null,
+    peer: { id: 'bob', name: 'Bob', initials: 'B', city: 'Tagum City', verified: false } };
+  const repository = {
+    sync: async (cursor, _callId, _after, signal) => { const update = await live.wait(cursor, signal); return { cursor: update.cursor, ...update.value }; },
+    ice: async () => [], start: async () => call,
+    action: async (_id, action) => ({ ...call, status: action === 'end' ? 'ended' : 'accepted' }),
+    signal: async (_id, type) => { sent.push(type); },
+  };
+  const createMedia = () => {
+    const peer = mediaFactory(state)();
+    peer.answer = async () => { peer.events.candidate({ candidate: 'candidate:callee', sdpMid: '0', sdpMLineIndex: 0 }); return sdp('answer'); };
+    return peer;
+  };
+  const service = createVoiceService(repository, createMedia);
+  service.connect(userId, `${userId}-token`);
+  t.after(() => service.connect('', ''));
+  return { live, state, sent, call, service };
+}
+
+test('early candidates never delay the caller offer or callee answer', async (t) => {
+  const caller = voiceFixture(t);
+  await caller.service.start('test-chat');
+  assert.deepEqual(caller.sent, ['offer', 'ice']);
+  const callee = voiceFixture(t, 'bob');
+  callee.live.update({ call: callee.call, signals: [{ seq: 1, type: 'offer', payload: sdp('offer') }] });
+  await until(() => callee.service.getSnapshot().phase === 'incoming');
+  await callee.service.accept();
+  assert.deepEqual(callee.sent, ['answer', 'ice']);
+});
+
+test('an answered call that never connects releases the microphone instead of waiting forever', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+  const f = voiceFixture(t);
+  await f.service.start('test-chat');
+  f.live.update({ call: { ...f.call, status: 'accepted' }, signals: [] });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.service.getSnapshot().phase, 'connecting');
+  t.mock.timers.tick(30000);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(f.state.peer.closed, true);
+  assert.equal(f.service.getSnapshot().phase, 'ended');
+  assert.match(f.service.getSnapshot().error, /timed out/);
+});
+
+function firebaseVoiceFixture(t) {
+  const Module = require('node:module');
+  const filename = require.resolve('../src/features/calls/data/firebase_voice_repository.ts');
+  const isolated = new Module(filename, module);
+  const streams = [];
+  let authChanged;
+  const services = { auth: { currentUser: { uid: 'alice' } }, firestore: {} };
+  const imports = {
+    'firebase/auth': { onAuthStateChanged: (_auth, callback) => { authChanged = callback; } },
+    'firebase/firestore': {
+      doc: (_db, ...parts) => parts.join('/'), collection: (_db, ...parts) => parts.join('/'), where: () => {}, query: (ref) => ref,
+      onSnapshot: (path, receive, fail) => { const stream = { path, receive, fail, stopped: false }; streams.push(stream); return () => { stream.stopped = true; }; },
+    },
+    '@/services/firebase': { getFirebaseServices: () => services },
+    '@/services/firebase_identity': { requireFirebaseUser: () => services.auth.currentUser },
+    '@/services/supabase': { cloudBackendRequest: async () => ({}) },
+    '@/services/live_sync': { createLiveSync },
+  };
+  isolated.require = (id) => { assert.ok(id in imports, `Unexpected dependency ${id}`); return imports[id]; };
+  isolated._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, filename);
+  const controller = new AbortController();
+  const repository = isolated.exports.firebaseVoiceRepository;
+  t.after(() => { controller.abort(); services.auth.currentUser = null; authChanged(null); });
+  const sync = (cursor = null, requested = '') => repository.sync(cursor, requested, 0, controller.signal);
+  const document = (data) => ({ data: () => data, exists: () => !!data });
+  return { services, streams, sync, document, auth: (user) => { services.auth.currentUser = user; authChanged(user); } };
+}
+
+test('failed call and signal listeners reattach and ignore callbacks from the old call', async (t) => {
+  const f = firebaseVoiceFixture(t);
+  const first = f.sync();
+  f.streams[0].receive(f.document({ callId: 'first-call' }));
+  await first;
+  const call = { ...voiceFixture(t).call, participants: ['alice', 'bob'], peers: { bob: { id: 'bob', name: 'Bob' } }, heartbeat: { alice: Date.now(), bob: Date.now() } };
+  f.streams[1].receive(f.document(call));
+  f.streams[2].receive({ docs: [] });
+  const initial = await f.sync();
+  const failed = f.sync(initial.cursor, 'first-call');
+  f.streams[2].fail(new Error('Signal listener ended'));
+  await assert.rejects(failed, /Signal listener ended/);
+  assert.equal(f.streams[1].stopped, true);
+  assert.equal(f.streams[2].stopped, true);
+  await f.sync(null, 'first-call');
+  assert.equal(f.streams.length, 5);
+  f.streams[3].receive(f.document(call));
+  f.streams[1].receive(f.document({ ...call, status: 'ended' }));
+  f.streams[2].fail(new Error('Old signal error'));
+  assert.equal((await f.sync()).call.status, 'ringing');
+  f.streams[0].receive(f.document({ callId: 'second-call' }));
+  assert.equal(f.streams[3].stopped, true);
+  f.streams[3].receive(f.document({ ...call, status: 'ended' }));
+  f.streams[5].receive(f.document(call));
+  assert.equal((await f.sync()).call.id, 'second-call');
+});
+
+test('failed account call listeners recover; switching accounts rejects stale private call callbacks', async (t) => {
+  const f = firebaseVoiceFixture(t);
+  const first = f.sync(); f.streams[0].receive(f.document({ callId: null })); const initial = await first;
+  const failed = f.sync(initial.cursor);
+  f.streams[0].fail(new Error('Call state listener ended'));
+  await assert.rejects(failed, /Call state listener ended/);
+  const retry = f.sync();
+  assert.equal(f.streams.length, 2);
+  f.streams[0].fail(new Error('Old state error'));
+  f.streams[1].receive(f.document({ callId: null })); await retry;
+  f.auth({ uid: 'bob' });
+  let settled = false;
+  const next = f.sync().then((value) => { settled = true; return value; });
+  f.streams[1].receive(f.document({ callId: 'old-private-call' }));
+  f.streams[1].fail(new Error('Old account error'));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(settled, false);
+  assert.equal(f.streams.length, 3);
+  f.streams[2].receive(f.document({ callId: null }));
+  assert.equal((await next).call, null);
 });

@@ -1,10 +1,10 @@
 import { KeyboardScrollView } from '@/components/keyboard_scroll_view';
 import { AppTextInput as TextInput } from '@/components/app_text_input';
 import { NavigationIcon } from '@/components/navigation_icon';
-import { useState, useSyncExternalStore } from 'react';
+import { memo, useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketplaceBottomBar } from '@/components/marketplace_bottom_bar';
@@ -27,18 +27,18 @@ function Icon({ name, size = 19, color = forest }: { name: IconName; size?: numb
   return <SymbolView name={name} size={size} tintColor={color} />;
 }
 
-function ConversationCard({
+const ConversationCard = memo(function ConversationCard({
   conversation,
   onPress,
 }: {
   conversation: Conversation;
-  onPress: () => void;
+  onPress: (conversation: Conversation) => void;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Open conversation with ${conversation.participant}${conversation.unreadCount > 0 ? `, ${conversation.unreadCount} unread messages` : ''}`}
-      onPress={onPress}
+      onPress={() => onPress(conversation)}
       style={styles.card}
     >
       <View style={styles.avatar}><Text style={styles.avatarText}>{conversation.initials}</Text></View>
@@ -62,7 +62,7 @@ function ConversationCard({
       </View>
     </Pressable>
   );
-}
+});
 
 type MessagesScreenProps = {
   initialSide?: ConversationSide;
@@ -77,7 +77,8 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
   const [query, setQuery] = useState('');
   const [newMessageOpen, setNewMessageOpen] = useState(false);
   const snapshot = useSyncExternalStore(service.subscribe, service.getSnapshot, service.getSnapshot);
-  const conversations = filterConversations(snapshot.conversations, side, query);
+  const conversations = useMemo(() => filterConversations(snapshot.conversations, side, query), [snapshot.conversations, side, query]);
+  const renderConversation = useCallback(({ item }: { item: Conversation }) => <ConversationCard conversation={item} onPress={onOpenConversation} />, [onOpenConversation]);
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.background}>
@@ -88,11 +89,18 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
           <Pressable accessibilityRole="button" onPress={() => setNewMessageOpen(true)} style={styles.newButton}><Text style={styles.newButtonText}>New message</Text></Pressable>
         </View>
 
-        <KeyboardScrollView
+        <FlatList<Conversation>
+          style={styles.list}
+          data={conversations}
+          keyExtractor={(item) => item.id}
+          renderItem={renderConversation}
+          renderScrollComponent={(props) => <KeyboardScrollView {...props} />}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-        >
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          ListHeaderComponent={<View>
           {!!notice && <Text accessibilityRole="alert" style={styles.notice}>{notice}</Text>}
           <View style={styles.connectionRow}>
             <Text style={styles.connectionText}>{snapshot.status === 'live' ? 'Live messaging' : snapshot.status === 'connecting' ? 'Connecting…' : 'Reconnecting…'}</Text>
@@ -144,17 +152,9 @@ export function MessagesScreen({ service, onOpenConversation, initialSide = 'buy
             </Text>
           </View>
 
-          {conversations.length > 0 ? conversations.map((conversation) => (
-            <ConversationCard
-              key={conversation.id}
-              conversation={conversation}
-              onPress={() => onOpenConversation(conversation)}
-            />
-          )) : (
-            <Text style={styles.emptyState}>{query ? 'No conversations match your search.' : 'No conversations yet. Tap New message to contact another user.'}</Text>
-          )}
-
-        </KeyboardScrollView>
+          </View>}
+          ListEmptyComponent={<Text style={styles.emptyState}>{query ? 'No conversations match your search.' : 'No conversations yet. Tap New message to contact another user.'}</Text>}
+        />
 
         <MarketplaceBottomBar activeTab="messages" bottomInset={insets.bottom} />
         {newMessageOpen && <NewMessageDialog service={service} visible onClose={() => setNewMessageOpen(false)} onOpen={onOpenConversation} />}
@@ -176,6 +176,7 @@ const styles = StyleSheet.create({
   retryText: { color: forest, fontSize: 14, lineHeight: 19, fontWeight: '700' },
   notice: { color: '#795715', backgroundColor: '#fff7e4', padding: 12, borderRadius: 12, fontSize: 13, lineHeight: 19, marginBottom: 12 },
   content: { paddingHorizontal: 15, paddingTop: 14, paddingBottom: 24 },
+  list: { flex: 1 },
   segmentedControl: { minHeight: 46, borderRadius: 13, padding: 4, flexDirection: 'row', backgroundColor: '#eef7f3' },
   segment: { flex: 1, minWidth: 0, minHeight: 44, paddingHorizontal: 8, paddingVertical: 8, borderRadius: 9, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 7 },
   segmentSelected: { backgroundColor: forest },

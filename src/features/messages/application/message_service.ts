@@ -1,9 +1,10 @@
 import { filterConversations, type Conversation, type ConversationSide } from '../domain/conversation';
 import type { ChatMessage, ChatUser, MessageRepository } from '../domain/message_repository';
 
-export type ChatThread = { messages: readonly ChatMessage[]; loading: boolean; hasMore: boolean; syncedThrough: number; error: string };
+export type PendingMessage = ChatMessage & { delivery: 'sending' | 'failed'; error: string };
+export type ChatThread = { messages: readonly ChatMessage[]; pending: readonly PendingMessage[]; loading: boolean; hasMore: boolean; syncedThrough: number; error: string };
 export type MessageSnapshot = { conversations: readonly Conversation[]; threads: Readonly<Record<string, ChatThread>>; status: 'signed-out' | 'connecting' | 'live' | 'offline'; error: string };
-export const emptyThread: ChatThread = { messages: [], loading: false, hasMore: false, syncedThrough: 0, error: '' };
+export const emptyThread: ChatThread = { messages: [], pending: [], loading: false, hasMore: false, syncedThrough: 0, error: '' };
 type SellerContact = { id: string; title: string; seller: string; sellerId?: string; verified?: boolean };
 export type MessageService = {
   subscribe(listener: () => void): () => void;
@@ -31,6 +32,7 @@ export function createMessageService(repository: MessageRepository): MessageServ
   let accountKey = '';
   let userId = '';
   let epoch = 0;
+  let accountVersion = 0;
   let foreground = true;
   let controller: AbortController | null = null;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -39,8 +41,14 @@ export function createMessageService(repository: MessageRepository): MessageServ
   let watchOwner = 0;
   let threadWatchVersion = 0;
   let stopThreadWatch: (() => void) | undefined;
+  let threadRetryTimer: ReturnType<typeof setTimeout> | undefined;
+  let threadFailures = 0;
   const threadRequests = new Map<string, Promise<void>>();
   const readRequests = new Map<string, number>();
+  const sendRequests = new Map<string, Promise<ChatMessage>>();
+  const sendTails = new Map<string, Promise<ChatMessage>>();
+  const sendConfirmations = new Map<string, (message: ChatMessage) => void>();
+  const sendKey = (id: string, clientId: string) => JSON.stringify([id, clientId]);
   function publish(next: MessageSnapshot) { snapshot = next; listeners.forEach((listener) => listener()); }
   function updateThread(id: string, next: ChatThread) { publish({ ...snapshot, threads: { ...snapshot.threads, [id]: next } }); }
   function merge(id: string, incoming: readonly ChatMessage[], extra: Partial<ChatThread> = {}) {
@@ -52,12 +60,16 @@ export function createMessageService(repository: MessageRepository): MessageServ
         || previous.createdAt !== message.createdAt || previous.clientId !== message.clientId || previous.conversationId !== message.conversationId) unique.set(message.id, message);
     }
     const messages = [...unique.values()].sort((a, b) => a.seq - b.seq);
-    const next = { ...current, ...extra, messages };
+    const confirmed = new Set(incoming.filter((message) => message.senderId === userId).map((message) => message.clientId));
+    const pending = current.pending.some((message) => confirmed.has(message.clientId))
+      ? current.pending.filter((message) => !confirmed.has(message.clientId)) : current.pending;
+    const next = { ...current, ...extra, messages, pending };
     if (messages.length === current.messages.length && messages.every((message, index) => message === current.messages[index])
-      && next.loading === current.loading && next.hasMore === current.hasMore && next.syncedThrough === current.syncedThrough && next.error === current.error) return;
+      && pending === current.pending && next.loading === current.loading && next.hasMore === current.hasMore && next.syncedThrough === current.syncedThrough && next.error === current.error) return;
     updateThread(id, next);
+    for (const message of incoming) if (message.senderId === userId) sendConfirmations.get(sendKey(id, message.clientId))?.(message);
   }
-  function stopThreadListener() { threadWatchVersion++; stopThreadWatch?.(); stopThreadWatch = undefined; }
+  function stopThreadListener() { threadWatchVersion++; clearTimeout(threadRetryTimer); threadRetryTimer = undefined; stopThreadWatch?.(); stopThreadWatch = undefined; }
   function stop() { epoch++; controller?.abort(); controller = null; clearTimeout(retryTimer); retryTimer = undefined; stopThreadListener(); }
   function latestSeq(id: string) {
     const messages = snapshot.threads[id]?.messages;
@@ -103,8 +115,9 @@ export function createMessageService(repository: MessageRepository): MessageServ
     threadRequests.set(id, task);
     return task;
   }
-  function startThreadListener(id: string) {
+  function startThreadListener(id: string, retry = false) {
     stopThreadListener();
+    if (!retry) threadFailures = 0;
     if (!userId || !foreground) return;
     if (!repository.watchMessages) {
       if (!snapshot.threads[id] || snapshot.threads[id].syncedThrough < latestSeq(id)) void loadThread(id);
@@ -114,10 +127,17 @@ export function createMessageService(repository: MessageRepository): MessageServ
     const version = threadWatchVersion;
     const isCurrent = () => requestEpoch === epoch && version === threadWatchVersion && watchedId === id;
     updateThread(id, { ...(snapshot.threads[id] ?? emptyThread), loading: true, error: '' });
-    const fail = (error: Error) => { if (isCurrent()) updateThread(id, { ...(snapshot.threads[id] ?? emptyThread), loading: false, error: error.message || 'Unable to load messages.' }); };
+    let failed = false;
+    const fail = (error: Error) => {
+      if (!isCurrent() || failed) return;
+      failed = true;
+      updateThread(id, { ...(snapshot.threads[id] ?? emptyThread), loading: false, error: error.message || 'Unable to load messages.' });
+      threadRetryTimer = setTimeout(() => { if (isCurrent()) startThreadListener(id, true); }, Math.min(15000, 1000 * 2 ** threadFailures++));
+    };
     try {
       const unsubscribe = repository.watchMessages(id, (page) => {
-        if (!isCurrent()) return;
+        if (!isCurrent() || failed) return;
+        threadFailures = 0;
         const current = snapshot.threads[id] ?? emptyThread;
         const first = page.messages[0]?.seq ?? 0;
         const last = page.messages[page.messages.length - 1]?.seq ?? 0;
@@ -147,10 +167,13 @@ export function createMessageService(repository: MessageRepository): MessageServ
           const previous = new Map(snapshot.conversations.map((conversation) => [conversation.id, conversation]));
           const conversations = result.conversations.map((conversation) => {
             const cached = previous.get(conversation.id);
-            return { ...conversation, time: cached?.updatedAt === conversation.updatedAt ? cached?.time ?? ''
+            const next = { ...conversation, time: cached?.updatedAt === conversation.updatedAt ? cached?.time ?? ''
               : conversation.updatedAt ? new Date(conversation.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '' };
+            return cached && Object.keys(cached).length === Object.keys(next).length
+              && Object.keys(next).every((key) => cached[key as keyof Conversation] === next[key as keyof Conversation]) ? cached : next;
           });
-          publish({ ...snapshot, conversations, status: 'live', error: '' });
+          if (snapshot.status !== 'live' || snapshot.error || conversations.length !== snapshot.conversations.length
+            || conversations.some((conversation, index) => conversation !== snapshot.conversations[index])) publish({ ...snapshot, conversations, status: 'live', error: '' });
           if (watchedId && !repository.watchMessages && conversations.some((conversation) => conversation.id === watchedId)
             && (!snapshot.threads[watchedId] || snapshot.threads[watchedId].syncedThrough < latestSeq(watchedId))) void loadThread(watchedId);
         } catch (error) {
@@ -177,18 +200,18 @@ export function createMessageService(repository: MessageRepository): MessageServ
     badgeCount: (side: ConversationSide) => snapshot.conversations.filter((conversation) => conversation.side === side).reduce((sum, conversation) => sum + conversation.unreadCount, 0),
     connect(nextUserId: string, nextAccountKey: string) {
       if (accountKey === nextAccountKey) return;
-      stop(); accountKey = nextAccountKey; userId = nextUserId; cursor = null; watchedId = null; watchOwner++;
-      threadRequests.clear(); readRequests.clear();
+      stop(); accountVersion++; accountKey = nextAccountKey; userId = nextUserId; cursor = null; watchedId = null; watchOwner++;
+      threadRequests.clear(); readRequests.clear(); sendRequests.clear(); sendTails.clear(); sendConfirmations.clear();
       publish({ conversations: [], threads: {}, status: userId ? 'connecting' : 'signed-out', error: '' }); start();
     },
     setActive(active: boolean) {
       if (foreground === active) return;
-      foreground = active; stop(); threadRequests.clear();
+      foreground = active; stop(); threadRequests.clear(); readRequests.clear();
       // Finish interrupted loading states so a retry can run on foreground.
       publish({ ...snapshot, threads: Object.fromEntries(Object.entries(snapshot.threads).map(([id, thread]) => [id, { ...thread, loading: false }])), status: userId ? active ? 'connecting' : 'offline' : 'signed-out' });
       if (active) { cursor = null; start(); }
     },
-    reconnect() { stop(); threadRequests.clear(); cursor = null; start(); },
+    reconnect() { stop(); threadRequests.clear(); readRequests.clear(); cursor = null; start(); },
     watch(id: string) {
       watchedId = id;
       const owner = ++watchOwner;
@@ -211,13 +234,48 @@ export function createMessageService(repository: MessageRepository): MessageServ
     async send(id: string, text: string, clientId: string) {
       ensureSignedIn();
       const trimmed = text.trim(); if (!trimmed || trimmed.length > 2000) throw new Error('Enter a message with up to 2,000 characters.');
-      const requestEpoch = epoch; const message = await repository.send(id, trimmed, clientId);
-      if (requestEpoch !== epoch) throw new Error('Please check the conversation before trying again.');
-      merge(id, [message]); return message;
+      const key = sendKey(id, clientId);
+      const confirmed = () => snapshot.threads[id]?.messages.find((message) => message.senderId === userId && message.clientId === clientId);
+      const current = snapshot.threads[id] ?? emptyThread;
+      const existing = confirmed() ?? current.pending.find((message) => message.clientId === clientId);
+      if (existing && existing.text !== trimmed) throw new Error('This message request was already used.');
+      if (sendRequests.has(key)) return sendRequests.get(key)!;
+      if (existing && !('delivery' in existing)) return existing;
+      const pending: PendingMessage = { id: clientId, seq: 0, conversationId: id, senderId: userId, clientId, text: trimmed,
+        createdAt: existing?.createdAt ?? new Date().toISOString(), delivery: 'sending', error: '' };
+      updateThread(id, { ...current, pending: existing ? current.pending.map((message) => message.clientId === clientId ? pending : message) : [...current.pending, pending] });
+      const requestAccount = accountVersion;
+      const isCurrent = () => requestAccount === accountVersion;
+      // Preserve typing order without making the composer wait for a network round trip.
+      const previous = sendTails.get(id) ?? Promise.resolve();
+      const task = previous.catch(() => {}).then(async () => {
+        if (!isCurrent()) throw new Error('Your account changed. Please check the conversation.');
+        const saved = confirmed(); if (saved) return saved;
+        const liveConfirmation = new Promise<ChatMessage>((resolve) => { sendConfirmations.set(key, resolve); });
+        try {
+          // A live server confirmation can arrive before the HTTP response.
+          const message = await Promise.race([repository.send(id, trimmed, clientId), liveConfirmation]);
+          if (!isCurrent()) throw new Error('Your account changed. Please check the conversation.');
+          merge(id, [message]); return message;
+        } catch (error) {
+          if (isCurrent()) {
+            const saved = confirmed(); if (saved) return saved;
+            const thread = snapshot.threads[id] ?? emptyThread;
+            updateThread(id, { ...thread, pending: thread.pending.map((message) => message.clientId === clientId
+              ? { ...message, delivery: 'failed', error: error instanceof Error ? error.message : 'Message was not sent.' } : message) });
+          }
+          throw error;
+        } finally { if (isCurrent()) sendConfirmations.delete(key); }
+      }).finally(() => {
+        if (sendRequests.get(key) === task) sendRequests.delete(key);
+        if (sendTails.get(id) === task) sendTails.delete(id);
+      });
+      sendRequests.set(key, task); sendTails.set(id, task);
+      return task;
     },
     async markRead(id: string, throughSeq: number) {
       const conversation = snapshot.conversations.find((item) => item.id === id);
-      if (!userId || !throughSeq || throughSeq <= (conversation?.readSeq ?? 0) || throughSeq <= (readRequests.get(id) ?? 0)) return;
+      if (!userId || !foreground || !throughSeq || throughSeq <= (conversation?.readSeq ?? 0) || throughSeq <= (readRequests.get(id) ?? 0)) return;
       const requestEpoch = epoch; readRequests.set(id, throughSeq);
       try { await repository.read(id, throughSeq); }
       catch { /* Retry when the next sync or foreground refresh confirms the thread. */ }
